@@ -1,0 +1,46 @@
+# Labels pour GitHub Issues et Pull Requests
+- name: bug
+  color: d73a4a
+  description: "Quelque chose ne fonctionne pas"
+- name: enhancement
+  color: a2eeef
+  description: "Nouvelle feature ou demande d'amélioration"
+- name: documentation
+  color: 0075ca
+  description: "Améliorations ou ajouts à la documentation"
+- name: good first issue
+  color: 7057ff
+  description: "Bon pour les nouveaux contributeurs"
+- name: help wanted
+  color: 008672
+  description: "Aide extra nécessaire"
+- name: priority: high
+  color: ff0000
+  description: "Priorité élevée"
+- name: priority: medium
+  color: ffa500
+  description: "Priorité moyenne"
+- name: priority: low
+  color: 00ff00
+  description: "Priorité faible"
+- name: status: in progress
+  color: ffb347
+  description: "En cours de développement"
+- name: status: needs review
+  color: 0066cc
+  description: "Nécessite une review"
+- name: status: ready
+  color: 00cc66
+  description: "Prêt pour le merge"
+- name: type: frontend
+  color: 8b5cf6
+  description: "Changements frontend"
+- name: type: backend
+  color: 10b981
+  description: "Changements backend"
+- name: type: database
+  color: f59e0b
+  description: "Changements base de données"
+- name: type: ci/cd
+  color: 3b82f6
+  description: "Changements CI/CD"

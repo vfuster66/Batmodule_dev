@@ -14,6 +14,13 @@
 - 🗂️ **Archivage** : Stockage sécurisé avec hash SHA-256
 - 📈 **Tableau de bord** : Conformité en temps réel
 
+## 🌳 Workflow Git
+
+- **`main`** : Branche de production (stable, déployée)
+- **`dev`** : Branche de développement (intégration des features)
+
+Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour le guide complet de contribution.
+
 ## 🚀 Installation
 
 ### Prérequis
@@ -27,7 +34,11 @@
 
 ```bash
 # 1. Cloner le projet
-git clone <repository-url>
+git clone git@github.com:vfuster66/Batmodule_dev.git
+cd BatModule
+
+# 2. Basculer sur la branche de développement
+git checkout dev
 cd BatModule
 
 # 2. Installer les dépendances

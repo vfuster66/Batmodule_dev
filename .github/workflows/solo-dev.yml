@@ -1,0 +1,23 @@
+name: Solo Development Workflow
+
+on:
+  pull_request:
+    branches: [main, dev]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  solo-dev-checks:
+    name: Solo Development Checks
+    runs-on: ubuntu-latest
+    if: github.actor == 'vfuster66'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Solo dev notification
+        run: |
+          echo "🛠️ Solo development PR detected"
+          echo "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+          echo "Author: ${{ github.event.pull_request.user.login }}"
+          echo "Ready for manual merge when CI passes ✅"

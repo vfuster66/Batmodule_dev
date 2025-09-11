@@ -1,43 +1,47 @@
 {
-    "name": "batmodule",
-    "version": "1.0.0",
-    "description": "Application SaaS pour artisans du bâtiment - Gestion clients, devis, factures",
-    "main": "index.js",
-    "scripts": {
-        "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-        "dev:frontend": "cd frontend && npm run dev",
-        "dev:backend": "cd backend && npm run dev",
-        "build": "cd frontend && npm run build",
-        "start": "cd backend && npm start",
-        "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
-        "prepare": "husky install",
-        "lint:staged": "lint-staged"
-    },
-    "keywords": [
-        "artisan",
-        "batiment",
-        "devis",
-        "factures",
-        "saas"
+  "name": "batmodule",
+  "version": "1.0.0",
+  "description": "Application SaaS pour artisans du bâtiment - Gestion clients, devis, factures",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "prepare": "husky install",
+    "lint:staged": "lint-staged",
+    "feature": "./scripts/solo-dev.sh create",
+    "finish": "./scripts/solo-dev.sh finish",
+    "merge": "./scripts/solo-dev.sh merge",
+    "deploy": "./scripts/solo-dev.sh deploy"
+  },
+  "keywords": [
+    "artisan",
+    "batiment",
+    "devis",
+    "factures",
+    "saas"
+  ],
+  "author": "Virginie",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2"
+  },
+  "lint-staged": {
+    "frontend/**/*.{js,ts,vue}": [
+      "cd frontend && npm run lint --fix",
+      "cd frontend && npm run format"
     ],
-    "author": "Virginie",
-    "license": "MIT",
-    "devDependencies": {
-        "concurrently": "^8.2.2",
-        "husky": "^9.1.7",
-        "lint-staged": "^15.5.2"
-    },
-    "lint-staged": {
-        "frontend/**/*.{js,ts,vue}": [
-            "cd frontend && npm run lint --fix",
-            "cd frontend && npm run format"
-        ],
-        "backend/**/*.js": [
-            "cd backend && npm run lint --fix",
-            "cd backend && npm run format"
-        ],
-        "*.{js,json,md}": [
-            "prettier --write"
-        ]
-    }
+    "backend/**/*.js": [
+      "cd backend && npm run lint --fix",
+      "cd backend && npm run format"
+    ],
+    "*.{js,json,md}": [
+      "npx prettier --write"
+    ]
+  }
 }

@@ -1,0 +1,47 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [main, dev]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-checks:
+    name: PR Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check PR title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR title: '$PR_TITLE'"
+          
+          # Simple validation: just check if title exists and is not too short
+          if [ -z "$PR_TITLE" ]; then
+            echo "❌ PR title cannot be empty"
+            exit 1
+          fi
+          
+          if [ ${#PR_TITLE} -lt 2 ]; then
+            echo "❌ PR title is too short (minimum 2 characters)"
+            exit 1
+          fi
+          
+          echo "✅ PR title is valid"
+
+      - name: Check for breaking changes
+        run: |
+          echo "ℹ️ Breaking changes check skipped for solo development"
+
+      - name: Check PR size
+        run: |
+          FILES_CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | wc -l)
+          echo "📊 PR size: $FILES_CHANGED files changed"
+          if [ $FILES_CHANGED -gt 100 ]; then
+            echo "⚠️ Very large PR detected - consider breaking into smaller PRs"
+          else
+            echo "✅ PR size is acceptable"
+          fi
