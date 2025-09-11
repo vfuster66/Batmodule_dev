@@ -81,7 +81,9 @@ finish_feature() {
     
     # Créer la PR
     print_message "Création de la PR vers 'dev'..."
-    gh pr create --base dev --head "$current_branch" --title "feat: $current_branch" --body "Feature: $current_branch
+    # Convertir le nom de branche en titre descriptif
+    title=$(echo "$current_branch" | sed 's/-/ /g' | sed 's/\b\w/\U&/g')
+    gh pr create --base dev --head "$current_branch" --title "feat: $title" --body "Feature: $title
 
 - [x] Code testé localement
 - [x] Lint/format OK (vérifié par pre-commit hook)
