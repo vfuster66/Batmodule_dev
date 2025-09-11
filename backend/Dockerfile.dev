@@ -1,0 +1,32 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Installer les dépendances système nécessaires pour Puppeteer
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Configurer Puppeteer pour utiliser Chromium installé
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer les dépendances
+RUN npm install
+
+# Copier le code source
+COPY . .
+
+# Exposer le port
+EXPOSE 3001
+
+# Commande par défaut
+CMD ["npm", "run", "dev"]

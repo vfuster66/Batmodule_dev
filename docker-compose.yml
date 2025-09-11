@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: batmodule
+      POSTGRES_USER: batmodule
+      POSTGRES_PASSWORD: batmodule123
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - batmodule-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    networks:
+      - batmodule-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://batmodule:batmodule123@postgres:5432/batmodule
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      # Configuration SMTP pour l'envoi d'email
+      # Pour le développement, utilisez Mailtrap (https://mailtrap.io/)
+      SMTP_HOST: ${SMTP_HOST:-sandbox.smtp.mailtrap.io}
+      SMTP_PORT: ${SMTP_PORT:-2525}
+      SMTP_USER: ${SMTP_USER:-your_mailtrap_username}
+      SMTP_PASS: ${SMTP_PASS:-your_mailtrap_password}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      MAIL_FROM: ${MAIL_FROM:-noreply@batmodule.local}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - batmodule-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - batmodule-network
+
+volumes:
+  postgres_data:
+
+networks:
+  batmodule-network:
+    driver: bridge

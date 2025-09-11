@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+
+# Env
+.env
+.env.*
+
+# Node
+node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+
+# Build
+dist/
+build/
+.vite/
+.cache/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+
+# Coverage
+coverage/
+
+# Database dumps/backups
+*.sql
+*.dump
+

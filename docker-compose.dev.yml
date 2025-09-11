@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: batmodule-postgres
+    environment:
+      POSTGRES_DB: batmodule
+      POSTGRES_USER: batmodule
+      POSTGRES_PASSWORD: batmodule123
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - batmodule-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U batmodule']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: batmodule-redis
+    ports:
+      - '6379:6379'
+    networks:
+      - batmodule-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: batmodule-backend
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://batmodule:batmodule123@postgres:5432/batmodule
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - batmodule-network
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: batmodule-frontend
+    ports:
+      - '3000:3000'
+    environment:      # Use Vite dev proxy; point it at backend from container
+      VITE_BACKEND_URL: http://backend:3001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - batmodule-network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+
+networks:
+  batmodule-network:
+    driver: bridge
