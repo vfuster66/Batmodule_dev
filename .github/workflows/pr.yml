@@ -34,16 +34,14 @@ jobs:
 
       - name: Check for breaking changes
         run: |
-          if [[ "${{ github.event.pull_request.title }}" =~ BREAKING CHANGE ]]; then
-            echo "⚠️ Breaking changes detected - ensure this is intentional"
-          fi
+          echo "ℹ️ Breaking changes check skipped for solo development"
 
       - name: Check PR size
         run: |
           FILES_CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | wc -l)
-          if [ $FILES_CHANGED -gt 50 ]; then
-            echo "⚠️ Large PR detected ($FILES_CHANGED files changed)"
-            echo "Consider breaking this into smaller PRs"
+          echo "📊 PR size: $FILES_CHANGED files changed"
+          if [ $FILES_CHANGED -gt 100 ]; then
+            echo "⚠️ Very large PR detected - consider breaking into smaller PRs"
           else
-            echo "✅ PR size is reasonable ($FILES_CHANGED files changed)"
+            echo "✅ PR size is acceptable"
           fi
