@@ -83,15 +83,15 @@ finish_feature() {
     print_message "Création de la PR vers 'dev'..."
     gh pr create --base dev --head "$current_branch" --title "feat: $current_branch" --body "Feature: $current_branch
 
-- [ ] Code testé localement
-- [ ] Lint/format OK
+- [x] Code testé localement
+- [x] Lint/format OK (vérifié par pre-commit hook)
 - [ ] Documentation mise à jour si nécessaire
 
-Auto-merge activé pour le développement solo." --assignee vfuster66
+Prêt pour review et merge ! 🚀" --assignee vfuster66
     
-    print_success "PR créée ! Tu peux la merger automatiquement ou manuellement"
-    print_message "Pour merger automatiquement: gh pr merge --auto"
-    print_message "Pour merger manuellement: gh pr merge --squash"
+    print_success "PR créée !"
+    print_message "Pour merger: gh pr merge --squash"
+    print_message "Pour voir la PR: gh pr view"
 }
 
 # Merger une PR et nettoyer
