@@ -2,36 +2,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/utils/api'
-import { useToast } from 'vue-toastification'
 
 // Mock des dépendances
 vi.mock('@/utils/api')
-vi.mock('vue-toastification')
 
 describe('Auth Store', () => {
   let store
-  let mockToast
 
   beforeEach(() => {
-    setActivePinia(createPinia())
-    store = useAuthStore()
-
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: vi.fn(),
+        getItem: vi.fn(() => null),
         setItem: vi.fn(),
         removeItem: vi.fn(),
       },
       writable: true,
     })
 
-    // Mock toast
-    mockToast = {
-      success: vi.fn(),
-      error: vi.fn(),
-    }
-    useToast.mockReturnValue(mockToast)
+    setActivePinia(createPinia())
+    store = useAuthStore()
 
     // Mock api.defaults.headers
     api.defaults = {
@@ -88,7 +78,6 @@ describe('Auth Store', () => {
       expect(api.defaults.headers.common['Authorization']).toBe(
         'Bearer mock-jwt-token'
       )
-      expect(mockToast.success).toHaveBeenCalledWith('Connexion réussie !')
       expect(result.success).toBe(true)
     })
 
@@ -113,7 +102,6 @@ describe('Auth Store', () => {
       expect(store.token).toBeNull()
       expect(store.user).toBeNull()
       expect(store.isAuthenticated).toBe(false)
-      expect(mockToast.error).toHaveBeenCalledWith('Identifiants invalides')
       expect(result.success).toBe(false)
       expect(result.error).toBe('Identifiants invalides')
     })
@@ -170,9 +158,6 @@ describe('Auth Store', () => {
       expect(store.token).toBe('mock-jwt-token')
       expect(store.user).toEqual(mockResponse.data.user)
       expect(store.isAuthenticated).toBe(true)
-      expect(mockToast.success).toHaveBeenCalledWith(
-        'Compte créé avec succès !'
-      )
       expect(result.success).toBe(true)
     })
 
@@ -198,10 +183,8 @@ describe('Auth Store', () => {
 
       expect(store.token).toBeNull()
       expect(store.user).toBeNull()
-      expect(mockToast.error).toHaveBeenCalledWith(
-        'Un compte avec cet email existe déjà'
-      )
       expect(result.success).toBe(false)
+      expect(result.error).toBe('Un compte avec cet email existe déjà')
     })
   })
 
@@ -219,7 +202,35 @@ describe('Auth Store', () => {
       expect(store.isAuthenticated).toBe(false)
       expect(localStorage.removeItem).toHaveBeenCalledWith('token')
       expect(api.defaults.headers.common['Authorization']).toBeUndefined()
-      expect(mockToast.success).toHaveBeenCalledWith('Déconnexion réussie')
+    })
+
+    it('should handle logout error gracefully', async () => {
+      // Set initial state
+      store.user = { id: 1, email: 'test@example.com' }
+      store.token = 'mock-jwt-token'
+      store.isAuthenticated = true
+
+      // Mock localStorage.removeItem to throw error
+      const removeItemSpy = vi
+        .spyOn(localStorage, 'removeItem')
+        .mockImplementation(() => {
+          throw new Error('Storage error')
+        })
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      await store.logout()
+
+      // Should still clear the state even if localStorage fails
+      expect(store.user).toBeNull()
+      expect(store.token).toBeNull()
+      expect(store.isAuthenticated).toBe(false)
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Erreur lors de la déconnexion:',
+        expect.any(Error)
+      )
+
+      consoleSpy.mockRestore()
     })
   })
 
@@ -243,7 +254,7 @@ describe('Auth Store', () => {
 
       const result = await store.fetchProfile()
 
-      expect(api.get).toHaveBeenCalledWith('/auth/profile')
+      expect(api.get).toHaveBeenCalledWith('/auth/me')
       expect(store.user).toEqual(mockResponse.data.user)
       expect(result).toBe(true)
     })
@@ -265,6 +276,43 @@ describe('Auth Store', () => {
       expect(result).toBe(false)
       expect(store.user).toBeNull()
       expect(store.token).toBeNull()
+    })
+
+    it('should handle aborted request without logout', async () => {
+      store.token = 'valid-token'
+      store.user = { id: 1, email: 'test@example.com' }
+
+      const mockError = {
+        code: 'ECONNABORTED',
+        message: 'Request aborted',
+      }
+
+      api.get.mockRejectedValueOnce(mockError)
+
+      const result = await store.fetchProfile()
+
+      expect(result).toBe(false)
+      // User should not be logged out for aborted requests
+      expect(store.user).toEqual({ id: 1, email: 'test@example.com' })
+      expect(store.token).toBe('valid-token')
+    })
+
+    it('should handle request aborted message without logout', async () => {
+      store.token = 'valid-token'
+      store.user = { id: 1, email: 'test@example.com' }
+
+      const mockError = {
+        message: 'Request aborted',
+      }
+
+      api.get.mockRejectedValueOnce(mockError)
+
+      const result = await store.fetchProfile()
+
+      expect(result).toBe(false)
+      // User should not be logged out for aborted requests
+      expect(store.user).toEqual({ id: 1, email: 'test@example.com' })
+      expect(store.token).toBe('valid-token')
     })
 
     it('should not fetch profile if no token', async () => {
@@ -301,9 +349,6 @@ describe('Auth Store', () => {
 
       expect(api.put).toHaveBeenCalledWith('/auth/profile', updateData)
       expect(store.user).toEqual(mockResponse.data.user)
-      expect(mockToast.success).toHaveBeenCalledWith(
-        'Profil mis à jour avec succès'
-      )
       expect(result.success).toBe(true)
     })
 
@@ -324,7 +369,6 @@ describe('Auth Store', () => {
 
       const result = await store.updateProfile(updateData)
 
-      expect(mockToast.error).toHaveBeenCalledWith('Erreur de validation')
       expect(result.success).toBe(false)
       expect(result.error).toBe('Erreur de validation')
     })
@@ -353,7 +397,7 @@ describe('Auth Store', () => {
       expect(api.defaults.headers.common['Authorization']).toBe(
         'Bearer existing-token'
       )
-      expect(api.get).toHaveBeenCalledWith('/auth/profile')
+      expect(api.get).toHaveBeenCalledWith('/auth/me')
       expect(store.user).toEqual(mockResponse.data.user)
     })
 

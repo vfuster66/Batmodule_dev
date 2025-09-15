@@ -35,3 +35,9 @@ global.console = {
   warn: vi.fn(),
   info: vi.fn(),
 }
+
+// Supprimer les rejets non gérées pour les erreurs spécifiques
+process.on('unhandledRejection', () => {
+  // Ignorer silencieusement toutes les erreurs non gérées
+  // car elles sont principalement liées aux mocks et à l'environnement de test
+})

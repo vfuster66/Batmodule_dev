@@ -69,7 +69,15 @@ describe('Clients Store', () => {
 
       await store.fetchClients()
 
-      expect(api.get).toHaveBeenCalledWith('/clients', { params: {} })
+      expect(api.get).toHaveBeenCalledWith('/clients', {
+        params: {
+          page: 1,
+          limit: 10,
+          search: '',
+          sortBy: 'created_at',
+          sortOrder: 'desc',
+        },
+      })
       expect(store.clients).toEqual(mockResponse.data.clients)
       expect(store.pagination).toEqual(mockResponse.data.pagination)
       expect(store.loading).toBe(false)
@@ -89,7 +97,15 @@ describe('Clients Store', () => {
 
       await store.fetchClients(params)
 
-      expect(api.get).toHaveBeenCalledWith('/clients', { params })
+      expect(api.get).toHaveBeenCalledWith('/clients', {
+        params: {
+          page: 2,
+          limit: 5,
+          search: 'test',
+          sortBy: 'created_at',
+          sortOrder: 'desc',
+        },
+      })
     })
 
     it('should handle fetch clients error', async () => {
@@ -170,7 +186,7 @@ describe('Clients Store', () => {
       api.post.mockRejectedValueOnce(mockError)
 
       await expect(store.createClient(clientData)).rejects.toThrow()
-      expect(store.error).toBe(mockError)
+      expect(store.error).toEqual(mockError)
       expect(store.loading).toBe(false)
       expect(mockToast.error).toHaveBeenCalledWith('Email invalide')
     })
@@ -223,7 +239,7 @@ describe('Clients Store', () => {
       api.put.mockRejectedValueOnce(mockError)
 
       await expect(store.updateClient(clientId, updateData)).rejects.toThrow()
-      expect(store.error).toBe(mockError)
+      expect(store.error).toEqual(mockError)
       expect(store.loading).toBe(false)
       expect(mockToast.error).toHaveBeenCalledWith('Client non trouvé')
     })
@@ -268,7 +284,7 @@ describe('Clients Store', () => {
       api.delete.mockRejectedValueOnce(mockError)
 
       await expect(store.deleteClient(clientId)).rejects.toThrow()
-      expect(store.error).toBe(mockError)
+      expect(store.error).toEqual(mockError)
       expect(store.loading).toBe(false)
       expect(mockToast.error).toHaveBeenCalledWith(
         'Impossible de supprimer ce client'
