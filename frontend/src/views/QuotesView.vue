@@ -268,6 +268,26 @@
                       </svg>
                     </button>
                     <button
+                      v-if="quote.status === 'accepted'"
+                      @click="openAdvanceModal(quote)"
+                      class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
+                      title="Créer une facture d'acompte"
+                    >
+                      <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8c-1.657 0-3 1.343-3 3v6a3 3 0 106 0v-6a3 3 0 00-3-3z"
+                        />
+                      </svg>
+                    </button>
+                    <button
                       v-if="quote.status !== 'accepted'"
                       @click="editQuote(quote.id)"
                       class="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300"
@@ -340,6 +360,45 @@
       </div>
     </div>
   </Layout>
+  <!-- Modal facture d'acompte -->
+  <div v-if="showAdvanceModal" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Créer une facture d'acompte</h3>
+        <button @click="closeAdvanceModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Titre</label>
+          <input v-model="advanceForm.title" type="text" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Montant d'acompte (€)</label>
+          <input v-model.number="advanceForm.advanceAmount" type="number" min="0.01" step="0.01" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Montant total (€)</label>
+          <input v-model.number="advanceForm.totalAmount" type="number" min="0.01" step="0.01" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Échéance</label>
+          <input v-model="advanceForm.dueDate" type="date" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">N° Bon de commande (optionnel)</label>
+          <input v-model="advanceForm.purchaseOrderNumber" type="text" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Notes (optionnel)</label>
+          <textarea v-model="advanceForm.notes" rows="2" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"></textarea>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+        <button @click="closeAdvanceModal" class="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">Annuler</button>
+        <button @click="submitAdvance" :disabled="!canSubmitAdvance" class="px-4 py-2 rounded-md bg-purple-600 text-white disabled:opacity-50">Créer</button>
+      </div>
+    </div>
+  </div>
   <!-- Modal création devis -->
   <div
     v-if="showCreateModal"
@@ -1309,13 +1368,27 @@ const toast = useToast()
 // Par défaut: flux en étapes (Client → Détails → Sections)
 const simpleMode = ref(false)
 
+// Acompte
+const showAdvanceModal = ref(false)
+const selectedQuote = ref(null)
+const advanceForm = ref({
+  clientId: '',
+  quoteId: '',
+  title: '',
+  advanceAmount: 0,
+  totalAmount: 0,
+  dueDate: '',
+  notes: '',
+  purchaseOrderNumber: '',
+})
+
 const searchTerm = ref('')
 const statusFilter = ref('')
 const services = ref([])
 const selectedServiceIdPerSection = ref({})
 
 const handleSearch = () => {
-  quotesStore.searchClients(searchTerm.value)
+  quotesStore.fetchQuotes({ search: searchTerm.value, page: 1 })
 }
 
 const handleStatusFilter = () => {
@@ -1752,6 +1825,41 @@ const convertToInvoice = async (quoteId) => {
   } catch (error) {
     console.error('Erreur conversion devis → facture:', error)
   }
+}
+
+function openAdvanceModal(quote) {
+  selectedQuote.value = quote
+  const today = new Date()
+  const due = new Date(today)
+  due.setDate(today.getDate() + 30)
+  advanceForm.value = {
+    clientId: quote.clientId,
+    quoteId: quote.id,
+    title: `Acompte – ${quote.title || quote.quoteNumber}`,
+    advanceAmount: Number(((quote.totalTtc || 0) * 0.3).toFixed(2)),
+    totalAmount: Number(quote.totalTtc || 0),
+    dueDate: due.toISOString().slice(0, 10),
+    notes: `Acompte pour le devis ${quote.quoteNumber}`,
+    purchaseOrderNumber: '',
+  }
+  showAdvanceModal.value = true
+}
+function closeAdvanceModal() {
+  showAdvanceModal.value = false
+}
+const canSubmitAdvance = computed(() => {
+  const f = advanceForm.value
+  return (
+    !!f.clientId && !!f.title && f.advanceAmount > 0 && f.totalAmount > 0 && !!f.dueDate
+  )
+})
+async function submitAdvance() {
+  try {
+    const created = await invoicesStore.createAdvanceInvoice({ ...advanceForm.value })
+    closeAdvanceModal()
+    await quotesStore.fetchQuotes()
+    if (created?.id) router.push(`/invoices/${created.id}`)
+  } catch (_) {}
 }
 
 const saveItemToCatalog = async (it) => {

@@ -103,7 +103,71 @@ export const useInvoicesStore = defineStore('invoices', {
     // Utiliser un avoir à la place
 
     async updateStatus(id, status) {
-      return this.updateInvoice(id, { status })
+      // Utilise l'endpoint dédié côté backend
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await api.put(`/invoices/${id}/status`, { status })
+        // Mettre à jour localement si présent
+        const idx = this.invoices.findIndex((i) => i.id === id)
+        if (idx !== -1) {
+          this.invoices[idx] = {
+            ...this.invoices[idx],
+            status: data.status,
+            updatedAt: data.updatedAt,
+          }
+        }
+        if (this.currentInvoice?.id === id) {
+          this.currentInvoice = {
+            ...this.currentInvoice,
+            status: data.status,
+            updatedAt: data.updatedAt,
+          }
+        }
+        useToast().success('Statut de la facture mis à jour')
+        return data
+      } catch (error) {
+        this.error = error
+        useToast().error(
+          'Erreur lors de la mise à jour du statut de la facture.'
+        )
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async addPayment(id, payload) {
+      // payload: { amount, paymentMethod, paymentDate, reference?, notes? }
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await api.post(`/invoices/${id}/payments`, payload)
+        // Rafraîchir la facture courante si affichée
+        if (this.currentInvoice?.id === id) {
+          // Augmente paidAmount et pousse le paiement dans la liste locale si présente
+          const curr = this.currentInvoice
+          const newPaid =
+            Number(curr.paidAmount || 0) + Number(data.payment.amount || 0)
+          this.currentInvoice = {
+            ...curr,
+            paidAmount: newPaid,
+            status:
+              newPaid >= Number(curr.totalTtc || 0) ? 'paid' : curr.status,
+            payments: Array.isArray(curr.payments)
+              ? [data.payment, ...curr.payments]
+              : [data.payment],
+          }
+        }
+        useToast().success('Paiement enregistré')
+        return data.payment
+      } catch (error) {
+        this.error = error
+        useToast().error("Erreur lors de l'ajout du paiement")
+        throw error
+      } finally {
+        this.loading = false
+      }
     },
 
     async downloadPdf(id) {
@@ -139,6 +203,76 @@ export const useInvoicesStore = defineStore('invoices', {
       } catch (error) {
         this.error = error
         useToast().error('Erreur lors de la conversion du devis en facture.')
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async createAdvanceInvoice(payload) {
+      // payload: { clientId, quoteId?, title, description?, advanceAmount, totalAmount, dueDate, notes?, purchaseOrderNumber? }
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await api.post('/invoices/advance', payload)
+        const created = data.invoice
+        if (created) this.invoices.unshift(created)
+        useToast().success("Facture d'acompte créée !")
+        return created
+      } catch (error) {
+        this.error = error
+        useToast().error("Erreur lors de la création de la facture d'acompte")
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async archiveInvoice(id) {
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await api.post(`/invoices/${id}/archive`)
+        useToast().success('Facture archivée avec succès')
+        return data
+      } catch (error) {
+        this.error = error
+        useToast().error("Erreur lors de l'archivage de la facture")
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async verifyInvoice(id) {
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await api.get(`/invoices/${id}/verify`)
+        useToast().success('Vérification effectuée')
+        return data
+      } catch (error) {
+        this.error = error
+        useToast().error('Erreur lors de la vérification de la facture')
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async createFinalInvoice(payload) {
+      // payload: { clientId, quoteId?, parentInvoiceId, title, description?, items:[{description,quantity,unitPriceHt,vatRate}], dueDate, notes?, purchaseOrderNumber? }
+      this.loading = true
+      this.error = null
+      try {
+        const { data } = await api.post('/invoices/final', payload)
+        const created = data.invoice
+        if (created) this.invoices.unshift(created)
+        useToast().success('Facture de solde créée !')
+        return data
+      } catch (error) {
+        this.error = error
+        useToast().error('Erreur lors de la création de la facture de solde')
         throw error
       } finally {
         this.loading = false
