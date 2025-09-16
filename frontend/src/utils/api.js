@@ -47,6 +47,7 @@ const sanitizeAxiosError = (err) => {
   if (!err || typeof err !== 'object') return err
   const safe = { ...err }
   if (safe.config) {
+    // eslint-disable-next-line no-unused-vars
     const { transformRequest, transformResponse, adapter, ...rest } =
       safe.config
     safe.config = rest

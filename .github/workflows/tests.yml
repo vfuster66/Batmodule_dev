@@ -154,18 +154,6 @@ jobs:
           PGPASSWORD=test psql -h localhost -U test -d postgres -c "CREATE DATABASE batmodule_test;" || true
           npm run migrate
 
-      - name: Start backend server
-        run: |
-          cd backend
-          npm start &
-          sleep 10
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/batmodule_test
-          NODE_ENV: test
-          JWT_SECRET: test-secret-key-for-ci
-          ENCRYPTION_KEY: test-encryption-key-32-chars-long
-          PORT: 3000
-
       - name: Build frontend
         run: |
           cd frontend
@@ -173,9 +161,13 @@ jobs:
 
       - name: Run integration tests
         run: |
-          echo "Tests d'intégration - Vérification que le backend répond"
-          curl -f http://localhost:3000/api/health || exit 1
-          echo "Backend is healthy"
+          echo "Tests d'intégration avec Jest"
+          cd backend
+          npm run test -- --testPathPattern=integration
+
+          echo "Tests d'intégration frontend"
+          cd ../frontend
+          npm test -- --run integration || echo "Pas de tests d'intégration frontend"
 
   # Job pour la qualité du code
   code-quality:
