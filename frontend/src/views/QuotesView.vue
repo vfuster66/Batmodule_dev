@@ -1453,9 +1453,7 @@ const services = ref([])
 const selectedServiceIdPerSection = ref({})
 
 const handleSearch = () => {
-  quotesStore
-    .fetchQuotes({ search: searchTerm.value, page: 1 })
-    .catch(() => {})
+  quotesStore.fetchQuotes({ search: searchTerm.value, page: 1 }).catch(() => {})
 }
 
 const handleStatusFilter = () => {
