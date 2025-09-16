@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
 const certificationsRouter = require('../../routes/certifications')
@@ -163,7 +164,7 @@ describe('Certifications Routes (service-based)', () => {
 
   describe('Authentication', () => {
     it('requires auth', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) =>
+      authenticateToken.mockImplementationOnce((req, res, _next) =>
         res.status(401).json({ error: 'Unauthorized' })
       )
       await request(app).get('/certifications').expect(401)

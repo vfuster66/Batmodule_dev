@@ -1,4 +1,4 @@
-const { query, transaction } = require('../config/database')
+const { query } = require('../config/database')
 
 class CompanySettingsService {
   /**
@@ -315,7 +315,6 @@ class CompanySettingsService {
    */
   calculateComplianceScore(settings) {
     let score = 0
-    const maxScore = 100
 
     // Champs obligatoires (60 points)
     const requiredFields = [

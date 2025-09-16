@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
 const btpRouter = require('../../routes/btp')
@@ -121,7 +122,7 @@ describe('BTP Routes (service-based)', () => {
 
   describe('Authentication', () => {
     it('requires auth', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) =>
+      authenticateToken.mockImplementationOnce((req, res, _next) =>
         res.status(401).json({ error: 'Unauthorized' })
       )
       await request(app).get('/btp/info').expect(401)

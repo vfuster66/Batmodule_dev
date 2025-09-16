@@ -1,9 +1,9 @@
 const request = require('supertest')
 const express = require('express')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
+// const bcrypt = require('bcryptjs') // Import non utilisé
+// const jwt = require('jsonwebtoken') // Import non utilisé
 const authRoutes = require('../../routes/auth')
-const { query } = require('../../config/database')
+// const { query } = require('../../config/database') // Import non utilisé
 const { errorHandler } = require('../../middleware/errorHandler')
 
 // Mock de la base de données

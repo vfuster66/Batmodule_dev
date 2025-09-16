@@ -1,119 +1,131 @@
-const { query, transaction } = require('../config/database');
-const PDFService = require('./pdfService');
+const { query } = require('../config/database')
+const PDFService = require('./pdfService')
 
 class VATAttestationService {
-    /**
-     * Génère une attestation TVA réduite
-     * @param {Object} attestationData - Données de l'attestation
-     * @returns {Object} - Attestation générée
-     */
-    async generateVATAttestation(attestationData) {
-        try {
-            const {
-                userId,
-                invoiceId,
-                clientId,
-                vatRate,
-                justification,
-                propertyType,
-                workType,
-                workDescription,
-                propertyAddress,
-                clientSignature,
-                clientName,
-                clientDate
-            } = attestationData;
+  /**
+   * Génère une attestation TVA réduite
+   * @param {Object} attestationData - Données de l'attestation
+   * @returns {Object} - Attestation générée
+   */
+  async generateVATAttestation(attestationData) {
+    try {
+      const {
+        userId,
+        invoiceId,
+        clientId,
+        vatRate,
+        justification,
+        propertyType,
+        workType,
+        workDescription,
+        propertyAddress,
+        clientSignature,
+        clientName,
+        clientDate,
+      } = attestationData
 
-            // Générer le PDF de l'attestation
-            const pdfBuffer = await this.generateAttestationPDF({
-                vatRate,
-                justification,
-                propertyType,
-                workType,
-                workDescription,
-                propertyAddress,
-                clientSignature,
-                clientName,
-                clientDate
-            });
+      // Générer le PDF de l'attestation
+      const pdfBuffer = await this.generateAttestationPDF({
+        vatRate,
+        justification,
+        propertyType,
+        workType,
+        workDescription,
+        propertyAddress,
+        clientSignature,
+        clientName,
+        clientDate,
+      })
 
-            // Sauvegarder l'attestation en base
-            const result = await query(
-                `INSERT INTO vat_attestations 
+      // Sauvegarder l'attestation en base
+      const result = await query(
+        `INSERT INTO vat_attestations 
                  (user_id, invoice_id, client_id, vat_rate, justification, 
                   property_type, work_type, work_description, property_address,
                   client_signature, client_name, client_date, pdf_data)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                  RETURNING *`,
-                [
-                    userId, invoiceId, clientId, vatRate, justification,
-                    propertyType, workType, workDescription, propertyAddress,
-                    clientSignature, clientName, clientDate, pdfBuffer
-                ]
-            );
+        [
+          userId,
+          invoiceId,
+          clientId,
+          vatRate,
+          justification,
+          propertyType,
+          workType,
+          workDescription,
+          propertyAddress,
+          clientSignature,
+          clientName,
+          clientDate,
+          pdfBuffer,
+        ]
+      )
 
-            return {
-                success: true,
-                attestation: result.rows[0],
-                pdfBuffer
-            };
-        } catch (error) {
-            console.error('Erreur lors de la génération de l\'attestation TVA:', error);
-            throw new Error('Échec de la génération de l\'attestation TVA');
-        }
+      return {
+        success: true,
+        attestation: result.rows[0],
+        pdfBuffer,
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération de l'attestation TVA:", error)
+      throw new Error("Échec de la génération de l'attestation TVA")
     }
+  }
 
-    /**
-     * Génère le PDF de l'attestation TVA réduite
-     * @param {Object} data - Données de l'attestation
-     * @returns {Buffer} - PDF généré
-     */
-    async generateAttestationPDF(data) {
-        const html = this.generateAttestationHTML(data);
+  /**
+   * Génère le PDF de l'attestation TVA réduite
+   * @param {Object} data - Données de l'attestation
+   * @returns {Buffer} - PDF généré
+   */
+  async generateAttestationPDF(data) {
+    const html = this.generateAttestationHTML(data)
 
-        // Utiliser le service PDF existant
-        const pdfService = new PDFService();
-        return await pdfService.withPage(async (page) => {
-            await page.setContent(html, { waitUntil: 'load' });
-            return await page.pdf({
-                format: 'A4',
-                printBackground: true,
-                margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
-            });
-        });
-    }
+    // Utiliser le service PDF existant
+    const pdfService = new PDFService()
+    return await pdfService.withPage(async (page) => {
+      await page.setContent(html, { waitUntil: 'load' })
+      return await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+      })
+    })
+  }
 
-    /**
-     * Génère le HTML de l'attestation
-     * @param {Object} data - Données de l'attestation
-     * @returns {string} - HTML généré
-     */
-    generateAttestationHTML(data) {
-        const {
-            vatRate,
-            justification,
-            propertyType,
-            workType,
-            workDescription,
-            propertyAddress,
-            clientSignature,
-            clientName,
-            clientDate
-        } = data;
+  /**
+   * Génère le HTML de l'attestation
+   * @param {Object} data - Données de l'attestation
+   * @returns {string} - HTML généré
+   */
+  generateAttestationHTML(data) {
+    const {
+      vatRate,
+      justification,
+      propertyType,
+      workType,
+      workDescription,
+      propertyAddress,
+      // clientSignature, // Variable non utilisée
+      clientName,
+      clientDate,
+    } = data
 
-        const propertyTypeText = {
-            'residential': 'à usage d\'habitation',
-            'commercial': 'à usage commercial',
-            'mixed': 'à usage mixte'
-        }[propertyType] || 'à usage d\'habitation';
+    const propertyTypeText =
+      {
+        residential: "à usage d'habitation",
+        commercial: 'à usage commercial',
+        mixed: 'à usage mixte',
+      }[propertyType] || "à usage d'habitation"
 
-        const workTypeText = {
-            'renovation': 'de rénovation',
-            'energy_improvement': 'd\'amélioration de la qualité énergétique',
-            'maintenance': 'de maintenance'
-        }[workType] || 'de rénovation';
+    const workTypeText =
+      {
+        renovation: 'de rénovation',
+        energy_improvement: "d'amélioration de la qualité énergétique",
+        maintenance: 'de maintenance',
+      }[workType] || 'de rénovation'
 
-        return `
+    return `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -266,43 +278,43 @@ class VATAttestationService {
         <p>En cas de contrôle fiscal, cette attestation devra être présentée aux services des impôts.</p>
     </div>
 </body>
-</html>`;
+</html>`
+  }
+
+  /**
+   * Génère la justification par défaut selon le taux et les conditions
+   * @param {number} vatRate - Taux de TVA
+   * @param {string} propertyType - Type de propriété
+   * @param {string} workType - Type de travaux
+   * @returns {string} - Justification par défaut
+   */
+  getDefaultJustification(vatRate, propertyType, workType) {
+    if (vatRate === 10) {
+      return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 10% s'applique aux travaux de rénovation dans des locaux à usage d'habitation achevés depuis plus de deux ans. Les travaux concernent des locaux ${propertyType === 'residential' ? "à usage d'habitation" : 'à usage mixte'} et portent sur des travaux de ${workType === 'renovation' ? 'rénovation' : 'maintenance'}.`
+    } else if (vatRate === 5.5) {
+      return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 5,5% s'applique aux travaux d'amélioration de la qualité énergétique des locaux à usage d'habitation. Les travaux concernent des locaux ${propertyType === 'residential' ? "à usage d'habitation" : 'à usage mixte'} et portent sur des travaux d'${workType === 'energy_improvement' ? 'amélioration de la qualité énergétique' : 'efficacité énergétique'}.`
     }
+    return 'Taux de TVA réduit applicable conformément à la réglementation en vigueur.'
+  }
 
-    /**
-     * Génère la justification par défaut selon le taux et les conditions
-     * @param {number} vatRate - Taux de TVA
-     * @param {string} propertyType - Type de propriété
-     * @param {string} workType - Type de travaux
-     * @returns {string} - Justification par défaut
-     */
-    getDefaultJustification(vatRate, propertyType, workType) {
-        if (vatRate === 10) {
-            return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 10% s'applique aux travaux de rénovation dans des locaux à usage d'habitation achevés depuis plus de deux ans. Les travaux concernent des locaux ${propertyType === 'residential' ? 'à usage d\'habitation' : 'à usage mixte'} et portent sur des travaux de ${workType === 'renovation' ? 'rénovation' : 'maintenance'}.`;
-        } else if (vatRate === 5.5) {
-            return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 5,5% s'applique aux travaux d'amélioration de la qualité énergétique des locaux à usage d'habitation. Les travaux concernent des locaux ${propertyType === 'residential' ? 'à usage d\'habitation' : 'à usage mixte'} et portent sur des travaux d'${workType === 'energy_improvement' ? 'amélioration de la qualité énergétique' : 'efficacité énergétique'}.`;
-        }
-        return 'Taux de TVA réduit applicable conformément à la réglementation en vigueur.';
-    }
+  /**
+   * Récupère les attestations d'un utilisateur
+   * @param {string} userId - ID de l'utilisateur
+   * @param {string} invoiceId - ID de la facture (optionnel)
+   * @returns {Array} - Liste des attestations
+   */
+  async getAttestations(userId, invoiceId = null) {
+    try {
+      let whereClause = 'WHERE va.user_id = $1'
+      let params = [userId]
 
-    /**
-     * Récupère les attestations d'un utilisateur
-     * @param {string} userId - ID de l'utilisateur
-     * @param {string} invoiceId - ID de la facture (optionnel)
-     * @returns {Array} - Liste des attestations
-     */
-    async getAttestations(userId, invoiceId = null) {
-        try {
-            let whereClause = 'WHERE va.user_id = $1';
-            let params = [userId];
+      if (invoiceId) {
+        whereClause += ' AND va.invoice_id = $2'
+        params.push(invoiceId)
+      }
 
-            if (invoiceId) {
-                whereClause += ' AND va.invoice_id = $2';
-                params.push(invoiceId);
-            }
-
-            const result = await query(
-                `SELECT 
+      const result = await query(
+        `SELECT 
                     va.*,
                     i.invoice_number,
                     c.first_name as client_first_name,
@@ -313,26 +325,26 @@ class VATAttestationService {
                  LEFT JOIN clients c ON va.client_id = c.id
                  ${whereClause}
                  ORDER BY va.created_at DESC`,
-                params
-            );
+        params
+      )
 
-            return result.rows;
-        } catch (error) {
-            console.error('Erreur lors de la récupération des attestations:', error);
-            throw new Error('Échec de la récupération des attestations');
-        }
+      return result.rows
+    } catch (error) {
+      console.error('Erreur lors de la récupération des attestations:', error)
+      throw new Error('Échec de la récupération des attestations')
     }
+  }
 
-    /**
-     * Récupère une attestation par ID
-     * @param {string} attestationId - ID de l'attestation
-     * @param {string} userId - ID de l'utilisateur
-     * @returns {Object} - Attestation
-     */
-    async getAttestationById(attestationId, userId) {
-        try {
-            const result = await query(
-                `SELECT 
+  /**
+   * Récupère une attestation par ID
+   * @param {string} attestationId - ID de l'attestation
+   * @param {string} userId - ID de l'utilisateur
+   * @returns {Object} - Attestation
+   */
+  async getAttestationById(attestationId, userId) {
+    try {
+      const result = await query(
+        `SELECT 
                     va.*,
                     i.invoice_number,
                     c.first_name as client_first_name,
@@ -342,19 +354,19 @@ class VATAttestationService {
                  LEFT JOIN invoices i ON va.invoice_id = i.id
                  LEFT JOIN clients c ON va.client_id = c.id
                  WHERE va.id = $1 AND va.user_id = $2`,
-                [attestationId, userId]
-            );
+        [attestationId, userId]
+      )
 
-            if (result.rows.length === 0) {
-                throw new Error('Attestation non trouvée');
-            }
+      if (result.rows.length === 0) {
+        throw new Error('Attestation non trouvée')
+      }
 
-            return result.rows[0];
-        } catch (error) {
-            console.error('Erreur lors de la récupération de l\'attestation:', error);
-            throw error;
-        }
+      return result.rows[0]
+    } catch (error) {
+      console.error("Erreur lors de la récupération de l'attestation:", error)
+      throw error
     }
+  }
 }
 
-module.exports = new VATAttestationService();
+module.exports = new VATAttestationService()

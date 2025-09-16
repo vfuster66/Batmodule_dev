@@ -137,7 +137,8 @@ describe('Company Settings Routes (service-based)', () => {
 
   describe('Authentication', () => {
     it('requires auth', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) =>
+      // eslint-disable-next-line no-unused-vars
+      authenticateToken.mockImplementationOnce((req, res, _next) =>
         res.status(401).json({ error: 'Unauthorized' })
       )
       await request(app).get('/company-settings').expect(401)

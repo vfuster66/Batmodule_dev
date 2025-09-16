@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const express = require('express')
 const Joi = require('joi')
 const { query, transaction } = require('../config/database')
@@ -6,6 +7,7 @@ const pdfService = require('../services/pdfService')
 const calculationService = require('../services/calculationService')
 const archivingService = require('../services/archivingService')
 const advanceInvoiceService = require('../services/advanceInvoiceService')
+const { logAudit } = require('../services/auditService')
 
 const router = express.Router()
 
@@ -38,18 +40,6 @@ const paymentSchema = Joi.object({
   reference: Joi.string().optional(),
   notes: Joi.string().optional(),
 })
-
-// Fonction pour générer le numéro de facture
-async function generateInvoiceNumber(userId) {
-  const result = await query(
-    'SELECT COUNT(*) as count FROM invoices WHERE user_id = $1',
-    [userId]
-  )
-
-  const count = parseInt(result.rows[0].count) + 1
-  const year = new Date().getFullYear()
-  return `FAC-${year}-${count.toString().padStart(4, '0')}`
-}
 
 // GET /api/invoices - Récupérer toutes les factures
 router.get('/', authenticateToken, async (req, res, next) => {
@@ -428,7 +418,9 @@ router.post('/', authenticateToken, async (req, res, next) => {
         action: 'create',
         metadata: { invoiceNumber: result.invoice.invoice_number },
       })
-    } catch (_) {}
+    } catch (_) {
+      // Ignorer les erreurs d'audit
+    }
   } catch (error) {
     next(error)
   }
@@ -496,7 +488,7 @@ router.post('/:id/payments', authenticateToken, async (req, res, next) => {
       )
     }
 
-    const result = await transaction(async (client) => {
+    const result = await transaction(async (_client) => {
       // Vérifier que la facture existe et appartient à l'utilisateur
       const invoiceResult = await query(
         'SELECT id, total_ttc, paid_amount, status FROM invoices WHERE id = $1 AND user_id = $2',
@@ -598,7 +590,9 @@ router.put('/:id/status', authenticateToken, async (req, res, next) => {
         action: 'status',
         metadata: { status },
       })
-    } catch (_) {}
+    } catch (_) {
+      // Ignorer les erreurs d'audit
+    }
   } catch (error) {
     next(error)
   }

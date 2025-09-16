@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
 const servicesRouter = require('../../routes/services')
@@ -502,7 +503,7 @@ describe('Services Routes', () => {
 
   describe('Authentication', () => {
     it('should require authentication for all routes', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) => {
+      authenticateToken.mockImplementationOnce((req, res, _next) => {
         res.status(401).json({ error: 'Unauthorized' })
       })
 

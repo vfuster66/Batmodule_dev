@@ -1,6 +1,7 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
-const path = require('path')
+// const path = require('path') // Import non utilisé
 const fs = require('fs').promises
 const rgpdRouter = require('../../routes/rgpd')
 const { authenticateToken } = require('../../middleware/auth')
@@ -81,7 +82,7 @@ describe('RGPD Routes', () => {
     })
 
     it('should require authentication', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Token manquant' })
       })
 
@@ -144,7 +145,7 @@ describe('RGPD Routes', () => {
     })
 
     it('should require authentication', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Token manquant' })
       })
 
@@ -206,7 +207,7 @@ describe('RGPD Routes', () => {
     })
 
     it('should require authentication', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Token manquant' })
       })
 
@@ -255,7 +256,7 @@ describe('RGPD Routes', () => {
     })
 
     it('should require authentication', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Token manquant' })
       })
 
@@ -303,7 +304,7 @@ describe('RGPD Routes', () => {
     })
 
     it('should require authentication', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Token manquant' })
       })
 
@@ -340,7 +341,7 @@ describe('RGPD Routes', () => {
     })
 
     it('should require authentication', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Token manquant' })
       })
 

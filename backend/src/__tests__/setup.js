@@ -1,5 +1,5 @@
 // Configuration globale pour les tests
-const { Pool } = require('pg')
+// const { Pool } = require('pg') // Import non utilisé
 
 // Mock de la base de données pour les tests
 const mockPool = {

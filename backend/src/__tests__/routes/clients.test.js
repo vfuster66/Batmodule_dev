@@ -529,7 +529,8 @@ describe('Clients Routes', () => {
 
   describe('Authentication', () => {
     it('should require authentication for all routes', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) => {
+      // eslint-disable-next-line no-unused-vars
+      authenticateToken.mockImplementationOnce((req, res, _next) => {
         res.status(401).json({ error: 'Unauthorized' })
       })
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
 const invoicesRouter = require('../../routes/invoices')
@@ -5,8 +6,8 @@ const { authenticateToken } = require('../../middleware/auth')
 const { query, transaction } = require('../../config/database')
 const pdfService = require('../../services/pdfService')
 const calculationService = require('../../services/calculationService')
-const archivingService = require('../../services/archivingService')
-const advanceInvoiceService = require('../../services/advanceInvoiceService')
+// const archivingService = require('../../services/archivingService') // Import non utilisé
+// const advanceInvoiceService = require('../../services/advanceInvoiceService') // Import non utilisé
 
 // Mock des dépendances
 jest.mock('../../middleware/auth')
@@ -985,7 +986,7 @@ describe('Invoices Routes', () => {
 
   describe('Authentication', () => {
     it('should require authentication for all routes', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) => {
+      authenticateToken.mockImplementationOnce((req, res, _next) => {
         res.status(401).json({ error: 'Unauthorized' })
       })
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
 const notificationsRouter = require('../../routes/notifications')
@@ -111,7 +112,7 @@ describe('Notifications Routes', () => {
 
   describe('Authentication', () => {
     it('should require authentication for all routes', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Non autorisé' })
       })
 

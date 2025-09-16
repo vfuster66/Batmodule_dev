@@ -3,11 +3,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 const cookieParser = require('cookie-parser')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
-const { Pool } = require('pg')
 const { errorHandler } = require('./middleware/errorHandler')
-const { authenticateToken } = require('./middleware/auth')
 // const { setRLSContext, clearRLSContext } = require('./middleware/rlsContext') // Temporairement désactivé
 const authRoutes = require('./routes/auth')
 const clientsRoutes = require('./routes/clients')
@@ -31,78 +27,69 @@ require('dotenv').config()
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Configuration de la base de données
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgres://batmodule:batmodule123@postgres:5432/batmodule'
-})
+// Configuration de la base de données (pool non utilisé dans ce fichier)
 
 // Configuration de sécurité
-app.use(helmet({
+app.use(
+  helmet({
     contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:"],
-        },
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
     },
-    crossOriginEmbedderPolicy: false
-}))
+    crossOriginEmbedderPolicy: false,
+  })
+)
 
 // Configuration CORS
 const corsOptions = {
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Plus permissif en développement
-    message: {
-        error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    // Skip rate limiting pour certaines routes en développement
-    skip: (req) => {
-        if (process.env.NODE_ENV === 'development') {
-            // Skip pour les routes de company-settings en développement
-            return req.path.includes('/company-settings')
-        }
-        return false
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Plus permissif en développement
+  message: {
+    error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting pour certaines routes en développement
+  skip: (req) => {
+    if (process.env.NODE_ENV === 'development') {
+      // Skip pour les routes de company-settings en développement
+      return req.path.includes('/company-settings')
     }
+    return false
+  },
 })
 
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'development' ? 50 : 5, // Plus permissif en développement
-    message: {
-        error: 'Trop de tentatives de connexion, veuillez réessayer plus tard.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-})
+// authLimiter non utilisé dans ce fichier
 
 // Middleware
 app.use(cors(corsOptions))
 // Appliquer le rate limiter seulement si pas en développement ou pas sur company-settings
 if (process.env.NODE_ENV !== 'development') {
-    app.use(limiter)
+  app.use(limiter)
 } else {
-    // En développement, appliquer un rate limiter plus permissif
-    const devLimiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 1000, // Très permissif en développement
-        message: {
-            error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
-        },
-        standardHeaders: true,
-        legacyHeaders: false,
-    })
-    app.use(devLimiter)
+  // En développement, appliquer un rate limiter plus permissif
+  const devLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Très permissif en développement
+    message: {
+      error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.',
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+  app.use(devLimiter)
 }
 app.use(express.json({ limit: '10mb' })) // Augmenter la limite pour les logos en base64
 app.use(express.urlencoded({ limit: '10mb', extended: true }))
@@ -112,21 +99,21 @@ app.use(cookieParser())
 
 // Routes de base
 app.get('/', (req, res) => {
-    res.json({
-        message: 'BatModule API - Application pour artisans du bâtiment',
-        version: '1.0.0',
-        status: 'running'
-    })
+  res.json({
+    message: 'BatModule API - Application pour artisans du bâtiment',
+    version: '1.0.0',
+    status: 'running',
+  })
 })
 
 // Route de santé
 app.get('/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        service: 'BatModule API',
-        version: '1.0.0'
-    })
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    service: 'BatModule API',
+    version: '1.0.0',
+  })
 })
 
 // Routes d'authentification (déplacées vers routes/auth.js)
@@ -190,7 +177,9 @@ app.use('/api/public/legal', publicLegalRoutes)
 
 // Démarrage du serveur
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Serveur BatModule démarré sur le port ${PORT}`)
-    console.log(`📊 Environnement: ${process.env.NODE_ENV || 'development'}`)
-    console.log(`🔐 JWT Secret: ${process.env.JWT_SECRET ? 'Configuré' : 'Non configuré'}`)
+  console.log(`🚀 Serveur BatModule démarré sur le port ${PORT}`)
+  console.log(`📊 Environnement: ${process.env.NODE_ENV || 'development'}`)
+  console.log(
+    `🔐 JWT Secret: ${process.env.JWT_SECRET ? 'Configuré' : 'Non configuré'}`
+  )
 })

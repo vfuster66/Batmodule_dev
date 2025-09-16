@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // S'assurer que l'environnement de test est explicite
 process.env.NODE_ENV = 'test'
 
@@ -660,7 +661,7 @@ describe('Quotes Routes - Version qui fonctionne', () => {
 
   describe('Authentication', () => {
     it('should require authentication for all protected routes', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) => {
+      authenticateToken.mockImplementationOnce((req, res, _next) => {
         res.status(401).json({ error: 'Unauthorized' })
       })
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
 const publicLegalRouter = require('../../routes/publicLegal')
@@ -94,7 +95,7 @@ describe('Public Legal Routes', () => {
     })
 
     it('should require authentication', async () => {
-      authenticateToken.mockImplementation((req, res, next) => {
+      authenticateToken.mockImplementation((req, res, _next) => {
         res.status(401).json({ error: 'Token manquant' })
       })
 

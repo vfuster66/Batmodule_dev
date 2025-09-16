@@ -6,7 +6,7 @@ jest.mock('../../config/database', () => ({
 
 // Import des modules après les mocks
 const companySettingsService = require('../../services/companySettingsService')
-const { query, transaction } = require('../../config/database')
+const { query } = require('../../config/database')
 
 describe('CompanySettingsService', () => {
   beforeEach(() => {

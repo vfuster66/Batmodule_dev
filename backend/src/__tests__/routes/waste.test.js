@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const request = require('supertest')
 const express = require('express')
 const wasteRouter = require('../../routes/waste')
@@ -387,7 +388,7 @@ describe('Waste Routes', () => {
 
   describe('Authentication', () => {
     it('should block access without authentication', async () => {
-      authenticateToken.mockImplementationOnce((req, res, next) => {
+      authenticateToken.mockImplementationOnce((req, res, _next) => {
         return res.status(401).json({ error: 'Unauthorized' })
       })
 
