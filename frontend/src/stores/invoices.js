@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/utils/api'
+import api from '../utils/api'
 import { useToast } from 'vue-toastification'
 
 export const useInvoicesStore = defineStore('invoices', {
@@ -29,7 +29,8 @@ export const useInvoicesStore = defineStore('invoices', {
           sortBy: params.sortBy || this.filters.sortBy,
           sortOrder: params.sortOrder || this.filters.sortOrder,
         }
-        const { data } = await api.get('/invoices', { params: query })
+        const response = await api.get('/invoices', { params: query })
+        const data = response?.data || {}
         this.invoices = data.invoices || []
         if (data.pagination) this.pagination = data.pagination
         this.filters.search = query.search
@@ -49,7 +50,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.get(`/invoices/${id}`)
+        const response = await api.get(`/invoices/${id}`)
+        const data = response?.data || {}
         this.currentInvoice = data.invoice
         return data.invoice
       } catch (error) {
@@ -65,7 +67,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post('/invoices', payload)
+        const response = await api.post('/invoices', payload)
+        const data = response?.data || {}
         const created = data.invoice
         this.invoices.unshift(created)
         useToast().success('Facture créée avec succès !')
@@ -83,7 +86,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.put(`/invoices/${id}`, payload)
+        const response = await api.put(`/invoices/${id}`, payload)
+        const data = response?.data || {}
         const updated = data.invoice
         const idx = this.invoices.findIndex((i) => i.id === id)
         if (idx !== -1) this.invoices[idx] = updated
@@ -107,7 +111,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.put(`/invoices/${id}/status`, { status })
+        const response = await api.put(`/invoices/${id}/status`, { status })
+        const data = response?.data || {}
         // Mettre à jour localement si présent
         const idx = this.invoices.findIndex((i) => i.id === id)
         if (idx !== -1) {
@@ -142,13 +147,14 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post(`/invoices/${id}/payments`, payload)
+        const response = await api.post(`/invoices/${id}/payments`, payload)
+        const data = response?.data || {}
         // Rafraîchir la facture courante si affichée
         if (this.currentInvoice?.id === id) {
           // Augmente paidAmount et pousse le paiement dans la liste locale si présente
           const curr = this.currentInvoice
           const newPaid =
-            Number(curr.paidAmount || 0) + Number(data.payment.amount || 0)
+            Number(curr.paidAmount || 0) + Number(data.payment?.amount || 0)
           this.currentInvoice = {
             ...curr,
             paidAmount: newPaid,
@@ -195,7 +201,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post(`/invoices/from-quote/${quoteId}`)
+        const response = await api.post(`/invoices/from-quote/${quoteId}`)
+        const data = response?.data || {}
         const created = data.invoice
         this.invoices.unshift(created)
         useToast().success('Facture créée avec succès à partir du devis !')
@@ -214,7 +221,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post('/invoices/advance', payload)
+        const response = await api.post('/invoices/advance', payload)
+        const data = response?.data || {}
         const created = data.invoice
         if (created) this.invoices.unshift(created)
         useToast().success("Facture d'acompte créée !")
@@ -232,7 +240,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post(`/invoices/${id}/archive`)
+        const response = await api.post(`/invoices/${id}/archive`)
+        const data = response?.data || {}
         useToast().success('Facture archivée avec succès')
         return data
       } catch (error) {
@@ -248,7 +257,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.get(`/invoices/${id}/verify`)
+        const response = await api.get(`/invoices/${id}/verify`)
+        const data = response?.data || {}
         useToast().success('Vérification effectuée')
         return data
       } catch (error) {
@@ -265,7 +275,8 @@ export const useInvoicesStore = defineStore('invoices', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post('/invoices/final', payload)
+        const response = await api.post('/invoices/final', payload)
+        const data = response?.data || {}
         const created = data.invoice
         if (created) this.invoices.unshift(created)
         useToast().success('Facture de solde créée !')

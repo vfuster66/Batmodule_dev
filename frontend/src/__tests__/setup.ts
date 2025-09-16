@@ -2,35 +2,7 @@ import { config } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { vi } from 'vitest'
 
-// Mock global d'Axios pour éviter les erreurs de sérialisation
-const mockAxiosInstance = {
-  get: vi.fn().mockResolvedValue({ data: {} }),
-  post: vi.fn().mockResolvedValue({ data: {} }),
-  put: vi.fn().mockResolvedValue({ data: {} }),
-  delete: vi.fn().mockResolvedValue({ data: {} }),
-  patch: vi.fn().mockResolvedValue({ data: {} }),
-  defaults: {
-    baseURL: 'http://localhost:3000/api',
-    headers: {},
-  },
-  interceptors: {
-    request: {
-      use: vi.fn(),
-      eject: vi.fn(),
-    },
-    response: {
-      use: vi.fn(),
-      eject: vi.fn(),
-    },
-  },
-}
-
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => mockAxiosInstance),
-    ...mockAxiosInstance,
-  },
-}))
+// Les mocks d'API sont maintenant gérés par chaque test individuellement
 
 // Mock global objects
 global.ResizeObserver = vi.fn().mockImplementation(() => ({

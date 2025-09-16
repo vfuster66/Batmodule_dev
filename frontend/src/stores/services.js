@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/utils/api'
+import api from '../utils/api'
 import { useToast } from 'vue-toastification'
 
 export const useServicesStore = defineStore('services', {
@@ -75,7 +75,8 @@ export const useServicesStore = defineStore('services', {
 
       try {
         const response = await api.get('/services/categories')
-        this.categories = response.data.categories
+        const data = response?.data || {}
+        this.categories = data.categories || []
       } catch (error) {
         this.error = error
         useToast().error('Erreur lors du chargement des catégories.')
@@ -124,12 +125,13 @@ export const useServicesStore = defineStore('services', {
         }
 
         const response = await api.get('/services', { params: queryParams })
+        const data = response?.data || {}
 
-        this.services = response.data.services
+        this.services = data.services || []
         this.pagination = {
           page: 1,
           limit: 1000,
-          total: response.data.services.length,
+          total: data.services?.length || 0,
           pages: 1,
         }
 
@@ -154,8 +156,9 @@ export const useServicesStore = defineStore('services', {
 
       try {
         const response = await api.get(`/services/${id}`)
-        this.currentService = response.data.service
-        return response.data.service
+        const data = response?.data || {}
+        this.currentService = data.service
+        return data.service
       } catch (error) {
         this.error = error
         useToast().error('Erreur lors du chargement du service.')
@@ -172,7 +175,8 @@ export const useServicesStore = defineStore('services', {
 
       try {
         const response = await api.post('/services', serviceData)
-        const newService = response.data.service
+        const data = response?.data || {}
+        const newService = data.service
 
         // Ajouter le nouveau service à la liste
         this.services.unshift(newService)
@@ -195,7 +199,8 @@ export const useServicesStore = defineStore('services', {
 
       try {
         const response = await api.put(`/services/${id}`, serviceData)
-        const updatedService = response.data.service
+        const data = response?.data || {}
+        const updatedService = data.service
 
         // Mettre à jour le service dans la liste
         const index = this.services.findIndex((s) => s.id === id)

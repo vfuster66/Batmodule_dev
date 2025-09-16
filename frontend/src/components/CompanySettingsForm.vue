@@ -941,10 +941,11 @@ const getFieldLabel = (field) => {
 // Lifecycle
 onMounted(() => {
   // Ne pas charger les paramètres ici car ils sont déjà chargés par CompanySettingsView
-  if (Object.keys(store.settings).length === 0) {
+  const currentSettings = store.settings || {}
+  if (!currentSettings || Object.keys(currentSettings).length === 0) {
     loadSettings()
   } else {
-    form.value = { ...store.settings }
+    form.value = { ...currentSettings }
     // Synchroniser les domaines même si les paramètres sont déjà chargés
     if (form.value.website) {
       websiteDomain.value = form.value.website.replace(/^https?:\/\//, '')

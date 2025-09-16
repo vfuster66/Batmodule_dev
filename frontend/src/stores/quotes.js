@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/utils/api'
+import api from '../utils/api'
 import { useToast } from 'vue-toastification'
 
 export const useQuotesStore = defineStore('quotes', {
@@ -29,7 +29,8 @@ export const useQuotesStore = defineStore('quotes', {
           sortBy: params.sortBy || this.filters.sortBy,
           sortOrder: params.sortOrder || this.filters.sortOrder,
         }
-        const { data } = await api.get('/quotes', { params: query })
+        const response = await api.get('/quotes', { params: query })
+        const data = response?.data || {}
         this.quotes = data.quotes || []
         if (data.pagination) this.pagination = data.pagination
         this.filters.search = query.search
@@ -49,7 +50,8 @@ export const useQuotesStore = defineStore('quotes', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.get(`/quotes/${id}`)
+        const response = await api.get(`/quotes/${id}`)
+        const data = response?.data || {}
         this.currentQuote = data.quote
         return data.quote
       } catch (error) {
@@ -65,7 +67,8 @@ export const useQuotesStore = defineStore('quotes', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.post('/quotes', payload)
+        const response = await api.post('/quotes', payload)
+        const data = response?.data || {}
         const created = data.quote
         this.quotes.unshift(created)
         useToast().success('Devis créé avec succès !')
@@ -91,7 +94,8 @@ export const useQuotesStore = defineStore('quotes', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.put(`/quotes/${id}`, payload)
+        const response = await api.put(`/quotes/${id}`, payload)
+        const data = response?.data || {}
         const updated = data.quote
         const idx = this.quotes.findIndex((q) => q.id === id)
         if (idx !== -1) this.quotes[idx] = updated
@@ -128,7 +132,8 @@ export const useQuotesStore = defineStore('quotes', {
       this.loading = true
       this.error = null
       try {
-        const { data } = await api.put(`/quotes/${id}/status`, { status })
+        const response = await api.put(`/quotes/${id}/status`, { status })
+        const data = response?.data || {}
         // Mettre à jour le quote dans la liste
         const idx = this.quotes.findIndex((q) => q.id === id)
         if (idx !== -1)

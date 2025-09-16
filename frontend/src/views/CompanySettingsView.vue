@@ -171,7 +171,8 @@ onMounted(async () => {
 
   try {
     // Ne charger que si les paramètres ne sont pas déjà chargés
-    if (Object.keys(store.settings).length === 0) {
+    const currentSettings = store.settings || {}
+    if (!currentSettings || Object.keys(currentSettings).length === 0) {
       await store.fetchSettings()
     }
   } catch (error) {

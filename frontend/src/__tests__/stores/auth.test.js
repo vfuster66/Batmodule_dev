@@ -29,6 +29,12 @@ describe('Auth Store', () => {
         common: {},
       },
     }
+
+    // Mock all API methods
+    api.post = vi.fn()
+    api.get = vi.fn()
+    api.put = vi.fn()
+    api.delete = vi.fn()
   })
 
   afterEach(() => {
