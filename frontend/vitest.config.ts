@@ -12,6 +12,13 @@ export default defineConfig({
     onUnhandledRejection: 'ignore',
     // Mode silencieux pour réduire le bruit
     silent: true,
+    // Configuration pour éviter les erreurs de sérialisation
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
   resolve: {
     alias: {

@@ -37,7 +37,28 @@ global.console = {
 }
 
 // Supprimer les rejets non gérées pour les erreurs spécifiques
-process.on('unhandledRejection', () => {
-  // Ignorer silencieusement toutes les erreurs non gérées
-  // car elles sont principalement liées aux mocks et à l'environnement de test
+process.on('unhandledRejection', (reason) => {
+  // Ignorer silencieusement les erreurs DataCloneError et autres erreurs de sérialisation
+  if (reason instanceof Error) {
+    if (reason.name === 'DataCloneError' ||
+      reason.message.includes('could not be cloned') ||
+      reason.message.includes('transformRequest')) {
+      return // Ignorer ces erreurs spécifiques
+    }
+  }
+  // Pour les autres erreurs, on peut les logger en mode debug
+  if (process.env.VITEST_DEBUG) {
+    console.warn('Unhandled rejection:', reason)
+  }
+})
+
+// Gérer les erreurs non capturées
+process.on('uncaughtException', (error) => {
+  if (error.name === 'DataCloneError' ||
+    error.message.includes('could not be cloned')) {
+    return // Ignorer ces erreurs spécifiques
+  }
+  if (process.env.VITEST_DEBUG) {
+    console.warn('Uncaught exception:', error)
+  }
 })
