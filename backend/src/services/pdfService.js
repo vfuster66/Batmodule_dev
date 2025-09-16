@@ -175,14 +175,14 @@ class PDFService {
         if (!base64) return ''
         if (base64.startsWith && base64.startsWith('data:')) return base64
         if (base64.startsWith && base64.startsWith('iVBORw0KGgo'))
-          return `data: image / png; base64, ${base64}`
+          return `data:image/png;base64,${base64}`
         if (base64.startsWith && base64.startsWith('/9j/'))
-          return `data: image / jpeg; base64, ${base64} `
+          return `data:image/jpeg;base64,${base64}`
         if (base64.startsWith && base64.startsWith('R0lGOD'))
-          return `data: image / gif; base64, ${base64} `
+          return `data:image/gif;base64,${base64}`
         if (base64.startsWith && base64.startsWith('UklGR'))
-          return `data: image / webp; base64, ${base64} `
-        return `data: image / png; base64, ${base64} `
+          return `data:image/webp;base64,${base64}`
+        return `data:image/png;base64,${base64}`
       })()
 
       return page.pdf({
@@ -283,16 +283,16 @@ class PDFService {
 
     const legalLines = [
       company
-        ? `< strong > ${company}</ > ${forme ? ' — ' + forme : ''}${capital ? ' — Capital: ' + capital : ''} `
+        ? `<strong>${company}</strong>${forme ? ' — ' + forme : ''}${capital ? ' — Capital: ' + capital : ''} `
         : '',
       addr1 || addr2 || cp || city
         ? [addr1, addr2, [cp, city].filter(Boolean).join(' ')]
             .filter(Boolean)
             .join(' — ')
         : '',
-      siret ? `SIREN / SIRET: ${siret} ` : '',
+      siret ? `SIREN/SIRET: ${siret} ` : '',
       rcs ? `RCS: ${rcs}${tribunal ? ' — ' + tribunal : ''} ` : '',
-      ape ? `APE / NAF: ${ape} ` : '',
+      ape ? `APE/NAF: ${ape} ` : '',
       vatApplicable
         ? `TVA intracom: ${tva} `
         : `TVA non applicable, art. 293 B du CGI`,
@@ -345,7 +345,7 @@ class PDFService {
     return `
             <div style='font-size:8px; color:#666; width:100%; padding:6px 10mm; text-align:center; line-height:1.3;'>
                 <div>${allLines.join(' · ')}</div>
-                <div style='margin-top:4px;'>Page <span class='pageNumber'></span> / <span class='totalPages'></span></div>
+                <div style='margin-top:4px;'>Page <span class="pageNumber"></span> / <span class="totalPages"></span></div>
             </div>
         `
   }
