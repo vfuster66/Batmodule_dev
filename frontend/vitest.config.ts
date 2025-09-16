@@ -8,10 +8,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
-    // Supprimer les erreurs non gérées
-    onUnhandledRejection: 'ignore',
-    // Mode silencieux pour réduire le bruit
-    silent: true,
     // Configuration pour éviter les erreurs de sérialisation
     pool: 'forks',
     poolOptions: {
