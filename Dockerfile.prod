@@ -3,7 +3,7 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 COPY frontend/ ./
 RUN npm run build
@@ -12,7 +12,7 @@ FROM node:20-alpine AS backend-builder
 
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 COPY backend/ ./
 
@@ -32,6 +32,10 @@ COPY --from=backend-builder --chown=nodejs:nodejs /app/backend ./backend
 
 # Copy frontend build
 COPY --from=frontend-builder --chown=nodejs:nodejs /app/frontend/dist ./frontend/dist
+
+# Install only production dependencies for runtime
+WORKDIR /app/backend
+RUN npm ci --only=production && npm cache clean --force
 
 # Switch to non-root user
 USER nodejs
