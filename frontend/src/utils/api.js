@@ -42,6 +42,20 @@ api.interceptors.request.use(
 )
 
 // Intercepteur de réponse
+// Helper: sanitize AxiosError for test environment to avoid DataCloneError
+const sanitizeAxiosError = (err) => {
+  if (!err || typeof err !== 'object') return err
+  const safe = { ...err }
+  if (safe.config) {
+    const { transformRequest, transformResponse, adapter, ...rest } =
+      safe.config
+    safe.config = rest
+  }
+  if (safe.request) delete safe.request
+  if (typeof safe.toJSON === 'function') delete safe.toJSON
+  return safe
+}
+
 api.interceptors.response.use(
   (response) => {
     // Log des réponses en développement (ne pas afficher les données sensibles)
@@ -135,7 +149,9 @@ api.interceptors.response.use(
       toast.error('Une erreur inattendue est survenue')
     }
 
-    return Promise.reject(error)
+    const toThrow =
+      import.meta.env.MODE === 'test' ? sanitizeAxiosError(error) : error
+    return Promise.reject(toThrow)
   }
 )
 

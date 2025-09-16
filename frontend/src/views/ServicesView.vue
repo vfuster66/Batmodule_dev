@@ -564,8 +564,12 @@ const formatCurrency = (amount) => {
 
 // Initialisation
 onMounted(async () => {
-  await servicesStore.fetchCategories()
-  await servicesStore.fetchServices()
+  try {
+    await servicesStore.fetchCategories()
+  } catch (_) {}
+  try {
+    await servicesStore.fetchServices()
+  } catch (_) {}
 })
 
 // Watchers

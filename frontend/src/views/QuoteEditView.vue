@@ -813,9 +813,11 @@ const cancelEdit = () => {
 }
 
 // Initialisation
-onMounted(() => {
+onMounted(async () => {
   loadQuote()
-  servicesStore.fetchServices({ limit: 100 })
+  try {
+    await servicesStore.fetchServices({ limit: 100 })
+  } catch (_) {}
 })
 
 // Gestion du modal client

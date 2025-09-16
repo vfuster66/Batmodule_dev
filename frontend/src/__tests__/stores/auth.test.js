@@ -231,6 +231,7 @@ describe('Auth Store', () => {
       )
 
       consoleSpy.mockRestore()
+      removeItemSpy.mockRestore()
     })
   })
 

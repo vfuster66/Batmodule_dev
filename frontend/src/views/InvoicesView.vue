@@ -536,11 +536,15 @@ const services = ref([])
 const selectedServiceId = ref('')
 
 const handleSearch = () => {
-  invoicesStore.fetchInvoices({ search: searchTerm.value, page: 1 })
+  invoicesStore
+    .fetchInvoices({ search: searchTerm.value, page: 1 })
+    .catch(() => {})
 }
 
 const handleStatusFilter = () => {
-  invoicesStore.fetchInvoices({ status: statusFilter.value, page: 1 })
+  invoicesStore
+    .fetchInvoices({ status: statusFilter.value, page: 1 })
+    .catch(() => {})
 }
 
 const showCreateModal = ref(false)
@@ -592,7 +596,9 @@ const addFromCatalog = () => {
 }
 
 onMounted(async () => {
-  invoicesStore.fetchInvoices()
+  try {
+    await invoicesStore.fetchInvoices()
+  } catch (_) {}
   try {
     const { data } = await api.get('/services')
     services.value = data.services || []
@@ -667,7 +673,9 @@ const getStatusClass = (status) => {
   )
 }
 
-onMounted(() => {
-  invoicesStore.fetchInvoices()
+onMounted(async () => {
+  try {
+    await invoicesStore.fetchInvoices()
+  } catch (_) {}
 })
 </script>

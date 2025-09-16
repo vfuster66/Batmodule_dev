@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createRouter, createWebHistory } from 'vue-router'
 
 // Mock des dépendances
 vi.mock('../../stores/auth', () => ({
@@ -89,15 +88,10 @@ vi.mock('../../views/PublicPrivacyPolicy.vue', () => ({
 }))
 
 describe('Router Configuration', () => {
-  let router
-
   beforeEach(() => {
     vi.clearAllMocks()
 
-    // Import dynamique pour éviter l'exécution immédiate
-    import('../../router/index.js').then((module) => {
-      router = module.default
-    })
+    // rien de plus à initialiser ici
   })
 
   it('should have all required routes', async () => {

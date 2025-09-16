@@ -1453,11 +1453,15 @@ const services = ref([])
 const selectedServiceIdPerSection = ref({})
 
 const handleSearch = () => {
-  quotesStore.fetchQuotes({ search: searchTerm.value, page: 1 })
+  quotesStore
+    .fetchQuotes({ search: searchTerm.value, page: 1 })
+    .catch(() => {})
 }
 
 const handleStatusFilter = () => {
-  quotesStore.fetchQuotes({ status: statusFilter.value, page: 1 })
+  quotesStore
+    .fetchQuotes({ status: statusFilter.value, page: 1 })
+    .catch(() => {})
 }
 
 const showCreateModal = ref(false)
@@ -1795,7 +1799,9 @@ function defaultValidityDate() {
 }
 
 onMounted(async () => {
-  quotesStore.fetchQuotes()
+  try {
+    await quotesStore.fetchQuotes()
+  } catch (_) {}
   try {
     await companyStore.fetchSettings()
   } catch (_) {}
@@ -2018,7 +2024,9 @@ const getStatusClass = (status) => {
   )
 }
 
-onMounted(() => {
-  quotesStore.fetchQuotes()
+onMounted(async () => {
+  try {
+    await quotesStore.fetchQuotes()
+  } catch (_) {}
 })
 </script>
