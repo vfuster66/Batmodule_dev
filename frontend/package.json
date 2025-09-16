@@ -20,7 +20,7 @@
         "@headlessui/vue": "^1.7.23",
         "@heroicons/vue": "^2.0.18",
         "axios": "^1.6.2",
-        "date-fns": "^2.30.0",
+        "date-fns": "^4.1.0",
         "pinia": "^2.1.7",
         "vue": "^3.3.8",
         "vue-router": "^4.2.5",
