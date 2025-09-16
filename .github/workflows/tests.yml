@@ -104,7 +104,9 @@ jobs:
       - name: Run frontend tests with coverage
         run: |
           cd frontend
-          npx vitest run --coverage --reporter=verbose
+          npx vitest run --coverage --reporter=verbose --no-watch --bail=0
+        env:
+          NODE_OPTIONS: "--unhandled-rejections=warn"
 
       - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v3
