@@ -201,17 +201,21 @@
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-300">
                 Payé:
-                <span class="font-medium">{{ formatCurrency(invoice.paidAmount || 0) }}</span>
+                <span class="font-medium">{{
+                  formatCurrency(invoice.paidAmount || 0)
+                }}</span>
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-300">
                 Restant dû:
-                <span class="font-medium">{{ formatCurrency(remainingAmount) }}</span>
+                <span class="font-medium">{{
+                  formatCurrency(remainingAmount)
+                }}</span>
               </p>
             </div>
           </div>
 
           <div class="flex items-center space-x-3">
-          <button
+            <button
               @click="downloadPdf"
               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-gray-700 hover:bg-gray-800"
             >
@@ -260,7 +264,9 @@
 
           <!-- Paiements -->
           <div class="mt-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3
+              class="text-lg font-semibold text-gray-900 dark:text-white mb-2"
+            >
               Paiements
             </h3>
             <div
@@ -272,16 +278,24 @@
               >
                 <thead class="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th
+                      class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                    >
                       Date
                     </th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th
+                      class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                    >
                       Méthode
                     </th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th
+                      class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                    >
                       Référence
                     </th>
-                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    <th
+                      class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase"
+                    >
                       Montant
                     </th>
                   </tr>
@@ -316,61 +330,142 @@
           >
             <div class="text-sm text-gray-700 dark:text-gray-200">
               <strong>Vérification:</strong>
-              <span v-if="lastVerification.verification?.valid" class="text-green-600">OK</span>
+              <span
+                v-if="lastVerification.verification?.valid"
+                class="text-green-600"
+                >OK</span
+              >
               <span v-else class="text-red-600">Non valide</span>
             </div>
-            <pre class="mt-2 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{{
-              JSON.stringify(lastVerification.verification || lastVerification, null, 2)
-            }}</pre>
+            <pre
+              class="mt-2 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap"
+              >{{
+                JSON.stringify(
+                  lastVerification.verification || lastVerification,
+                  null,
+                  2
+                )
+              }}</pre
+            >
           </div>
         </div>
-  </div>
-  </div>
+      </div>
+    </div>
   </Layout>
   <!-- Modal Facture de solde -->
-  <div v-if="showFinalModal" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div
+    v-if="showFinalModal"
+    class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+  >
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg">
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Créer la facture de solde</h3>
-        <button @click="closeFinalModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+      <div
+        class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
+      >
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Créer la facture de solde
+        </h3>
+        <button
+          @click="closeFinalModal"
+          class="text-gray-500 hover:text-gray-700 dark:text-gray-300"
+        >
+          ✕
+        </button>
       </div>
       <div class="p-6 space-y-4">
         <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Titre</label>
-          <input v-model="finalForm.title" type="text" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+            >Titre</label
+          >
+          <input
+            v-model="finalForm.title"
+            type="text"
+            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
+          />
         </div>
         <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Échéance</label>
-          <input v-model="finalForm.dueDate" type="date" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+            >Échéance</label
+          >
+          <input
+            v-model="finalForm.dueDate"
+            type="date"
+            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
+          />
         </div>
         <div class="text-sm text-gray-600 dark:text-gray-300">
-          Montant total du devis: <strong>{{ formatCurrency(quoteTotalTtc) }}</strong><br />
-          Acompte: <strong>{{ formatCurrency(advanceAmount) }}</strong><br />
-          Solde calculé: <strong>{{ formatCurrency(Math.max(quoteTotalTtc - advanceAmount, 0)) }}</strong>
+          Montant total du devis:
+          <strong>{{ formatCurrency(quoteTotalTtc) }}</strong
+          ><br />
+          Acompte: <strong>{{ formatCurrency(advanceAmount) }}</strong
+          ><br />
+          Solde calculé:
+          <strong>{{
+            formatCurrency(Math.max(quoteTotalTtc - advanceAmount, 0))
+          }}</strong>
         </div>
       </div>
-      <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-        <button @click="closeFinalModal" class="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">Annuler</button>
-        <button @click="submitFinal" :disabled="!canSubmitFinal" class="px-4 py-2 rounded-md bg-yellow-600 text-white disabled:opacity-50">Créer</button>
+      <div
+        class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2"
+      >
+        <button
+          @click="closeFinalModal"
+          class="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+        >
+          Annuler
+        </button>
+        <button
+          @click="submitFinal"
+          :disabled="!canSubmitFinal"
+          class="px-4 py-2 rounded-md bg-yellow-600 text-white disabled:opacity-50"
+        >
+          Créer
+        </button>
       </div>
     </div>
   </div>
   <!-- Modal Paiement -->
-  <div v-if="showPaymentModal" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div
+    v-if="showPaymentModal"
+    class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+  >
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Ajouter un paiement</h3>
-        <button @click="closePaymentModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+      <div
+        class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
+      >
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Ajouter un paiement
+        </h3>
+        <button
+          @click="closePaymentModal"
+          class="text-gray-500 hover:text-gray-700 dark:text-gray-300"
+        >
+          ✕
+        </button>
       </div>
       <div class="p-6 space-y-4">
         <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Montant (€)</label>
-          <input v-model.number="paymentForm.amount" type="number" min="0.01" step="0.01" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
-          <p class="text-xs text-gray-500 mt-1">Reste à payer: {{ formatCurrency(remainingAmount) }}</p>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+            >Montant (€)</label
+          >
+          <input
+            v-model.number="paymentForm.amount"
+            type="number"
+            min="0.01"
+            step="0.01"
+            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
+          />
+          <p class="text-xs text-gray-500 mt-1">
+            Reste à payer: {{ formatCurrency(remainingAmount) }}
+          </p>
         </div>
         <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Méthode</label>
-          <select v-model="paymentForm.paymentMethod" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600">
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+            >Méthode</label
+          >
+          <select
+            v-model="paymentForm.paymentMethod"
+            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
+          >
             <option value="cash">Espèces</option>
             <option value="check">Chèque</option>
             <option value="transfer">Virement</option>
@@ -378,21 +473,52 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Date</label>
-          <input v-model="paymentForm.paymentDate" type="date" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+            >Date</label
+          >
+          <input
+            v-model="paymentForm.paymentDate"
+            type="date"
+            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
+          />
         </div>
         <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Référence (optionnel)</label>
-          <input v-model="paymentForm.reference" type="text" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600" />
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+            >Référence (optionnel)</label
+          >
+          <input
+            v-model="paymentForm.reference"
+            type="text"
+            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
+          />
         </div>
         <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Notes (optionnel)</label>
-          <textarea v-model="paymentForm.notes" rows="2" class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"></textarea>
+          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+            >Notes (optionnel)</label
+          >
+          <textarea
+            v-model="paymentForm.notes"
+            rows="2"
+            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
+          ></textarea>
         </div>
       </div>
-      <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-        <button @click="closePaymentModal" class="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">Annuler</button>
-        <button @click="submitPayment" :disabled="!canSubmitPayment" class="px-4 py-2 rounded-md bg-green-600 text-white disabled:opacity-50">Enregistrer</button>
+      <div
+        class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2"
+      >
+        <button
+          @click="closePaymentModal"
+          class="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+        >
+          Annuler
+        </button>
+        <button
+          @click="submitPayment"
+          :disabled="!canSubmitPayment"
+          class="px-4 py-2 rounded-md bg-green-600 text-white disabled:opacity-50"
+        >
+          Enregistrer
+        </button>
       </div>
     </div>
   </div>
@@ -411,7 +537,13 @@ const toast = useToast()
 const store = useInvoicesStore()
 const invoice = ref(null)
 const showPaymentModal = ref(false)
-const paymentForm = ref({ amount: 0, paymentMethod: 'transfer', paymentDate: '', reference: '', notes: '' })
+const paymentForm = ref({
+  amount: 0,
+  paymentMethod: 'transfer',
+  paymentDate: '',
+  reference: '',
+  notes: '',
+})
 const lastVerification = ref(null)
 const showFinalModal = ref(false)
 const finalForm = ref({ title: '', dueDate: '' })
@@ -445,7 +577,9 @@ const downloadPdf = async () => {
 
 const remainingAmount = computed(() => {
   if (!invoice.value) return 0
-  return Number(invoice.value.totalTtc || 0) - Number(invoice.value.paidAmount || 0)
+  return (
+    Number(invoice.value.totalTtc || 0) - Number(invoice.value.paidAmount || 0)
+  )
 })
 
 function openPaymentModal() {
@@ -511,7 +645,9 @@ function exportPaymentsCsv() {
     const amt = Number(p.amount || 0).toFixed(2)
     lines.push([d, method, `"${ref}"`, amt].join(','))
   }
-  const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['\ufeff' + lines.join('\n')], {
+    type: 'text/csv;charset=utf-8;',
+  })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   link.href = url
@@ -548,11 +684,20 @@ onMounted(async () => {
 
 function openFinalModal() {
   finalForm.value.title = `Solde – ${invoice.value?.title || invoice.value?.invoiceNumber}`
-  finalForm.value.dueDate = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  finalForm.value.dueDate = new Date(Date.now() + 30 * 86400000)
+    .toISOString()
+    .slice(0, 10)
   showFinalModal.value = true
 }
-function closeFinalModal() { showFinalModal.value = false }
-const canSubmitFinal = computed(() => !!finalForm.value.title && !!finalForm.value.dueDate && quoteTotalTtc.value > 0)
+function closeFinalModal() {
+  showFinalModal.value = false
+}
+const canSubmitFinal = computed(
+  () =>
+    !!finalForm.value.title &&
+    !!finalForm.value.dueDate &&
+    quoteTotalTtc.value > 0
+)
 async function submitFinal() {
   try {
     const quoteId = related.value?.advance?.quote_id
@@ -560,7 +705,12 @@ async function submitFinal() {
     if (quoteId) {
       const { data } = await api.get(`/quotes/${quoteId}`)
       const qi = data?.quote?.items || []
-      items = qi.map((it) => ({ description: it.description, quantity: it.quantity, unitPriceHt: it.unitPriceHt, vatRate: it.vatRate }))
+      items = qi.map((it) => ({
+        description: it.description,
+        quantity: it.quantity,
+        unitPriceHt: it.unitPriceHt,
+        vatRate: it.vatRate,
+      }))
     }
     const payload = {
       clientId: invoice.value.client?.id || invoice.value.clientId,
