@@ -1,4 +1,5 @@
 # Multi-stage build for production
+# Updated: Fixed vite not found error by installing all dependencies
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend

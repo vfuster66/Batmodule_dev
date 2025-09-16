@@ -96,7 +96,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -f Dockerfile.prod -t batmodule:${{ github.sha }} .
+          docker build --no-cache -f Dockerfile.prod -t batmodule:${{ github.sha }} .
           docker tag batmodule:${{ github.sha }} batmodule:latest
 
       - name: Deploy to staging
