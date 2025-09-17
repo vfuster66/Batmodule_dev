@@ -1,5 +1,11 @@
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
+import {
+  sanitizeLogMessage,
+  isSensitiveUrl,
+  configureSecureConsole,
+} from './security'
+import { initProductionSecurity } from '@/config/production'
 
 // Configuration de base de l'API
 const api = axios.create({
@@ -9,6 +15,10 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 })
+
+// Configuration de sécurité
+configureSecureConsole()
+initProductionSecurity()
 
 // Debug: Afficher l'URL de base utilisée (dev uniquement)
 if (import.meta.env.DEV) {
@@ -26,11 +36,19 @@ api.interceptors.request.use(
       }
     }
 
-    // Log des requêtes en développement (sans payload)
+    // Log des requêtes en développement (sans payload ni données sensibles)
     if (import.meta.env.DEV) {
-      console.log(
-        `🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`
-      )
+      const url = config.url || ''
+      const method = config.method?.toUpperCase()
+
+      // Masquer les données sensibles pour les routes d'authentification
+      if (isSensitiveUrl(url)) {
+        console.log(
+          `🚀 API Request: ${method} ${url} [données sensibles masquées]`
+        )
+      } else {
+        console.log(`🚀 API Request: ${method} ${url}`)
+      }
     }
 
     return config
@@ -78,11 +96,24 @@ api.interceptors.response.use(
       const url = error.config?.url || ''
       const method = error.config?.method?.toUpperCase()
       const status = error.response?.status
-      const msg =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        error.message
-      console.error('❌ API Error:', { method, url, status, message: msg })
+
+      // Masquer les messages d'erreur pour les routes d'authentification
+      let msg = error.message
+      if (!isSensitiveUrl(url)) {
+        msg =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message
+      } else {
+        msg = "Erreur d'authentification"
+      }
+
+      console.error('❌ API Error:', {
+        method,
+        url,
+        status,
+        message: sanitizeLogMessage(msg),
+      })
     } catch (_) {
       console.error('❌ API Error')
     }
