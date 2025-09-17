@@ -1,0 +1,32 @@
+# Dockerfile pour la production - Backend
+FROM node:18-alpine
+
+# Création de l'utilisateur non-root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S batmodule -u 1001
+
+# Définition du répertoire de travail
+WORKDIR /app
+
+# Copie des fichiers de dépendances
+COPY package*.json ./
+
+# Installation des dépendances
+RUN npm ci --only=production && npm cache clean --force
+
+# Copie du code source
+COPY . .
+
+# Changement de propriétaire
+RUN chown -R batmodule:nodejs /app
+USER batmodule
+
+# Exposition du port
+EXPOSE 3000
+
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Commande de démarrage
+CMD ["npm", "start"]

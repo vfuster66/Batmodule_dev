@@ -32,3 +32,20 @@ coverage/
 *.sql
 *.dump
 
+# Temporary files
+*.tmp
+*.temp
+*.backup
+*.bak
+
+# Test exports and archives
+exports/
+archives/
+*.pdf
+
+# Production files (generated)
+.env.production
+docker-compose.prod.yml
+nginx.conf
+scripts/deploy.sh
+

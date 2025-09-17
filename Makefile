@@ -78,6 +78,60 @@ test-watch: ## Lancer les tests en mode watch
 	docker-compose -f $(DEV_COMPOSE_FILE) exec backend npm test -- --watch
 	docker-compose -f $(DEV_COMPOSE_FILE) exec frontend npm test -- --watch
 
+lint: ## Lancer le linting sur tous les projets
+	@echo "🔍 Linting backend et frontend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) exec backend npm run lint
+	docker-compose -f $(DEV_COMPOSE_FILE) exec frontend npm run lint
+
+lint-backend: ## Linting backend uniquement
+	@echo "🔍 Linting backend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) exec backend npm run lint
+
+lint-frontend: ## Linting frontend uniquement
+	@echo "🔍 Linting frontend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) exec frontend npm run lint
+
+format: ## Formater le code sur tous les projets
+	@echo "✨ Formatage du code..."
+	docker-compose -f $(DEV_COMPOSE_FILE) exec backend npm run format
+	docker-compose -f $(DEV_COMPOSE_FILE) exec frontend npm run format
+
+format-backend: ## Formatage backend uniquement
+	@echo "✨ Formatage backend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) exec backend npm run format
+
+format-frontend: ## Formatage frontend uniquement
+	@echo "✨ Formatage frontend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) exec frontend npm run format
+
+check: lint test ## Vérification complète (lint + tests)
+	@echo "✅ Vérification terminée !"
+
+# Commandes de production
+generate-keys: ## Générer les clés de production sécurisées
+	@echo "🔐 Génération des clés de production..."
+	node scripts/generate-production-keys.js
+
+deploy-prod: ## Déployer en production
+	@echo "🚀 Déploiement en production..."
+	./scripts/deploy.sh
+
+backup-db: ## Sauvegarder la base de données
+	@echo "🗄️ Sauvegarde de la base de données..."
+	./scripts/backup-database.sh
+
+monitoring: ## Démarrer les services de monitoring
+	@echo "📊 Démarrage du monitoring..."
+	docker-compose -f docker-compose.monitoring.yml up -d
+
+logs-prod: ## Afficher les logs de production
+	@echo "📋 Logs de production..."
+	docker-compose -f docker-compose.prod.yml logs -f
+
+status-prod: ## Vérifier l'état des services de production
+	@echo "🔍 État des services de production..."
+	docker-compose -f docker-compose.prod.yml ps
+
 setup: install dev ## Configuration complète (install + dev)
 	@echo "🎉 Configuration terminée !"
 	@echo "   Accédez à l'application: http://localhost:3000"
