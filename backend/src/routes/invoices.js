@@ -15,9 +15,12 @@ const router = express.Router()
 const invoiceItemSchema = Joi.object({
   serviceId: Joi.string().uuid().optional(),
   description: Joi.string().min(1).max(255).required(),
+  unit: Joi.string().max(50).optional(),
   quantity: Joi.number().positive().required(),
-  unitPriceHt: Joi.number().positive().required(),
+  unitPriceHt: Joi.number().min(0).required(),
   vatRate: Joi.number().min(0).max(100).required(),
+  discountPercent: Joi.number().min(0).max(100).optional(),
+  markupPercent: Joi.number().min(0).max(100).optional(),
   sortOrder: Joi.number().integer().min(0).default(0),
 })
 
@@ -174,7 +177,7 @@ router.get('/:id', authenticateToken, async (req, res, next) => {
 
     // Récupérer les lignes de la facture
     const itemsResult = await query(
-      `SELECT id, service_id, description, quantity, unit_price_ht, unit_price_ttc, vat_rate, total_ht, total_ttc, sort_order, section_id
+      `SELECT id, service_id, description, unit, quantity, unit_price_ht, unit_price_ttc, vat_rate, discount_percent, markup_percent, total_ht, total_ttc, sort_order
        FROM invoice_items
        WHERE invoice_id = $1
        ORDER BY sort_order, created_at`,
@@ -222,10 +225,17 @@ router.get('/:id', authenticateToken, async (req, res, next) => {
           id: item.id,
           serviceId: item.service_id,
           description: item.description,
+          unit: item.unit,
           quantity: parseFloat(item.quantity),
           unitPriceHt: parseFloat(item.unit_price_ht),
           unitPriceTtc: parseFloat(item.unit_price_ttc),
           vatRate: parseFloat(item.vat_rate),
+          discountPercent: item.discount_percent
+            ? parseFloat(item.discount_percent)
+            : null,
+          markupPercent: item.markup_percent
+            ? parseFloat(item.markup_percent)
+            : null,
           totalHt: parseFloat(item.total_ht),
           totalTtc: parseFloat(item.total_ttc),
           sortOrder: item.sort_order,
@@ -355,21 +365,23 @@ router.post('/', authenticateToken, async (req, res, next) => {
       for (let i = 0; i < calculations.items.length; i++) {
         const item = calculations.items[i]
         const itemResult = await client.query(
-          `INSERT INTO invoice_items (invoice_id, service_id, description, quantity, unit_price_ht, unit_price_ttc, vat_rate, total_ht, total_ttc, sort_order, section_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-           RETURNING id, service_id, description, quantity, unit_price_ht, unit_price_ttc, vat_rate, total_ht, total_ttc, sort_order, section_id`,
+          `INSERT INTO invoice_items (invoice_id, service_id, description, unit, quantity, unit_price_ht, unit_price_ttc, vat_rate, discount_percent, markup_percent, total_ht, total_ttc, sort_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           RETURNING id, service_id, description, unit, quantity, unit_price_ht, unit_price_ttc, vat_rate, discount_percent, markup_percent, total_ht, total_ttc, sort_order`,
           [
             invoice.id,
             item.serviceId,
             item.description,
+            item.unit || null,
             item.quantity,
             item.unitPriceHt,
             item.unitPriceTtc,
             item.vatRate,
+            item.discountPercent || null,
+            item.markupPercent || null,
             item.totalHt,
             item.totalTtc,
             item.sortOrder || i,
-            item.sectionId || null,
           ]
         )
         invoiceItems.push(itemResult.rows[0])
@@ -637,7 +649,7 @@ router.get('/:id/pdf', authenticateToken, async (req, res, next) => {
 
     // Récupérer les lignes de la facture
     const itemsResult = await query(
-      `SELECT id, service_id, description, quantity, unit_price_ht, unit_price_ttc, vat_rate, total_ht, total_ttc, sort_order, section_id
+      `SELECT id, service_id, description, unit, quantity, unit_price_ht, unit_price_ttc, vat_rate, discount_percent, markup_percent, total_ht, total_ttc, sort_order
        FROM invoice_items
        WHERE invoice_id = $1
        ORDER BY sort_order, created_at`,
@@ -920,23 +932,25 @@ router.post('/from-quote/:id', authenticateToken, async (req, res, next) => {
 
         const itemQuery = `
                     INSERT INTO invoice_items (
-                        invoice_id, service_id, description, quantity, unit_price_ht, unit_price_ttc,
-                        vat_rate, total_ht, total_ttc, sort_order, section_id
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                        invoice_id, service_id, description, unit, quantity, unit_price_ht, unit_price_ttc,
+                        vat_rate, discount_percent, markup_percent, total_ht, total_ttc, sort_order
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 `
 
         await client.query(itemQuery, [
           invoice.id,
           item.service_id,
           item.description,
+          item.unit || null,
           item.quantity,
           item.unit_price_ht,
           itemCalculations.items[0].unitPriceTtc,
           item.vat_rate,
+          item.discount_percent || null,
+          item.markup_percent || null,
           itemCalculations.items[0].totalHt,
           itemCalculations.items[0].totalTtc,
           item.sort_order,
-          item.section_id,
         ])
       }
 

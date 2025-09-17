@@ -15,7 +15,7 @@ async function ensureSchema() {
   )
 
   // Créer tables avoirs si absentes
-  await query(`CREATE TABLE IF NOT EXISTS credit_notes (
+  await query(`CREATE TABLE IF NOT EXISTS credits (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         invoice_id UUID REFERENCES invoices(id) ON DELETE SET NULL,
@@ -31,9 +31,9 @@ async function ensureSchema() {
         UNIQUE(user_id, credit_number)
     )`)
 
-  await query(`CREATE TABLE IF NOT EXISTS credit_note_items (
+  await query(`CREATE TABLE IF NOT EXISTS credit_items (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-        credit_note_id UUID NOT NULL REFERENCES credit_notes(id) ON DELETE CASCADE,
+        credit_id UUID NOT NULL REFERENCES credits(id) ON DELETE CASCADE,
         service_id UUID REFERENCES services(id) ON DELETE SET NULL,
         description VARCHAR(255) NOT NULL,
         quantity DECIMAL(10,3) NOT NULL DEFAULT 1,
@@ -80,7 +80,7 @@ router.post('/from-invoice/:id', authenticateToken, async (req, res, next) => {
       const prefix = settingsRes.rows[0]?.credit_prefix || 'AVO'
       let counter = settingsRes.rows[0]?.credit_counter ?? 0
       const cntYear = await client.query(
-        'SELECT COUNT(*) AS cnt FROM credit_notes WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2',
+        'SELECT COUNT(*) AS cnt FROM credits WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2',
         [req.user.userId, year]
       )
       if (parseInt(cntYear.rows[0].cnt, 10) === 0) counter = 0
@@ -101,7 +101,7 @@ router.post('/from-invoice/:id', authenticateToken, async (req, res, next) => {
 
       // Créer avoir
       const creditRes = await client.query(
-        `INSERT INTO credit_notes (user_id, invoice_id, credit_number, title, description,
+        `INSERT INTO credits (user_id, invoice_id, credit_number, title, description,
                  subtotal_ht, total_vat, total_ttc, notes)
                  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
         [
@@ -123,7 +123,7 @@ router.post('/from-invoice/:id', authenticateToken, async (req, res, next) => {
         const src = itemsRes.rows[i]
         const it = calcs.items[i]
         await client.query(
-          `INSERT INTO credit_note_items (credit_note_id, service_id, description, quantity, unit_price_ht, unit_price_ttc, vat_rate, total_ht, total_ttc, sort_order)
+          `INSERT INTO credit_items (credit_id, service_id, description, quantity, unit_price_ht, unit_price_ttc, vat_rate, total_ht, total_ttc, sort_order)
                      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
           [
             credit.id,

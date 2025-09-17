@@ -119,34 +119,33 @@ app.get('/health', (req, res) => {
 // Routes d'authentification (déplacées vers routes/auth.js)
 app.use('/api/auth', authRoutes)
 
-// Middleware RLS temporairement désactivé pour résoudre les problèmes de boucle
-// TODO: Réactiver une fois la fonction set_user_context corrigée
-/*
-app.use('/api', (req, res, next) => {
-    if (req.path.startsWith('/auth')) {
-        return next();
-    }
-    
-    if (req.user && req.user.userId) {
-        setRLSContext(req, res, next);
-    } else {
-        next();
-    }
-});
+// Middleware RLS activé pour la sécurité multi-tenant
+const { setRLSContext, clearRLSContext } = require('./middleware/rlsContext')
 
 app.use('/api', (req, res, next) => {
-    if (req.path.startsWith('/auth')) {
-        return next();
+  if (req.path.startsWith('/auth')) {
+    return next()
+  }
+
+  if (req.user && req.user.userId) {
+    setRLSContext(req, res, next)
+  } else {
+    next()
+  }
+})
+
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/auth')) {
+    return next()
+  }
+
+  res.on('finish', () => {
+    if (req.user && req.user.userId) {
+      clearRLSContext(req, res, () => {})
     }
-    
-    res.on('finish', () => {
-        if (req.user && req.user.userId) {
-            clearRLSContext(req, res, () => { });
-        }
-    });
-    next();
-});
-*/
+  })
+  next()
+})
 
 // Routes legacy supprimées: /api/company/settings (GET, PUT)
 // Utiliser les routes modulaires: app.use('/api/company-settings', require('./routes/companySettings'))

@@ -393,6 +393,70 @@ describe('Clients Routes', () => {
       await request(app).post('/clients').send(incompleteClient).expect(400)
     })
 
+    it('should create a company client without firstName/lastName when companyName is provided', async () => {
+      const companyData = {
+        companyName: 'Entreprise Pure',
+        email: 'contact@entreprise.com',
+        phone: '0123456789',
+        isCompany: true,
+        siret: '98765432109876',
+      }
+
+      const mockResult = {
+        rows: [
+          {
+            id: 'new-company-id',
+            first_name: '',
+            last_name: '',
+            company_name: 'Entreprise Pure',
+            email: 'contact@entreprise.com',
+            phone: '0123456789',
+            is_company: true,
+            siret: '98765432109876',
+            created_at: '2023-01-01T00:00:00Z',
+            updated_at: '2023-01-01T00:00:00Z',
+          },
+        ],
+      }
+
+      mockQuery.mockResolvedValueOnce(mockResult)
+
+      const response = await request(app)
+        .post('/clients')
+        .send(companyData)
+        .expect(201)
+
+      expect(response.body.client).toMatchObject({
+        id: 'new-company-id',
+        firstName: '',
+        lastName: '',
+        companyName: 'Entreprise Pure',
+        email: 'contact@entreprise.com',
+        phone: '0123456789',
+        isCompany: true,
+        siret: '98765432109876',
+      })
+    })
+
+    it('should reject company client without companyName and firstName/lastName', async () => {
+      const invalidData = {
+        email: 'contact@entreprise.com',
+        phone: '0123456789',
+        isCompany: true,
+        siret: '98765432109876',
+      }
+
+      const response = await request(app)
+        .post('/clients')
+        .send(invalidData)
+        .expect(400)
+
+      // Vérifier que l'erreur est retournée
+      expect(response.body.error).toBe('Données invalides')
+      expect(response.body.details).toBeDefined()
+      expect(response.body.details.length).toBeGreaterThan(0)
+    })
+
     it('should handle database errors during creation', async () => {
       const newClient = {
         firstName: 'Jane',

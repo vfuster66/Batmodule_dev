@@ -7,8 +7,22 @@ const router = express.Router()
 
 // Schémas de validation
 const clientSchema = Joi.object({
-  firstName: Joi.string().min(2).max(100).required(),
-  lastName: Joi.string().min(2).max(100).required(),
+  firstName: Joi.string()
+    .min(2)
+    .max(100)
+    .when('isCompany', {
+      is: true,
+      then: Joi.optional().allow(''),
+      otherwise: Joi.required(),
+    }),
+  lastName: Joi.string()
+    .min(2)
+    .max(100)
+    .when('isCompany', {
+      is: true,
+      then: Joi.optional().allow(''),
+      otherwise: Joi.required(),
+    }),
   companyName: Joi.string().max(255).optional().allow(''),
   email: Joi.string().email().optional().allow(''),
   phone: Joi.string().max(20).optional().allow(''),
@@ -27,6 +41,27 @@ const clientSchema = Joi.object({
   apeCode: Joi.string().max(10).optional().allow(''),
   capitalSocial: Joi.number().positive().optional().allow(null),
 })
+  .custom((value, helpers) => {
+    // Validation personnalisée : au moins un des deux jeux doit être rempli
+    if (value.isCompany) {
+      // Pour une entreprise, au moins le nom de l'entreprise OU prénom/nom doit être rempli
+      if (!value.companyName && !value.firstName && !value.lastName) {
+        return helpers.error('custom.companyOrPersonRequired')
+      }
+    } else {
+      // Pour une personne, prénom et nom sont obligatoires
+      if (!value.firstName || !value.lastName) {
+        return helpers.error('custom.personNameRequired')
+      }
+    }
+    return value
+  })
+  .messages({
+    'custom.companyOrPersonRequired':
+      "Pour une entreprise, le nom de l'entreprise ou le prénom/nom du contact doit être renseigné",
+    'custom.personNameRequired':
+      'Pour une personne, le prénom et le nom sont obligatoires',
+  })
 
 // GET / - Récupérer tous les clients de l'utilisateur
 router.get('/', authenticateToken, async (req, res, next) => {

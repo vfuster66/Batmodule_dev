@@ -1,5 +1,5 @@
 // Middleware de gestion d'erreurs global
-const errorHandler = (err, req, res) => {
+const errorHandler = (err, req, res, _next) => {
   console.error('❌ Erreur:', {
     message: err.message,
     stack: err.stack,
