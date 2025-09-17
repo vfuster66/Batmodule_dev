@@ -3,11 +3,17 @@ const errorHandler = (err, req, res, _next) => {
   console.error('❌ Erreur:', {
     message: err.message,
     stack: err.stack,
-    url: req.url,
-    method: req.method,
-    ip: req.ip,
-    userAgent: req.get('User-Agent'),
+    url: req?.url,
+    method: req?.method,
+    ip: req?.ip,
+    userAgent: req?.get?.('User-Agent'),
   })
+
+  // Vérifier que res est défini et a la méthode status
+  if (!res || typeof res.status !== 'function') {
+    console.error('❌ Erreur critique: res.status non disponible')
+    return
+  }
 
   // Erreur de validation Joi
   if (err.isJoi) {

@@ -151,7 +151,7 @@ app.use('/api', (req, res, next) => {
 // Utiliser les routes modulaires: app.use('/api/company-settings', require('./routes/companySettings'))
 
 // Middleware de gestion d'erreurs global
-app.use(errorHandler)
+app.use((err, req, res, next) => errorHandler(err, req, res, next))
 
 // ===== ROUTES POUR LA GESTION DES CLIENTS =====
 // Utiliser les routes clients depuis routes/clients.js
