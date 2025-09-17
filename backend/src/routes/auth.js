@@ -127,6 +127,7 @@ router.post('/register', authLimiter, async (req, res, next) => {
 
     res.status(201).json({
       message: 'Utilisateur créé avec succès',
+      token: token,
       user: {
         id: user.id,
         email: user.email,
@@ -203,6 +204,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
 
     res.json({
       message: 'Connexion réussie',
+      token: token,
       user: {
         id: user.id,
         email: user.email,
