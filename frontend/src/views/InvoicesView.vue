@@ -311,7 +311,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from '@/components/Layout.vue'
 import { useInvoicesStore } from '@/stores/invoices'
@@ -340,51 +340,227 @@ const handleStatusFilter = () => {
 }
 
 const showCreateModal = ref(false)
+const clientSearch = ref('')
+const clientResults = ref([])
+const showCreateClient = ref(false)
+const newClient = ref({
+  firstName: '',
+  lastName: '',
+  companyName: '',
+  email: '',
+  phone: '',
+  isCompany: false
+})
+
 const form = ref({
   clientId: '',
   title: '',
   description: '',
-  items: [{ description: '', quantity: 1, unitPriceHt: 0, vatRate: 20 }],
+  dueDate: '',
+  notes: '',
+  items: [{
+    serviceId: '',
+    description: '',
+    unit: 'm²',
+    quantity: 1,
+    unitPriceHt: 0,
+    vatRate: 20,
+    discountPercent: 0,
+    markupPercent: 0
+  }],
+})
+
+const totals = ref({
+  subtotalHt: 0,
+  totalVat: 0,
+  totalTtc: 0
 })
 
 const openCreateModal = () => {
   showCreateModal.value = true
+  // Réinitialiser le formulaire
+  form.value = {
+    clientId: '',
+    title: '',
+    description: '',
+    dueDate: '',
+    notes: '',
+    items: [{
+      serviceId: '',
+      description: '',
+      unit: 'm²',
+      quantity: 1,
+      unitPriceHt: 0,
+      vatRate: 20,
+      discountPercent: 0,
+      markupPercent: 0
+    }]
+  }
+  clientSearch.value = ''
+  clientResults.value = []
+  showCreateClient.value = false
+  calculateTotals()
 }
 const closeCreateModal = () => {
   showCreateModal.value = false
 }
 const addItem = () => {
   form.value.items.push({
+    serviceId: '',
     description: '',
+    unit: 'm²',
     quantity: 1,
     unitPriceHt: 0,
     vatRate: 20,
+    discountPercent: 0,
+    markupPercent: 0
   })
 }
 const removeItem = (idx) => {
   form.value.items.splice(idx, 1)
+  calculateTotals()
+}
+
+// Fonctions pour la recherche de clients
+const searchClients = async () => {
+  if (clientSearch.value.length < 2) {
+    clientResults.value = []
+    return
+  }
+
+  try {
+    const response = await api.get(`/clients?search=${encodeURIComponent(clientSearch.value)}&limit=10`)
+    clientResults.value = response.data.clients || []
+  } catch (error) {
+    console.error('Erreur recherche clients:', error)
+    clientResults.value = []
+  }
+}
+
+const toggleCreateClient = () => {
+  showCreateClient.value = !showCreateClient.value
+  if (showCreateClient.value) {
+    newClient.value = {
+      firstName: '',
+      lastName: '',
+      companyName: '',
+      email: '',
+      phone: '',
+      isCompany: false
+    }
+  }
+}
+
+const selectClient = (client) => {
+  form.value.clientId = client.id
+  clientSearch.value = client.companyName || `${client.firstName} ${client.lastName}`
+  clientResults.value = []
+  showCreateClient.value = false
+}
+
+const createClient = async () => {
+  try {
+    const response = await api.post('/clients', newClient.value)
+    const client = response.data.client
+    form.value.clientId = client.id
+    clientSearch.value = client.companyName || `${client.firstName} ${client.lastName}`
+    showCreateClient.value = false
+    toast.success('Client créé avec succès')
+  } catch (error) {
+    console.error('Erreur création client:', error)
+    toast.error('Erreur lors de la création du client')
+  }
+}
+
+// Fonctions de calcul
+const lineTotalTtc = (item) => {
+  const quantity = parseFloat(item.quantity) || 0
+  const unitPriceHt = parseFloat(item.unitPriceHt) || 0
+  const vatRate = parseFloat(item.vatRate) || 0
+  const discountPercent = parseFloat(item.discountPercent) || 0
+  const markupPercent = parseFloat(item.markupPercent) || 0
+
+  // Prix HT après remise et majoration
+  let adjustedPriceHt = unitPriceHt
+  if (discountPercent > 0) {
+    adjustedPriceHt = adjustedPriceHt * (1 - discountPercent / 100)
+  }
+  if (markupPercent > 0) {
+    adjustedPriceHt = adjustedPriceHt * (1 + markupPercent / 100)
+  }
+
+  const totalHt = quantity * adjustedPriceHt
+  const totalVat = totalHt * (vatRate / 100)
+  return totalHt + totalVat
+}
+
+const calculateTotals = () => {
+  let subtotalHt = 0
+  let totalVat = 0
+
+  form.value.items.forEach(item => {
+    const quantity = parseFloat(item.quantity) || 0
+    const unitPriceHt = parseFloat(item.unitPriceHt) || 0
+    const vatRate = parseFloat(item.vatRate) || 0
+    const discountPercent = parseFloat(item.discountPercent) || 0
+    const markupPercent = parseFloat(item.markupPercent) || 0
+
+    // Prix HT après remise et majoration
+    let adjustedPriceHt = unitPriceHt
+    if (discountPercent > 0) {
+      adjustedPriceHt = adjustedPriceHt * (1 - discountPercent / 100)
+    }
+    if (markupPercent > 0) {
+      adjustedPriceHt = adjustedPriceHt * (1 + markupPercent / 100)
+    }
+
+    const itemTotalHt = quantity * adjustedPriceHt
+    const itemVat = itemTotalHt * (vatRate / 100)
+
+    subtotalHt += itemTotalHt
+    totalVat += itemVat
+  })
+
+  totals.value = {
+    subtotalHt,
+    totalVat,
+    totalTtc: subtotalHt + totalVat
+  }
 }
 const saveInvoice = async () => {
-  await invoicesStore.createInvoice({
-    clientId: form.value.clientId,
-    title: form.value.title,
-    description: form.value.description,
-    items: form.value.items,
-  })
-  await invoicesStore.fetchInvoices()
-  closeCreateModal()
+  try {
+    await invoicesStore.createInvoice({
+      clientId: form.value.clientId,
+      title: form.value.title,
+      description: form.value.description,
+      dueDate: form.value.dueDate,
+      notes: form.value.notes,
+      items: form.value.items,
+    })
+    await invoicesStore.fetchInvoices()
+    closeCreateModal()
+    toast.success('Facture créée avec succès')
+  } catch (error) {
+    console.error('Erreur création facture:', error)
+    toast.error('Erreur lors de la création de la facture')
+  }
 }
 
 const addFromCatalog = () => {
   const s = services.value.find((x) => x.id === selectedServiceId.value)
   if (!s) return
   form.value.items.push({
+    serviceId: s.id,
     description: s.name,
+    unit: s.unit || 'm²',
     quantity: 1,
     unitPriceHt: Number(s.price_ht),
     vatRate: Number(s.vat_rate || 20),
+    discountPercent: 0,
+    markupPercent: 0
   })
   selectedServiceId.value = ''
+  calculateTotals()
 }
 
 onMounted(async () => {
@@ -446,16 +622,14 @@ const getStatusLabel = (status) => {
     pending: 'En attente',
     paid: 'Payée',
     overdue: 'En retard',
-    cancelled: 'Annulée',
   }
   return labels[status] || status
 }
 
 const getPaymentStatusLabel = (invoice) => {
   if (invoice.status === 'paid') return 'Payée'
-  if (invoice.status === 'cancelled') return 'Annulée'
 
-  const totalPaid = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+  const totalPaid = invoice.paidAmount || 0
   const totalTtc = invoice.totalTtc || 0
 
   if (totalPaid >= totalTtc) return 'Payée'
@@ -465,9 +639,8 @@ const getPaymentStatusLabel = (invoice) => {
 
 const getPaymentStatusClass = (invoice) => {
   if (invoice.status === 'paid') return 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-  if (invoice.status === 'cancelled') return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
 
-  const totalPaid = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+  const totalPaid = invoice.paidAmount || 0
   const totalTtc = invoice.totalTtc || 0
 
   if (totalPaid >= totalTtc) return 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
@@ -476,9 +649,9 @@ const getPaymentStatusClass = (invoice) => {
 }
 
 const getRemainingAmount = (invoice) => {
-  if (invoice.status === 'paid' || invoice.status === 'cancelled') return 0
+  if (invoice.status === 'paid') return 0
 
-  const totalPaid = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0
+  const totalPaid = invoice.paidAmount || 0
   const totalTtc = invoice.totalTtc || 0
 
   return Math.max(0, totalTtc - totalPaid)
@@ -490,7 +663,6 @@ const getStatusClass = (status) => {
       'bg-yellow-100 text-yellow-800 dark:bg-yellow-600 dark:text-yellow-200',
     paid: 'bg-green-100 text-green-800 dark:bg-green-600 dark:text-green-200',
     overdue: 'bg-red-100 text-red-800 dark:bg-red-600 dark:text-red-200',
-    cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200',
   }
   return (
     classes[status] ||
@@ -498,9 +670,15 @@ const getStatusClass = (status) => {
   )
 }
 
+// Watcher pour recalculer les totaux quand les items changent
+watch(() => form.value.items, () => {
+  calculateTotals()
+}, { deep: true })
+
 onMounted(async () => {
   try {
     await invoicesStore.fetchInvoices()
+    calculateTotals()
   } catch (_) { }
 })
 </script>
