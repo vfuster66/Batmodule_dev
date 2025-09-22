@@ -1,4 +1,4 @@
-import { vi } from 'vitest'
+import { vi } from "vitest";
 
 // Manual mock for '@/utils/api' used in store unit tests.
 // Provides axios-like instance shape with mocked HTTP methods and defaults.
@@ -12,12 +12,12 @@ const api = {
     headers: {
       common: {},
     },
-    baseURL: '/api',
+    baseURL: "/api",
   },
   interceptors: {
     request: { use: vi.fn(), eject: vi.fn() },
     response: { use: vi.fn(), eject: vi.fn() },
   },
-}
+};
 
-export default api
+export default api;

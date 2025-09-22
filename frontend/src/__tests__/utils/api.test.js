@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock des dépendances
-vi.mock('axios', () => ({
+vi.mock("axios", () => ({
   default: {
     create: vi.fn(() => ({
       defaults: {
-        baseURL: '/api',
+        baseURL: "/api",
         timeout: 15000,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       },
       interceptors: {
         request: {
@@ -19,54 +19,54 @@ vi.mock('axios', () => ({
       },
     })),
   },
-}))
+}));
 
-vi.mock('vue-toastification', () => ({
+vi.mock("vue-toastification", () => ({
   useToast: () => ({
     error: vi.fn(),
     success: vi.fn(),
   }),
-}))
+}));
 
 // Mock import.meta.env
-Object.defineProperty(import.meta, 'env', {
+Object.defineProperty(import.meta, "env", {
   value: {
-    VITE_API_URL: '/api',
+    VITE_API_URL: "/api",
     DEV: false,
-    MODE: 'test',
+    MODE: "test",
   },
   writable: true,
-})
+});
 
 // Mock localStorage
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
   value: {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
     removeItem: vi.fn(),
   },
   writable: true,
-})
+});
 
-describe('API Configuration', () => {
+describe("API Configuration", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
+    vi.clearAllMocks();
+  });
 
-  it('should import api module without errors', async () => {
+  it("should import api module without errors", async () => {
     // Import dynamique pour éviter l'exécution immédiate
-    const apiModule = await import('../../utils/api.js')
+    const apiModule = await import("../../utils/api.js");
 
-    expect(apiModule.default).toBeDefined()
-  })
+    expect(apiModule.default).toBeDefined();
+  });
 
-  it('should have correct base configuration', async () => {
+  it("should have correct base configuration", async () => {
     // Import dynamique pour éviter l'exécution immédiate
-    const apiModule = await import('../../utils/api.js')
-    const api = apiModule.default
+    const apiModule = await import("../../utils/api.js");
+    const api = apiModule.default;
 
-    expect(api.defaults.baseURL).toBe('/api')
-    expect(api.defaults.timeout).toBe(15000)
-    expect(api.defaults.headers['Content-Type']).toBe('application/json')
-  })
-})
+    expect(api.defaults.baseURL).toBe("/api");
+    expect(api.defaults.timeout).toBe(15000);
+    expect(api.defaults.headers["Content-Type"]).toBe("application/json");
+  });
+});

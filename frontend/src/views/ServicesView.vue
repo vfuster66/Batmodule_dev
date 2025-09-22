@@ -334,7 +334,7 @@
                   <div
                     class="flex items-center text-sm text-gray-500 dark:text-gray-400"
                   >
-                    <p>{{ service.description || 'Aucune description' }}</p>
+                    <p>{{ service.description || "Aucune description" }}</p>
                     <span v-if="service.category_name" class="ml-2"
                       >• {{ service.category_name }}</span
                     >
@@ -440,146 +440,146 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useServicesStore } from '@/stores/services'
-import { useToast } from 'vue-toastification'
-import Layout from '@/components/Layout.vue'
-import ServiceModal from '@/components/ServiceModal.vue'
-import CategoryModal from '@/components/CategoryModal.vue'
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useServicesStore } from "@/stores/services";
+import { useToast } from "vue-toastification";
+import Layout from "@/components/Layout.vue";
+import ServiceModal from "@/components/ServiceModal.vue";
+import CategoryModal from "@/components/CategoryModal.vue";
 
-const router = useRouter()
-const servicesStore = useServicesStore()
-const toast = useToast()
+const router = useRouter();
+const servicesStore = useServicesStore();
+const toast = useToast();
 
 // État local
-const searchTerm = ref('')
-const selectedCategory = ref('')
-const sortBy = ref('created_at')
-const sortOrder = ref('desc')
-const showCreateModal = ref(false)
-const showEditModal = ref(false)
-const showCreateCategoryModal = ref(false)
-const editingService = ref(null)
+const searchTerm = ref("");
+const selectedCategory = ref("");
+const sortBy = ref("created_at");
+const sortOrder = ref("desc");
+const showCreateModal = ref(false);
+const showEditModal = ref(false);
+const showCreateCategoryModal = ref(false);
+const editingService = ref(null);
 
 // Getters du store
-const services = computed(() => servicesStore.services)
-const categories = computed(() => servicesStore.categories)
-const loading = computed(() => servicesStore.loading)
+const services = computed(() => servicesStore.services);
+const categories = computed(() => servicesStore.categories);
+const loading = computed(() => servicesStore.loading);
 
 // Recherche avec debounce
-let searchTimeout = null
+let searchTimeout = null;
 const debouncedSearch = () => {
-  clearTimeout(searchTimeout)
+  clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    servicesStore.searchServices(searchTerm.value)
-  }, 300)
-}
+    servicesStore.searchServices(searchTerm.value);
+  }, 300);
+};
 
 // Gestion des filtres
 const handleCategoryChange = () => {
-  servicesStore.filterByCategory(selectedCategory.value)
-}
+  servicesStore.filterByCategory(selectedCategory.value);
+};
 
 const handleSortChange = () => {
-  servicesStore.sortServices(sortBy.value, sortOrder.value)
-}
+  servicesStore.sortServices(sortBy.value, sortOrder.value);
+};
 
 const toggleSortOrder = () => {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  servicesStore.sortServices(sortBy.value, sortOrder.value)
-}
+  sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  servicesStore.sortServices(sortBy.value, sortOrder.value);
+};
 
 // Actions sur les services
 const viewService = (service) => {
-  router.push(`/services/${service.id}`)
-}
+  router.push(`/services/${service.id}`);
+};
 
 const editService = (service) => {
-  editingService.value = { ...service }
-  showEditModal.value = true
-}
+  editingService.value = { ...service };
+  showEditModal.value = true;
+};
 
 const deleteService = async (service) => {
   if (
     confirm(`Êtes-vous sûr de vouloir supprimer le service "${service.name}" ?`)
   ) {
     try {
-      await servicesStore.deleteService(service.id)
+      await servicesStore.deleteService(service.id);
     } catch (error) {
       // L'erreur est déjà gérée dans le store
     }
   }
-}
+};
 
 // Gestion des modals
 const closeModal = () => {
-  showCreateModal.value = false
-  showEditModal.value = false
-  editingService.value = null
-}
+  showCreateModal.value = false;
+  showEditModal.value = false;
+  editingService.value = null;
+};
 
 const closeCategoryModal = () => {
-  showCreateCategoryModal.value = false
-}
+  showCreateCategoryModal.value = false;
+};
 
 const handleSaveService = async (serviceData) => {
   try {
     if (showEditModal.value) {
-      await servicesStore.updateService(editingService.value.id, serviceData)
+      await servicesStore.updateService(editingService.value.id, serviceData);
     } else {
-      await servicesStore.createService(serviceData)
+      await servicesStore.createService(serviceData);
     }
-    closeModal()
+    closeModal();
   } catch (error) {
     // L'erreur est déjà gérée dans le store
   }
-}
+};
 
 const handleSaveCategory = async (categoryData) => {
   try {
-    await servicesStore.createCategory(categoryData)
-    closeCategoryModal()
+    await servicesStore.createCategory(categoryData);
+    closeCategoryModal();
   } catch (error) {
     // L'erreur est déjà gérée dans le store
   }
-}
+};
 
 // Utilitaires
 const getInitials = (name) => {
   return name
-    .split(' ')
+    .split(" ")
     .map((word) => word.charAt(0))
-    .join('')
+    .join("")
     .toUpperCase()
-    .substring(0, 2)
-}
+    .substring(0, 2);
+};
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount || 0)
-}
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount || 0);
+};
 
 // Initialisation
 onMounted(async () => {
   try {
-    await servicesStore.fetchCategories()
+    await servicesStore.fetchCategories();
   } catch (_) {}
   try {
-    await servicesStore.fetchServices()
+    await servicesStore.fetchServices();
   } catch (_) {}
-})
+});
 
 // Watchers
 watch(
   () => servicesStore.filters,
   (newFilters) => {
-    sortBy.value = newFilters.sortBy
-    sortOrder.value = newFilters.sortOrder
-    selectedCategory.value = newFilters.category_id
+    sortBy.value = newFilters.sortBy;
+    sortOrder.value = newFilters.sortOrder;
+    selectedCategory.value = newFilters.category_id;
   },
-  { deep: true }
-)
+  { deep: true },
+);
 </script>

@@ -19,7 +19,7 @@
 defineProps({
   message: {
     type: String,
-    default: 'Chargement...',
+    default: "Chargement...",
   },
-})
+});
 </script>

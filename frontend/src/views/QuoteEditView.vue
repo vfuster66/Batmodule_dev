@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            Modifier le devis {{ quote?.quoteNumber || '' }}
+            Modifier le devis {{ quote?.quoteNumber || "" }}
           </h1>
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Modifiez les détails de votre devis
@@ -51,7 +51,7 @@
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            {{ loading ? 'Sauvegarde...' : 'Sauvegarder' }}
+            {{ loading ? "Sauvegarde..." : "Sauvegarder" }}
           </button>
           <button
             @click="cancelEdit"
@@ -173,61 +173,61 @@
               <div>
                 <div class="text-gray-500">Prénom</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.firstName || '-' }}
+                  {{ quote.client.firstName || "-" }}
                 </div>
               </div>
               <div>
                 <div class="text-gray-500">Nom</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.lastName || '-' }}
+                  {{ quote.client.lastName || "-" }}
                 </div>
               </div>
               <div>
                 <div class="text-gray-500">Entreprise</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.companyName || '-' }}
+                  {{ quote.client.companyName || "-" }}
                 </div>
               </div>
               <div>
                 <div class="text-gray-500">Email</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.email || '-' }}
+                  {{ quote.client.email || "-" }}
                 </div>
               </div>
               <div>
                 <div class="text-gray-500">Téléphone</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.phone || '-' }}
+                  {{ quote.client.phone || "-" }}
                 </div>
               </div>
               <div class="md:col-span-2">
                 <div class="text-gray-500">Adresse ligne 1</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.addressLine1 || '-' }}
+                  {{ quote.client.addressLine1 || "-" }}
                 </div>
               </div>
               <div class="md:col-span-2">
                 <div class="text-gray-500">Adresse ligne 2</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.addressLine2 || '-' }}
+                  {{ quote.client.addressLine2 || "-" }}
                 </div>
               </div>
               <div>
                 <div class="text-gray-500">Code postal</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.postalCode || '-' }}
+                  {{ quote.client.postalCode || "-" }}
                 </div>
               </div>
               <div>
                 <div class="text-gray-500">Ville</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.city || '-' }}
+                  {{ quote.client.city || "-" }}
                 </div>
               </div>
               <div>
                 <div class="text-gray-500">Pays</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ quote.client.country || '-' }}
+                  {{ quote.client.country || "-" }}
                 </div>
               </div>
             </div>
@@ -407,10 +407,23 @@
                 class="flex-1 px-3 py-1 rounded-md border dark:bg-gray-700 dark:border-gray-600"
               >
                 <option value="">— Ajouter depuis le catalogue —</option>
-                <option v-for="s in services" :key="s.id" :value="s.id">
-                  {{ s.name }} ({{ s.unit }}) —
-                  {{ formatCurrency(s.priceHt) }} HT
-                </option>
+                <template
+                  v-for="category in servicesByCategory"
+                  :key="category.name"
+                >
+                  <option disabled class="font-bold text-gray-900 bg-gray-100">
+                    ▶ {{ category.name.toUpperCase() }}
+                  </option>
+                  <option
+                    v-for="s in category.services"
+                    :key="s.id"
+                    :value="s.id"
+                    class="pl-4"
+                  >
+                    {{ s.name }} ({{ s.unit }}) —
+                    {{ formatCurrency(s.price_ht) }} HT
+                  </option>
+                </template>
               </select>
               <button
                 @click="addFromCatalogToSection(sectionIndex)"
@@ -591,152 +604,187 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useQuotesStore } from '@/stores/quotes'
-import { useServicesStore } from '@/stores/services'
-import { useToast } from 'vue-toastification'
-import Layout from '@/components/Layout.vue'
-import ClientModal from '@/components/ClientModal.vue'
+import { ref, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useQuotesStore } from "@/stores/quotes";
+import { useServicesStore } from "@/stores/services";
+import { useToast } from "vue-toastification";
+import Layout from "@/components/Layout.vue";
+import ClientModal from "@/components/ClientModal.vue";
 
-const route = useRoute()
-const router = useRouter()
-const quotesStore = useQuotesStore()
-const servicesStore = useServicesStore()
-const services = computed(() => servicesStore.services)
-const selectedServiceIdPerSection = ref({})
-const showClientModal = ref(false)
-const toast = useToast()
+const route = useRoute();
+const router = useRouter();
+const quotesStore = useQuotesStore();
+const servicesStore = useServicesStore();
+const services = computed(() => servicesStore.services);
 
-const id = computed(() => route.params.id)
-const loading = ref(false)
-const quote = ref(null)
+// Grouper les services par catégorie
+const servicesByCategory = computed(() => {
+  const categories = {};
+
+  services.value.forEach((service) => {
+    const categoryName = service.category_name || "Sans catégorie";
+
+    if (!categories[categoryName]) {
+      categories[categoryName] = {
+        name: categoryName,
+        services: [],
+      };
+    }
+
+    categories[categoryName].services.push(service);
+  });
+
+  // Ordre logique des catégories selon la grille tarifaire
+  const categoryOrder = [
+    "Préparation des supports",
+    "Peinture intérieure",
+    "Revêtements muraux",
+    "Peinture extérieure",
+    "Revêtements sols",
+    "Travaux complémentaires",
+    "Sans catégorie",
+  ];
+
+  // Trier les catégories selon l'ordre défini
+  return categoryOrder
+    .filter((categoryName) => categories[categoryName])
+    .map((categoryName) => categories[categoryName]);
+});
+
+const selectedServiceIdPerSection = ref({});
+const showClientModal = ref(false);
+const toast = useToast();
+
+const id = computed(() => route.params.id);
+const loading = ref(false);
+const quote = ref(null);
 
 // Formulaire d'édition
 const form = ref({
-  title: '',
-  description: '',
-  notes: '',
-  validUntil: '',
+  title: "",
+  description: "",
+  notes: "",
+  validUntil: "",
   sections: [],
-})
+});
 
 // Fonctions utilitaires
 const formatCurrency = (amount) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
-    Number(amount || 0)
-  )
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
+    Number(amount || 0),
+  );
 
 const calculateItemTotal = (item) => {
-  const qty = Number(item.quantity || 0)
-  const pu = Number(item.unitPriceHt || 0)
-  const vat = Number(item.vatRate || 0) / 100
-  const ht = qty * pu
-  const ttc = ht * (1 + vat)
-  return ttc
-}
+  const qty = Number(item.quantity || 0);
+  const pu = Number(item.unitPriceHt || 0);
+  const vat = Number(item.vatRate || 0) / 100;
+  const ht = qty * pu;
+  const ttc = ht * (1 + vat);
+  return ttc;
+};
 
 const calculateTotals = () => {
-  const allItems = form.value.sections.flatMap((s) => s.items || [])
+  const allItems = form.value.sections.flatMap((s) => s.items || []);
   const subtotalHt = allItems.reduce((sum, item) => {
-    if (!item) return sum
-    const qty = Number(item.quantity || 0)
-    const pu = Number(item.unitPriceHt || 0)
-    return sum + qty * pu
-  }, 0)
+    if (!item) return sum;
+    const qty = Number(item.quantity || 0);
+    const pu = Number(item.unitPriceHt || 0);
+    return sum + qty * pu;
+  }, 0);
   const totalVat = allItems.reduce((sum, item) => {
-    if (!item) return sum
-    const qty = Number(item.quantity || 0)
-    const pu = Number(item.unitPriceHt || 0)
-    const vat = Number(item.vatRate || 0) / 100
-    return sum + qty * pu * vat
-  }, 0)
-  const totalTtc = subtotalHt + totalVat
-  return { subtotalHt, totalVat, totalTtc }
-}
+    if (!item) return sum;
+    const qty = Number(item.quantity || 0);
+    const pu = Number(item.unitPriceHt || 0);
+    const vat = Number(item.vatRate || 0) / 100;
+    return sum + qty * pu * vat;
+  }, 0);
+  const totalTtc = subtotalHt + totalVat;
+  return { subtotalHt, totalVat, totalTtc };
+};
 
-const totals = computed(() => calculateTotals())
+const totals = computed(() => calculateTotals());
 
 // Gestion des sections
 const addSection = () => {
   form.value.sections.push({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     items: [
       {
-        description: '',
-        unit: 'm²',
+        description: "",
+        unit: "m²",
         quantity: 1,
         unitPriceHt: 0,
         vatRate: 20,
       },
     ],
-  })
-}
+  });
+};
 
 const removeSection = (index) => {
   if (form.value.sections.length > 1) {
-    form.value.sections.splice(index, 1)
+    form.value.sections.splice(index, 1);
   }
-}
+};
 
 const addItem = (sectionIndex) => {
   form.value.sections[sectionIndex].items.push({
-    description: '',
-    unit: 'm²',
+    description: "",
+    unit: "m²",
     quantity: 1,
     unitPriceHt: 0,
     vatRate: 20,
-  })
-}
+  });
+};
 
 const removeItem = (sectionIndex, itemIndex) => {
-  form.value.sections[sectionIndex].items.splice(itemIndex, 1)
-}
+  form.value.sections[sectionIndex].items.splice(itemIndex, 1);
+};
 
 // Chargement du devis
 const loadQuote = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    await quotesStore.fetchQuote(id.value)
-    const currentQuote = quotesStore.currentQuote
+    await quotesStore.fetchQuote(id.value);
+    const currentQuote = quotesStore.currentQuote;
 
     if (currentQuote) {
-      quote.value = currentQuote
-      const sections = currentQuote.sections || []
+      quote.value = currentQuote;
+      const sections = currentQuote.sections || [];
       // Formater la date de validité pour l'input date
       const formatDateForInput = (dateString) => {
-        if (!dateString) return ''
-        const date = new Date(dateString)
-        return date.toISOString().split('T')[0]
-      }
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        return date.toISOString().split("T")[0];
+      };
 
       // Construire les sections avec leurs items à partir de currentQuote.items (liste plate)
-      const items = Array.isArray(currentQuote.items) ? currentQuote.items : []
+      const items = Array.isArray(currentQuote.items) ? currentQuote.items : [];
 
       form.value = {
-        title: currentQuote.title || '',
-        description: currentQuote.description || '',
-        notes: currentQuote.notes || '',
+        title: currentQuote.title || "",
+        description: currentQuote.description || "",
+        notes: currentQuote.notes || "",
         validUntil: formatDateForInput(currentQuote.validUntil),
         // Adresses
         siteSameAsBilling: currentQuote.siteAddress?.sameAsBilling || false,
-        siteAddressLine1: currentQuote.siteAddress?.addressLine1 || '',
-        siteAddressLine2: currentQuote.siteAddress?.addressLine2 || '',
-        sitePostalCode: currentQuote.siteAddress?.postalCode || '',
-        siteCity: currentQuote.siteAddress?.city || '',
-        siteCountry: currentQuote.siteAddress?.country || '',
+        siteAddressLine1: currentQuote.siteAddress?.addressLine1 || "",
+        siteAddressLine2: currentQuote.siteAddress?.addressLine2 || "",
+        sitePostalCode: currentQuote.siteAddress?.postalCode || "",
+        siteCity: currentQuote.siteAddress?.city || "",
+        siteCountry: currentQuote.siteAddress?.country || "",
         sections:
           sections.length > 0
             ? sections.map((section) => ({
                 id: section.id,
-                title: section.title || '',
-                description: section.description || '',
+                title: section.title || "",
+                description: section.description || "",
                 items: items
                   .filter((it) => it.sectionId === section.id)
                   .map((it) => ({
-                    description: it.description || '',
-                    unit: it.unit || 'm²',
+                    description: it.description || "",
+                    unit: it.unit || "m²",
                     quantity: Number(it.quantity || 1),
                     unitPriceHt: Number(it.unitPriceHt || 0),
                     vatRate: Number(it.vatRate || 20),
@@ -744,21 +792,21 @@ const loadQuote = async () => {
               }))
             : [
                 {
-                  title: 'Général',
-                  description: '',
+                  title: "Général",
+                  description: "",
                   items:
                     items.length > 0
                       ? items.map((it) => ({
-                          description: it.description || '',
-                          unit: it.unit || 'm²',
+                          description: it.description || "",
+                          unit: it.unit || "m²",
                           quantity: Number(it.quantity || 1),
                           unitPriceHt: Number(it.unitPriceHt || 0),
                           vatRate: Number(it.vatRate || 20),
                         }))
                       : [
                           {
-                            description: '',
-                            unit: 'm²',
+                            description: "",
+                            unit: "m²",
                             quantity: 1,
                             unitPriceHt: 0,
                             vatRate: 20,
@@ -766,21 +814,21 @@ const loadQuote = async () => {
                         ],
                 },
               ],
-      }
+      };
 
       // Client affiché en lecture seule via quote.client
     }
   } catch (error) {
-    toast.error('Erreur lors du chargement du devis')
-    console.error('Erreur:', error)
+    toast.error("Erreur lors du chargement du devis");
+    console.error("Erreur:", error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Sauvegarde
 const saveQuote = async () => {
-  loading.value = true
+  loading.value = true;
   try {
     const payload = {
       title: form.value.title,
@@ -794,51 +842,66 @@ const saveQuote = async () => {
       siteCity: form.value.siteCity,
       siteCountry: form.value.siteCountry,
       sections: form.value.sections,
-    }
+    };
 
-    await quotesStore.updateQuote(id.value, payload)
-    toast.success('Devis mis à jour avec succès')
-    router.push(`/quotes/${id.value}`)
+    await quotesStore.updateQuote(id.value, payload);
+    toast.success("Devis mis à jour avec succès");
+    router.push(`/quotes/${id.value}`);
   } catch (error) {
-    toast.error('Erreur lors de la sauvegarde du devis')
-    console.error('Erreur:', error)
+    toast.error("Erreur lors de la sauvegarde du devis");
+    console.error("Erreur:", error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Annulation
 const cancelEdit = () => {
-  router.push(`/quotes/${id.value}`)
-}
+  router.push(`/quotes/${id.value}`);
+};
 
 // Initialisation
 onMounted(async () => {
-  loadQuote()
+  loadQuote();
   try {
-    await servicesStore.fetchServices({ limit: 100 })
+    await servicesStore.fetchServices({ limit: 100 });
   } catch (_) {}
-})
+});
 
 // Gestion du modal client
 const handleClientSaved = async () => {
-  showClientModal.value = false
-  await loadQuote()
-}
+  showClientModal.value = false;
+  await loadQuote();
+};
 
 // Ajouter un service du catalogue à une section
 const addFromCatalogToSection = (sectionIndex) => {
-  const id = selectedServiceIdPerSection.value[sectionIndex]
-  if (!id) return
-  const s = services.value.find((x) => x.id === id)
-  if (!s) return
-  form.value.sections[sectionIndex].items.push({
+  const id = selectedServiceIdPerSection.value[sectionIndex];
+  if (!id) return;
+  const s = services.value.find((x) => x.id === id);
+  if (!s) return;
+
+  console.log("🛠️ Service sélectionné:", s);
+  console.log("💰 Prix HT:", s.price_ht, "Type:", typeof s.price_ht);
+  console.log("🧮 TVA:", s.vat_rate, "Type:", typeof s.vat_rate);
+
+  const newItem = {
     description: s.name,
-    unit: s.unit || '',
+    unit: s.unit || "",
     quantity: 1,
-    unitPriceHt: Number(s.priceHt || 0),
-    vatRate: Number(s.vatRate || 20),
-  })
-  selectedServiceIdPerSection.value[sectionIndex] = ''
-}
+    unitPriceHt: Number(s.price_ht || 0),
+    vatRate: Number(s.vat_rate || 20),
+  };
+
+  console.log("📦 Nouvel item créé:", newItem);
+
+  // Forcer la réactivité en créant une nouvelle array
+  const currentItems = [...form.value.sections[sectionIndex].items];
+  currentItems.push(newItem);
+  form.value.sections[sectionIndex].items = currentItems;
+
+  console.log("📋 Items après ajout:", form.value.sections[sectionIndex].items);
+
+  selectedServiceIdPerSection.value[sectionIndex] = "";
+};
 </script>

@@ -125,60 +125,60 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useCompanySettingsStore } from '../stores/companySettings'
-import Layout from '../components/Layout.vue'
-import CompanySettingsForm from '../components/CompanySettingsForm.vue'
-import ComplianceReport from '../components/ComplianceReport.vue'
-import LegalMentionsEditor from '../components/LegalMentionsEditor.vue'
+import { ref, onMounted, computed } from "vue";
+import { useCompanySettingsStore } from "../stores/companySettings";
+import Layout from "../components/Layout.vue";
+import CompanySettingsForm from "../components/CompanySettingsForm.vue";
+import ComplianceReport from "../components/ComplianceReport.vue";
+import LegalMentionsEditor from "../components/LegalMentionsEditor.vue";
 
-const store = useCompanySettingsStore()
+const store = useCompanySettingsStore();
 
 // Champs obligatoires pour la configuration de base
 const requiredFields = [
-  'company_name',
-  'siret',
-  'forme_juridique',
-  'address_line1',
-  'postal_code',
-  'city',
-  'phone',
-  'email',
-]
+  "company_name",
+  "siret",
+  "forme_juridique",
+  "address_line1",
+  "postal_code",
+  "city",
+  "phone",
+  "email",
+];
 
 // Vérifier si la configuration est complète
 const isSetupComplete = computed(() => {
   if (!store.settings || Object.keys(store.settings).length === 0) {
-    return false
+    return false;
   }
 
   return requiredFields.every((field) => {
-    const value = store.settings[field]
-    return value && value.toString().trim() !== ''
-  })
-})
+    const value = store.settings[field];
+    return value && value.toString().trim() !== "";
+  });
+});
 
 // État de chargement pour éviter les appels multiples
-const isLoadingSettings = ref(false)
+const isLoadingSettings = ref(false);
 
-const activeTab = ref('settings')
+const activeTab = ref("settings");
 
 onMounted(async () => {
   // Éviter les appels multiples
-  if (isLoadingSettings.value) return
+  if (isLoadingSettings.value) return;
 
-  isLoadingSettings.value = true
+  isLoadingSettings.value = true;
 
   try {
     // Ne charger que si les paramètres ne sont pas déjà chargés
-    const currentSettings = store.settings || {}
+    const currentSettings = store.settings || {};
     if (!currentSettings || Object.keys(currentSettings).length === 0) {
-      await store.fetchSettings()
+      await store.fetchSettings();
     }
   } catch (error) {
-    console.error('Erreur lors du chargement des paramètres:', error)
+    console.error("Erreur lors du chargement des paramètres:", error);
   } finally {
-    isLoadingSettings.value = false
+    isLoadingSettings.value = false;
   }
-})
+});
 </script>

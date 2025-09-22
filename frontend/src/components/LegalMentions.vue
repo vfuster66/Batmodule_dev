@@ -175,10 +175,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
-import { useCompanyStore } from '@/stores/company'
+import { computed, onMounted } from "vue";
+import { useCompanyStore } from "@/stores/company";
 
-const companyStore = useCompanyStore()
+const companyStore = useCompanyStore();
 
 // Charger les paramètres de l'entreprise seulement si pas déjà chargés
 onMounted(() => {
@@ -186,16 +186,16 @@ onMounted(() => {
     Object.keys(companyStore.settings).length === 0 ||
     !companyStore.settings.company_name
   ) {
-    companyStore.fetchSettings()
+    companyStore.fetchSettings();
   }
-})
+});
 
-const companySettings = computed(() => companyStore.settings)
+const companySettings = computed(() => companyStore.settings);
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount)
-}
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount);
+};
 </script>

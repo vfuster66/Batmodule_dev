@@ -132,7 +132,7 @@
                   ></path>
                 </svg>
               </span>
-              {{ isLoading ? 'Connexion...' : 'Se connecter' }}
+              {{ isLoading ? "Connexion..." : "Se connecter" }}
             </button>
           </div>
         </form>
@@ -167,65 +167,65 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useToast } from 'vue-toastification'
+import { ref, reactive } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { useToast } from "vue-toastification";
 
-const router = useRouter()
-const authStore = useAuthStore()
-const toast = useToast()
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
 
-const isLoading = ref(false)
+const isLoading = ref(false);
 
 const form = reactive({
-  email: '',
-  password: '',
+  email: "",
+  password: "",
   rememberMe: false,
-})
+});
 
 const handleLogin = async () => {
   if (!form.email || !form.password) {
-    toast.error('Veuillez remplir tous les champs')
-    return
+    toast.error("Veuillez remplir tous les champs");
+    return;
   }
 
-  isLoading.value = true
+  isLoading.value = true;
 
   try {
     const result = await authStore.login({
       email: form.email,
       password: form.password,
-    })
+    });
 
     if (result.success) {
-      toast.success('Connexion réussie !')
-      router.push('/dashboard')
+      toast.success("Connexion réussie !");
+      router.push("/dashboard");
     }
   } catch (error) {
-    console.error('Erreur de connexion:', error)
+    console.error("Erreur de connexion:", error);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 const loginDemo = async () => {
-  isLoading.value = true
+  isLoading.value = true;
 
   try {
     const result = await authStore.login({
-      email: 'demo@batmodule.fr',
-      password: 'demo123',
-    })
+      email: "demo@batmodule.fr",
+      password: "demo123",
+    });
 
     if (result.success) {
-      toast.success('Connexion en mode démo réussie !')
-      router.push('/dashboard')
+      toast.success("Connexion en mode démo réussie !");
+      router.push("/dashboard");
     }
   } catch (error) {
-    console.error('Erreur de connexion démo:', error)
+    console.error("Erreur de connexion démo:", error);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 </script>

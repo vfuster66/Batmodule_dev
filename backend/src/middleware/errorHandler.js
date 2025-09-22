@@ -1,84 +1,90 @@
 // Middleware de gestion d'erreurs global
 const errorHandler = (err, req, res, _next) => {
-  console.error('❌ Erreur:', {
+  console.error("❌ Erreur:", {
     message: err.message,
     stack: err.stack,
     url: req?.url,
     method: req?.method,
     ip: req?.ip,
-    userAgent: req?.get?.('User-Agent'),
-  })
+    userAgent: req?.get?.("User-Agent"),
+  });
 
   // Vérifier que res est défini et a la méthode status
-  if (!res || typeof res.status !== 'function') {
-    console.error('❌ Erreur critique: res.status non disponible')
-    return
+  if (!res || typeof res.status !== "function") {
+    console.error("❌ Erreur critique: res.status non disponible");
+    return;
   }
 
   // Erreur de validation Joi
   if (err.isJoi) {
     return res.status(400).json({
-      error: 'Données invalides',
+      error: "Données invalides",
       details: err.details.map((detail) => ({
-        field: detail.path.join('.'),
+        field: detail.path.join("."),
         message: detail.message,
       })),
-    })
+    });
   }
 
   // Erreur de base de données
   if (err.code) {
     switch (err.code) {
-      case '23505': // Violation de contrainte unique
+      case "23505": // Violation de contrainte unique
         return res.status(409).json({
-          error: 'Conflit de données',
-          message: 'Cette ressource existe déjà',
-        })
-      case '23503': // Violation de clé étrangère
+          error: "Conflit de données",
+          message: "Cette ressource existe déjà",
+        });
+      case "23503": // Violation de clé étrangère
         return res.status(400).json({
-          error: 'Référence invalide',
+          error: "Référence invalide",
           message: "La ressource référencée n'existe pas",
-        })
-      case '23502': // Violation de contrainte NOT NULL
+        });
+      case "23502": // Violation de contrainte NOT NULL
         return res.status(400).json({
-          error: 'Données manquantes',
-          message: 'Certains champs obligatoires sont manquants',
-        })
+          error: "Données manquantes",
+          message: "Certains champs obligatoires sont manquants",
+        });
       default:
         return res.status(500).json({
-          error: 'Erreur de base de données',
+          error: "Erreur de base de données",
           message: "Une erreur est survenue lors de l'accès aux données",
-        })
+        });
     }
   }
 
   // Erreur JWT
-  if (err.name === 'JsonWebTokenError') {
+  if (err.name === "JsonWebTokenError") {
     return res.status(401).json({
-      error: 'Token invalide',
+      error: "Token invalide",
       message: "Le token d'authentification est invalide",
-    })
+    });
   }
 
-  if (err.name === 'TokenExpiredError') {
+  if (err.name === "TokenExpiredError") {
     return res.status(401).json({
-      error: 'Token expiré',
+      error: "Token expiré",
       message: "Le token d'authentification a expiré",
-    })
+    });
   }
 
   // Erreur par défaut
-  const statusCode = err.statusCode || 500
+  const statusCode = err.statusCode || 500;
   const message =
-    process.env.NODE_ENV === 'production'
-      ? 'Une erreur interne est survenue'
-      : err.message
+    process.env.NODE_ENV === "production"
+      ? "Une erreur interne est survenue"
+      : err.message;
+
+  // Vérifier que res est défini et a la méthode status
+  if (!res || typeof res.status !== "function") {
+    console.error("Erreur: res.status is not a function", { err, res });
+    return;
+  }
 
   res.status(statusCode).json({
-    error: 'Erreur serveur',
+    error: "Erreur serveur",
     message: message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
-  })
-}
+    ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+  });
+};
 
-module.exports = { errorHandler }
+module.exports = { errorHandler };

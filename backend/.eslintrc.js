@@ -4,14 +4,14 @@ module.exports = {
     es2021: true,
     jest: true,
   },
-  extends: ['eslint:recommended'],
+  extends: ["eslint:recommended"],
   parserOptions: {
     ecmaVersion: 2021,
-    sourceType: 'module',
+    sourceType: "module",
   },
   rules: {
-    'no-console': 'off',
-    'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-    'no-undef': 'error',
+    "no-console": "off",
+    "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    "no-undef": "error",
   },
-}
+};

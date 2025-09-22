@@ -1,4 +1,4 @@
-const { query } = require('../config/database')
+const { query } = require("../config/database");
 
 class ComplianceAlertService {
   /**
@@ -9,7 +9,7 @@ class ComplianceAlertService {
   async generateAllAlerts(userId) {
     try {
       // Exécuter la fonction de génération d'alertes
-      await query('SELECT generate_compliance_alerts()')
+      await query("SELECT generate_compliance_alerts()");
 
       // Récupérer les alertes pour l'utilisateur
       const result = await query(
@@ -34,18 +34,18 @@ class ComplianceAlertService {
                  LEFT JOIN personal_protective_equipment ppe ON ca.entity_type = 'equipment' AND ca.entity_id = ppe.id
                  WHERE ca.user_id = $1
                  ORDER BY ca.severity DESC, ca.alert_date ASC`,
-        [userId]
-      )
+        [userId],
+      );
 
       return {
         success: true,
         alerts: result.rows,
         count: result.rows.length,
         bySeverity: this.groupAlertsBySeverity(result.rows),
-      }
+      };
     } catch (error) {
-      console.error('Erreur lors de la génération des alertes:', error)
-      throw new Error('Échec de la génération des alertes')
+      console.error("Erreur lors de la génération des alertes:", error);
+      throw new Error("Échec de la génération des alertes");
     }
   }
 
@@ -58,16 +58,16 @@ class ComplianceAlertService {
    */
   async getAlerts(userId, severity = null, unresolved = true) {
     try {
-      let whereClause = 'WHERE ca.user_id = $1'
-      let params = [userId]
+      let whereClause = "WHERE ca.user_id = $1";
+      let params = [userId];
 
       if (severity) {
-        whereClause += ' AND ca.severity = $2'
-        params.push(severity)
+        whereClause += " AND ca.severity = $2";
+        params.push(severity);
       }
 
       if (unresolved) {
-        whereClause += ` AND ca.is_resolved = false`
+        whereClause += ` AND ca.is_resolved = false`;
       }
 
       const result = await query(
@@ -92,13 +92,13 @@ class ComplianceAlertService {
                  LEFT JOIN personal_protective_equipment ppe ON ca.entity_type = 'equipment' AND ca.entity_id = ppe.id
                  ${whereClause}
                  ORDER BY ca.severity DESC, ca.alert_date ASC`,
-        params
-      )
+        params,
+      );
 
-      return result.rows
+      return result.rows;
     } catch (error) {
-      console.error('Erreur lors de la récupération des alertes:', error)
-      throw new Error('Échec de la récupération des alertes')
+      console.error("Erreur lors de la récupération des alertes:", error);
+      throw new Error("Échec de la récupération des alertes");
     }
   }
 
@@ -116,17 +116,17 @@ class ComplianceAlertService {
                  SET is_resolved = true, resolved_at = CURRENT_TIMESTAMP, resolved_by = $1, notes = $2
                  WHERE id = $3 AND user_id = $4
                  RETURNING *`,
-        [userId, notes, alertId, userId]
-      )
+        [userId, notes, alertId, userId],
+      );
 
       if (result.rows.length === 0) {
-        throw new Error('Alerte non trouvée')
+        throw new Error("Alerte non trouvée");
       }
 
-      return result.rows[0]
+      return result.rows[0];
     } catch (error) {
-      console.error("Erreur lors de la résolution de l'alerte:", error)
-      throw error
+      console.error("Erreur lors de la résolution de l'alerte:", error);
+      throw error;
     }
   }
 
@@ -139,14 +139,14 @@ class ComplianceAlertService {
   async deleteAlert(alertId, userId) {
     try {
       const result = await query(
-        'DELETE FROM compliance_alerts WHERE id = $1 AND user_id = $2',
-        [alertId, userId]
-      )
+        "DELETE FROM compliance_alerts WHERE id = $1 AND user_id = $2",
+        [alertId, userId],
+      );
 
-      return result.rowCount > 0
+      return result.rowCount > 0;
     } catch (error) {
-      console.error("Erreur lors de la suppression de l'alerte:", error)
-      throw new Error("Échec de la suppression de l'alerte")
+      console.error("Erreur lors de la suppression de l'alerte:", error);
+      throw new Error("Échec de la suppression de l'alerte");
     }
   }
 
@@ -158,7 +158,7 @@ class ComplianceAlertService {
   async getComplianceDashboard(userId) {
     try {
       // Générer les alertes d'abord
-      await this.generateAllAlerts(userId)
+      await this.generateAllAlerts(userId);
 
       // Récupérer les statistiques générales
       const statsResult = await query(
@@ -171,19 +171,19 @@ class ComplianceAlertService {
                     (SELECT COUNT(*) FROM compliance_alerts WHERE user_id = $1 AND is_resolved = false AND severity = 'critical') as critical_alerts,
                     (SELECT COUNT(*) FROM compliance_alerts WHERE user_id = $1 AND is_resolved = false AND severity = 'high') as high_alerts
                 `,
-        [userId]
-      )
+        [userId],
+      );
 
-      const stats = statsResult.rows[0]
+      const stats = statsResult.rows[0];
 
       // Récupérer les alertes récentes
-      const recentAlerts = await this.getAlerts(userId, null, true)
+      const recentAlerts = await this.getAlerts(userId, null, true);
 
       // Calculer le score de conformité
-      const complianceScore = this.calculateComplianceScore(stats)
+      const complianceScore = this.calculateComplianceScore(stats);
 
       // Récupérer les éléments expirant bientôt
-      const expiringSoon = await this.getExpiringItems(userId)
+      const expiringSoon = await this.getExpiringItems(userId);
 
       return {
         complianceScore,
@@ -199,10 +199,13 @@ class ComplianceAlertService {
         recentAlerts: recentAlerts.slice(0, 10),
         expiringSoon,
         recommendations: this.generateRecommendations(stats, recentAlerts),
-      }
+      };
     } catch (error) {
-      console.error('Erreur lors de la récupération du tableau de bord:', error)
-      throw new Error('Échec de la récupération du tableau de bord')
+      console.error(
+        "Erreur lors de la récupération du tableau de bord:",
+        error,
+      );
+      throw new Error("Échec de la récupération du tableau de bord");
     }
   }
 
@@ -212,24 +215,24 @@ class ComplianceAlertService {
    * @returns {number} - Score de conformité (0-100)
    */
   calculateComplianceScore(stats) {
-    let score = 100
+    let score = 100;
 
     // Pénalités pour les alertes critiques
-    score -= parseInt(stats.critical_alerts) * 20
+    score -= parseInt(stats.critical_alerts) * 20;
 
     // Pénalités pour les alertes importantes
-    score -= parseInt(stats.high_alerts) * 10
+    score -= parseInt(stats.high_alerts) * 10;
 
     // Pénalités pour les alertes non résolues
-    score -= parseInt(stats.unresolved_alerts) * 5
+    score -= parseInt(stats.unresolved_alerts) * 5;
 
     // Bonus pour avoir des assurances
-    if (parseInt(stats.active_insurances) > 0) score += 10
+    if (parseInt(stats.active_insurances) > 0) score += 10;
 
     // Bonus pour avoir des certifications
-    if (parseInt(stats.active_certifications) > 0) score += 5
+    if (parseInt(stats.active_certifications) > 0) score += 5;
 
-    return Math.max(0, Math.min(100, score))
+    return Math.max(0, Math.min(100, score));
   }
 
   /**
@@ -287,16 +290,16 @@ class ComplianceAlertService {
                  WHERE user_id = $1 AND is_active = true AND expiry_date IS NOT NULL AND expiry_date <= CURRENT_DATE + INTERVAL '30 days'
                  
                  ORDER BY end_date ASC`,
-        [userId]
-      )
+        [userId],
+      );
 
-      return result.rows
+      return result.rows;
     } catch (error) {
       console.error(
-        'Erreur lors de la récupération des éléments expirants:',
-        error
-      )
-      return []
+        "Erreur lors de la récupération des éléments expirants:",
+        error,
+      );
+      return [];
     }
   }
 
@@ -307,51 +310,51 @@ class ComplianceAlertService {
    * @returns {Array} - Recommandations
    */
   generateRecommendations(stats) {
-    const recommendations = []
+    const recommendations = [];
 
     if (parseInt(stats.active_insurances) === 0) {
       recommendations.push({
-        priority: 'high',
-        category: 'insurance',
-        title: 'Assurance décennale obligatoire',
+        priority: "high",
+        category: "insurance",
+        title: "Assurance décennale obligatoire",
         description:
-          'Vous devez souscrire une assurance décennale pour exercer légalement dans le BTP',
-        action: 'Souscrire une assurance décennale',
-      })
+          "Vous devez souscrire une assurance décennale pour exercer légalement dans le BTP",
+        action: "Souscrire une assurance décennale",
+      });
     }
 
     if (parseInt(stats.active_certifications) === 0) {
       recommendations.push({
-        priority: 'medium',
-        category: 'certification',
-        title: 'Certifications recommandées',
+        priority: "medium",
+        category: "certification",
+        title: "Certifications recommandées",
         description:
-          'Obtenez des certifications (RGE, Qualibat) pour améliorer votre crédibilité',
-        action: 'Envisager des certifications professionnelles',
-      })
+          "Obtenez des certifications (RGE, Qualibat) pour améliorer votre crédibilité",
+        action: "Envisager des certifications professionnelles",
+      });
     }
 
     if (parseInt(stats.critical_alerts) > 0) {
       recommendations.push({
-        priority: 'critical',
-        category: 'alerts',
-        title: 'Alertes critiques à traiter',
+        priority: "critical",
+        category: "alerts",
+        title: "Alertes critiques à traiter",
         description: `${stats.critical_alerts} alerte(s) critique(s) nécessitent une attention immédiate`,
-        action: 'Résoudre les alertes critiques',
-      })
+        action: "Résoudre les alertes critiques",
+      });
     }
 
     if (parseInt(stats.valid_trainings) === 0) {
       recommendations.push({
-        priority: 'medium',
-        category: 'training',
-        title: 'Formations de sécurité',
-        description: 'Planifiez des formations de sécurité pour vos employés',
-        action: 'Organiser des formations SST et HSE',
-      })
+        priority: "medium",
+        category: "training",
+        title: "Formations de sécurité",
+        description: "Planifiez des formations de sécurité pour vos employés",
+        action: "Organiser des formations SST et HSE",
+      });
     }
 
-    return recommendations
+    return recommendations;
   }
 
   /**
@@ -362,11 +365,11 @@ class ComplianceAlertService {
   groupAlertsBySeverity(alerts) {
     return alerts.reduce((groups, alert) => {
       if (!groups[alert.severity]) {
-        groups[alert.severity] = []
+        groups[alert.severity] = [];
       }
-      groups[alert.severity].push(alert)
-      return groups
-    }, {})
+      groups[alert.severity].push(alert);
+      return groups;
+    }, {});
   }
 
   /**
@@ -378,7 +381,7 @@ class ComplianceAlertService {
    */
   async generateComplianceReport(userId, startDate, endDate) {
     try {
-      const dashboard = await this.getComplianceDashboard(userId)
+      const dashboard = await this.getComplianceDashboard(userId);
 
       // Récupérer l'historique des alertes pour la période
       const historyResult = await query(
@@ -391,8 +394,8 @@ class ComplianceAlertService {
                  WHERE ca.user_id = $1
                  AND ca.alert_date BETWEEN $2 AND $3
                  ORDER BY ca.alert_date DESC`,
-        [userId, startDate, endDate]
-      )
+        [userId, startDate, endDate],
+      );
 
       return {
         period: { startDate, endDate },
@@ -403,16 +406,16 @@ class ComplianceAlertService {
           resolvedAlerts: historyResult.rows.filter((a) => a.is_resolved)
             .length,
           criticalAlerts: historyResult.rows.filter(
-            (a) => a.severity === 'critical'
+            (a) => a.severity === "critical",
           ).length,
           complianceScore: dashboard.complianceScore,
         },
-      }
+      };
     } catch (error) {
-      console.error('Erreur lors de la génération du rapport:', error)
-      throw new Error('Échec de la génération du rapport de conformité')
+      console.error("Erreur lors de la génération du rapport:", error);
+      throw new Error("Échec de la génération du rapport de conformité");
     }
   }
 }
 
-module.exports = new ComplianceAlertService()
+module.exports = new ComplianceAlertService();

@@ -15,7 +15,7 @@
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
           <div class="flex items-center justify-between">
             <h3 class="text-xl font-semibold text-white">
-              {{ client ? 'Modifier le client' : 'Nouveau client' }}
+              {{ client ? "Modifier le client" : "Nouveau client" }}
             </h3>
             <button
               @click="close"
@@ -404,7 +404,7 @@
                 :disabled="clientsStore.loading"
                 class="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
               >
-                {{ clientsStore.loading ? 'Sauvegarde...' : 'Sauvegarder' }}
+                {{ clientsStore.loading ? "Sauvegarde..." : "Sauvegarder" }}
               </button>
             </div>
           </form>
@@ -415,41 +415,41 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { useClientsStore } from '@/stores/clients'
+import { ref, watch } from "vue";
+import { useClientsStore } from "@/stores/clients";
 
 const props = defineProps({
   show: Boolean,
   client: Object,
-})
+});
 
-const emit = defineEmits(['close', 'saved'])
+const emit = defineEmits(["close", "saved"]);
 
-const clientsStore = useClientsStore()
+const clientsStore = useClientsStore();
 
 const defaultFormData = {
-  first_name: '',
-  last_name: '',
-  company_name: '',
-  email: '',
-  phone: '',
-  address_line1: '',
-  address_line2: '',
-  postal_code: '',
-  city: '',
-  country: 'France',
-  notes: '',
+  first_name: "",
+  last_name: "",
+  company_name: "",
+  email: "",
+  phone: "",
+  address_line1: "",
+  address_line2: "",
+  postal_code: "",
+  city: "",
+  country: "France",
+  notes: "",
   is_company: false,
   // Champs légaux pour les entreprises
-  siret: '',
-  vat_number: '',
-  legal_form: '',
-  rcs_number: '',
-  ape_code: '',
+  siret: "",
+  vat_number: "",
+  legal_form: "",
+  rcs_number: "",
+  ape_code: "",
   capital_social: null,
-}
+};
 
-const formData = ref({ ...defaultFormData })
+const formData = ref({ ...defaultFormData });
 
 watch(
   () => props.client,
@@ -458,46 +458,46 @@ watch(
       // Mapper les données du backend (camelCase) vers le frontend (snake_case)
       formData.value = {
         ...defaultFormData,
-        first_name: newClient.firstName || '',
-        last_name: newClient.lastName || '',
-        company_name: newClient.companyName || '',
-        email: newClient.email || '',
-        phone: newClient.phone || '',
-        address_line1: newClient.addressLine1 || '',
-        address_line2: newClient.addressLine2 || '',
-        postal_code: newClient.postalCode || '',
-        city: newClient.city || '',
-        country: newClient.country || 'France',
-        notes: newClient.notes || '',
+        first_name: newClient.firstName || "",
+        last_name: newClient.lastName || "",
+        company_name: newClient.companyName || "",
+        email: newClient.email || "",
+        phone: newClient.phone || "",
+        address_line1: newClient.addressLine1 || "",
+        address_line2: newClient.addressLine2 || "",
+        postal_code: newClient.postalCode || "",
+        city: newClient.city || "",
+        country: newClient.country || "France",
+        notes: newClient.notes || "",
         is_company: newClient.isCompany || false,
-        siret: newClient.siret || '',
-        vat_number: newClient.vatNumber || '',
-        legal_form: newClient.legalForm || '',
-        rcs_number: newClient.rcsNumber || '',
-        ape_code: newClient.apeCode || '',
+        siret: newClient.siret || "",
+        vat_number: newClient.vatNumber || "",
+        legal_form: newClient.legalForm || "",
+        rcs_number: newClient.rcsNumber || "",
+        ape_code: newClient.apeCode || "",
         capital_social: newClient.capitalSocial || null,
-      }
+      };
     } else {
-      formData.value = { ...defaultFormData }
+      formData.value = { ...defaultFormData };
     }
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 const saveClient = async () => {
   try {
     if (props.client) {
-      await clientsStore.updateClient(props.client.id, formData.value)
+      await clientsStore.updateClient(props.client.id, formData.value);
     } else {
-      await clientsStore.createClient(formData.value)
+      await clientsStore.createClient(formData.value);
     }
-    emit('saved')
+    emit("saved");
   } catch (error) {
     // Error handled by store, just prevent modal from closing
   }
-}
+};
 
 const close = () => {
-  emit('close')
-}
+  emit("close");
+};
 </script>

@@ -777,7 +777,7 @@
               :disabled="!selectedFile || clientsStore.loading"
               class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
             >
-              {{ clientsStore.loading ? 'Import...' : 'Importer' }}
+              {{ clientsStore.loading ? "Import..." : "Importer" }}
             </button>
           </div>
         </div>
@@ -787,239 +787,239 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useClientsStore } from '@/stores/clients'
-import { useToast } from 'vue-toastification'
-import Layout from '@/components/Layout.vue'
-import ClientModal from '@/components/ClientModal.vue'
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useClientsStore } from "@/stores/clients";
+import { useToast } from "vue-toastification";
+import Layout from "@/components/Layout.vue";
+import ClientModal from "@/components/ClientModal.vue";
 
-const router = useRouter()
-const clientsStore = useClientsStore()
-const toast = useToast()
+const router = useRouter();
+const clientsStore = useClientsStore();
+const toast = useToast();
 
 // État local
-const searchTerm = ref('')
-const sortBy = ref('created_at')
-const sortOrder = ref('desc')
-const showCreateModal = ref(false)
-const showEditModal = ref(false)
-const editingClient = ref(null)
-const showImportModal = ref(false)
-const selectedFile = ref(null)
-const importResults = ref(null)
+const searchTerm = ref("");
+const sortBy = ref("created_at");
+const sortOrder = ref("desc");
+const showCreateModal = ref(false);
+const showEditModal = ref(false);
+const editingClient = ref(null);
+const showImportModal = ref(false);
+const selectedFile = ref(null);
+const importResults = ref(null);
 
 // Getters du store
-const clients = computed(() => clientsStore.clients)
-const loading = computed(() => clientsStore.loading)
-const pagination = computed(() => clientsStore.pagination)
+const clients = computed(() => clientsStore.clients);
+const loading = computed(() => clientsStore.loading);
+const pagination = computed(() => clientsStore.pagination);
 
 const companyClientsCount = computed(() => {
-  return clientsStore.clients.filter((client) => client.isCompany).length
-})
+  return clientsStore.clients.filter((client) => client.isCompany).length;
+});
 
 const individualClientsCount = computed(() => {
-  return clientsStore.clients.filter((client) => !client.isCompany).length
-})
+  return clientsStore.clients.filter((client) => !client.isCompany).length;
+});
 
 // Pages visibles pour la pagination
 const visiblePages = computed(() => {
-  const current = pagination.value.page
-  const total = pagination.value.pages
-  const delta = 2
+  const current = pagination.value.page;
+  const total = pagination.value.pages;
+  const delta = 2;
 
-  let start = Math.max(1, current - delta)
-  let end = Math.min(total, current + delta)
+  let start = Math.max(1, current - delta);
+  let end = Math.min(total, current + delta);
 
   if (end - start < 2 * delta) {
     if (start === 1) {
-      end = Math.min(total, start + 2 * delta)
+      end = Math.min(total, start + 2 * delta);
     } else {
-      start = Math.max(1, end - 2 * delta)
+      start = Math.max(1, end - 2 * delta);
     }
   }
 
-  const pages = []
+  const pages = [];
   for (let i = start; i <= end; i++) {
-    pages.push(i)
+    pages.push(i);
   }
-  return pages
-})
+  return pages;
+});
 
 // Recherche avec debounce
-let searchTimeout = null
+let searchTimeout = null;
 const debouncedSearch = () => {
-  clearTimeout(searchTimeout)
+  clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    clientsStore.searchClients(searchTerm.value)
-  }, 300)
-}
+    clientsStore.searchClients(searchTerm.value);
+  }, 300);
+};
 
 // Gestion du tri
 const handleSortChange = () => {
-  clientsStore.sortClients(sortBy.value, sortOrder.value)
-}
+  clientsStore.sortClients(sortBy.value, sortOrder.value);
+};
 
 const toggleSortOrder = () => {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  clientsStore.sortClients(sortBy.value, sortOrder.value)
-}
+  sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  clientsStore.sortClients(sortBy.value, sortOrder.value);
+};
 
 // Gestion de la pagination
 const changePage = (page) => {
   if (page >= 1 && page <= pagination.value.pages) {
-    clientsStore.changePage(page)
+    clientsStore.changePage(page);
   }
-}
+};
 
 // Actions sur les clients
 const viewClient = (client) => {
-  router.push(`/clients/${client.id}`)
-}
+  router.push(`/clients/${client.id}`);
+};
 
 const editClient = (client) => {
-  editingClient.value = { ...client }
-  showEditModal.value = true
-}
+  editingClient.value = { ...client };
+  showEditModal.value = true;
+};
 
 const deleteClient = async (client) => {
   if (
     confirm(
-      `Êtes-vous sûr de vouloir supprimer le client ${client.firstName} ${client.lastName} ?`
+      `Êtes-vous sûr de vouloir supprimer le client ${client.firstName} ${client.lastName} ?`,
     )
   ) {
     try {
-      await clientsStore.deleteClient(client.id)
+      await clientsStore.deleteClient(client.id);
     } catch (error) {
       // L'erreur est déjà gérée dans le store
     }
   }
-}
+};
 
 // Gestion du modal
 const closeModal = () => {
-  showCreateModal.value = false
-  showEditModal.value = false
-  editingClient.value = null
-}
+  showCreateModal.value = false;
+  showEditModal.value = false;
+  editingClient.value = null;
+};
 
 // Le modal effectue déjà la création/mise à jour et émet 'saved'.
 // Ici, on se contente de fermer et rafraîchir la liste pour éviter les doublons.
 const handleSaveClient = async () => {
   try {
-    closeModal()
-    await clientsStore.fetchClients()
+    closeModal();
+    await clientsStore.fetchClients();
   } catch (error) {
     // Erreur déjà gérée dans le store
   }
-}
+};
 
 // Méthodes d'import/export
 const handleExport = async () => {
   try {
-    await clientsStore.exportClients()
+    await clientsStore.exportClients();
   } catch (error) {
     // L'erreur est déjà gérée dans le store
   }
-}
+};
 
 const handleFileSelect = (event) => {
-  const file = event.target.files[0]
-  if (file && file.type === 'text/csv') {
-    selectedFile.value = file
-    importResults.value = null
+  const file = event.target.files[0];
+  if (file && file.type === "text/csv") {
+    selectedFile.value = file;
+    importResults.value = null;
   } else {
-    toast.error('Veuillez sélectionner un fichier CSV valide')
-    selectedFile.value = null
+    toast.error("Veuillez sélectionner un fichier CSV valide");
+    selectedFile.value = null;
   }
-}
+};
 
 const handleImport = async () => {
-  if (!selectedFile.value) return
+  if (!selectedFile.value) return;
 
   try {
-    const text = await selectedFile.value.text()
-    const lines = text.split('\n').filter((line) => line.trim())
+    const text = await selectedFile.value.text();
+    const lines = text.split("\n").filter((line) => line.trim());
 
     if (lines.length < 2) {
       toast.error(
-        'Le fichier CSV doit contenir au moins un en-tête et une ligne de données'
-      )
-      return
+        "Le fichier CSV doit contenir au moins un en-tête et une ligne de données",
+      );
+      return;
     }
 
     // Parser le CSV (version simple)
-    const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''))
-    const clientsData = []
+    const headers = lines[0].split(",").map((h) => h.trim().replace(/"/g, ""));
+    const clientsData = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map((v) => v.trim().replace(/"/g, ''))
+      const values = lines[i].split(",").map((v) => v.trim().replace(/"/g, ""));
       if (values.length >= 2) {
         // Au minimum prénom et nom
         clientsData.push({
-          firstName: values[0] || '',
-          lastName: values[1] || '',
-          companyName: values[2] || '',
-          email: values[3] || '',
-          phone: values[4] || '',
-          addressLine1: values[5] || '',
-          addressLine2: values[6] || '',
-          postalCode: values[7] || '',
-          city: values[8] || '',
-          country: values[9] || 'France',
+          firstName: values[0] || "",
+          lastName: values[1] || "",
+          companyName: values[2] || "",
+          email: values[3] || "",
+          phone: values[4] || "",
+          addressLine1: values[5] || "",
+          addressLine2: values[6] || "",
+          postalCode: values[7] || "",
+          city: values[8] || "",
+          country: values[9] || "France",
           isCompany:
-            values[10]?.toLowerCase() === 'oui' ||
-            values[10]?.toLowerCase() === 'true',
-          siret: values[11] || '',
-          vatNumber: values[12] || '',
-          legalForm: values[13] || '',
-          rcsNumber: values[14] || '',
-          apeCode: values[15] || '',
+            values[10]?.toLowerCase() === "oui" ||
+            values[10]?.toLowerCase() === "true",
+          siret: values[11] || "",
+          vatNumber: values[12] || "",
+          legalForm: values[13] || "",
+          rcsNumber: values[14] || "",
+          apeCode: values[15] || "",
           capitalSocial: values[16] ? parseFloat(values[16]) : null,
-          notes: values[17] || '',
-        })
+          notes: values[17] || "",
+        });
       }
     }
 
     if (clientsData.length === 0) {
-      toast.error('Aucune donnée client valide trouvée dans le fichier')
-      return
+      toast.error("Aucune donnée client valide trouvée dans le fichier");
+      return;
     }
 
-    const results = await clientsStore.importClients(clientsData)
-    importResults.value = results
+    const results = await clientsStore.importClients(clientsData);
+    importResults.value = results;
   } catch (error) {
-    toast.error('Erreur lors de la lecture du fichier CSV')
-    console.error('Import error:', error)
+    toast.error("Erreur lors de la lecture du fichier CSV");
+    console.error("Import error:", error);
   }
-}
+};
 
 const closeImportModal = () => {
-  showImportModal.value = false
-  selectedFile.value = null
-  importResults.value = null
-}
+  showImportModal.value = false;
+  selectedFile.value = null;
+  importResults.value = null;
+};
 
 // Utilitaires
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount || 0)
-}
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount || 0);
+};
 
 // Initialisation
 onMounted(() => {
-  clientsStore.fetchClients()
-})
+  clientsStore.fetchClients();
+});
 
 // Watchers
 watch(
   () => clientsStore.filters,
   (newFilters) => {
-    sortBy.value = newFilters.sortBy
-    sortOrder.value = newFilters.sortOrder
+    sortBy.value = newFilters.sortBy;
+    sortOrder.value = newFilters.sortOrder;
   },
-  { deep: true }
-)
+  { deep: true },
+);
 </script>

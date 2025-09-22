@@ -1,13 +1,13 @@
-const express = require('express')
-const { query } = require('../config/database')
-const { authenticateToken } = require('../middleware/auth')
+const express = require("express");
+const { query } = require("../config/database");
+const { authenticateToken } = require("../middleware/auth");
 
-const router = express.Router()
+const router = express.Router();
 
 // GET /api/dashboard/stats
-router.get('/stats', authenticateToken, async (req, res, next) => {
+router.get("/stats", authenticateToken, async (req, res, next) => {
   try {
-    const userId = req.user.userId
+    const userId = req.user.userId;
 
     const [
       clientsRes,
@@ -21,20 +21,20 @@ router.get('/stats', authenticateToken, async (req, res, next) => {
       overdueInvoicesRes,
     ] = await Promise.all([
       // 1. Nombre total de clients
-      query('SELECT COUNT(*)::int AS c FROM clients WHERE user_id = $1', [
+      query("SELECT COUNT(*)::int AS c FROM clients WHERE user_id = $1", [
         userId,
       ]),
 
       // 2. Devis envoyés
       query(
         "SELECT COUNT(*)::int AS c FROM quotes WHERE user_id = $1 AND status = 'sent'",
-        [userId]
+        [userId],
       ),
 
       // 3. Devis acceptés
       query(
         "SELECT COUNT(*)::int AS c FROM quotes WHERE user_id = $1 AND status = 'accepted'",
-        [userId]
+        [userId],
       ),
 
       // 4. CA mensuel (factures payées ce mois)
@@ -42,7 +42,7 @@ router.get('/stats', authenticateToken, async (req, res, next) => {
         `SELECT COALESCE(SUM(total_ttc),0)::numeric AS sum
                  FROM invoices
                  WHERE user_id = $1 AND status = 'paid' AND DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)`,
-        [userId]
+        [userId],
       ),
 
       // 5. CA annuel (factures payées cette année)
@@ -50,19 +50,19 @@ router.get('/stats', authenticateToken, async (req, res, next) => {
         `SELECT COALESCE(SUM(total_ttc),0)::numeric AS sum
                  FROM invoices
                  WHERE user_id = $1 AND status = 'paid' AND DATE_TRUNC('year', created_at) = DATE_TRUNC('year', CURRENT_DATE)`,
-        [userId]
+        [userId],
       ),
 
       // 6. Factures envoyées
       query(
         "SELECT COUNT(*)::int AS c FROM invoices WHERE user_id = $1 AND status IN ('sent', 'pending', 'overdue')",
-        [userId]
+        [userId],
       ),
 
       // 7. Factures payées
       query(
         "SELECT COUNT(*)::int AS c FROM invoices WHERE user_id = $1 AND status = 'paid'",
-        [userId]
+        [userId],
       ),
 
       // 8. Relances à effectuer (factures en attente depuis plus de 7 jours)
@@ -70,15 +70,15 @@ router.get('/stats', authenticateToken, async (req, res, next) => {
         `SELECT COUNT(*)::int AS c 
                  FROM invoices 
                  WHERE user_id = $1 AND status = 'pending' AND created_at < NOW() - INTERVAL '7 days'`,
-        [userId]
+        [userId],
       ),
 
       // 9. Factures hors délai de paiement
       query(
         "SELECT COUNT(*)::int AS c FROM invoices WHERE user_id = $1 AND status = 'overdue'",
-        [userId]
+        [userId],
       ),
-    ])
+    ]);
 
     res.json({
       clients: clientsRes.rows[0].c,
@@ -90,32 +90,32 @@ router.get('/stats', authenticateToken, async (req, res, next) => {
       paidInvoices: paidInvoicesRes.rows[0].c,
       followUpsNeeded: followUpsNeededRes.rows[0].c,
       overdueInvoices: overdueInvoicesRes.rows[0].c,
-    })
+    });
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 // GET /api/dashboard/recent-activity
-router.get('/recent-activity', authenticateToken, async (req, res, next) => {
+router.get("/recent-activity", authenticateToken, async (req, res, next) => {
   try {
-    const userId = req.user.userId
-    const activities = []
+    const userId = req.user.userId;
+    const activities = [];
 
     const [clients, quotes, invoices] = await Promise.all([
       query(
         `SELECT 'client' AS type, id, first_name || ' ' || last_name AS label, created_at FROM clients WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5`,
-        [userId]
+        [userId],
       ),
       query(
         `SELECT 'quote' AS type, id, quote_number AS label, created_at FROM quotes WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5`,
-        [userId]
+        [userId],
       ),
       query(
         `SELECT 'invoice' AS type, id, invoice_number AS label, created_at FROM invoices WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5`,
-        [userId]
+        [userId],
       ),
-    ])
+    ]);
 
     for (const row of clients.rows)
       activities.push({
@@ -123,37 +123,37 @@ router.get('/recent-activity', authenticateToken, async (req, res, next) => {
         id: row.id,
         label: row.label,
         createdAt: row.created_at,
-      })
+      });
     for (const row of quotes.rows)
       activities.push({
         type: row.type,
         id: row.id,
         label: row.label,
         createdAt: row.created_at,
-      })
+      });
     for (const row of invoices.rows)
       activities.push({
         type: row.type,
         id: row.id,
         label: row.label,
         createdAt: row.created_at,
-      })
+      });
 
-    activities.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    activities.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    res.json({ activities: activities.slice(0, 10) })
+    res.json({ activities: activities.slice(0, 10) });
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
-module.exports = router
+module.exports = router;
 
 // ====== ANALYTICS ======
 // GET /api/dashboard/analytics - séries pour graphiques et listes top
-router.get('/analytics', authenticateToken, async (req, res, next) => {
+router.get("/analytics", authenticateToken, async (req, res, next) => {
   try {
-    const userId = req.user.userId
+    const userId = req.user.userId;
 
     // 12 mois glissants à partir du début du mois courant - 11
     const revenueByMonthRes = await query(
@@ -172,8 +172,8 @@ router.get('/analytics', authenticateToken, async (req, res, next) => {
             GROUP BY m.month
             ORDER BY m.month
         `,
-      [userId]
-    )
+      [userId],
+    );
 
     const quotesMonthlyRes = await query(
       `
@@ -191,8 +191,8 @@ router.get('/analytics', authenticateToken, async (req, res, next) => {
             GROUP BY m.month
             ORDER BY m.month
         `,
-      [userId]
-    )
+      [userId],
+    );
 
     const topClients90Res = await query(
       `
@@ -205,8 +205,8 @@ router.get('/analytics', authenticateToken, async (req, res, next) => {
             ORDER BY total DESC
             LIMIT 5
         `,
-      [userId]
-    )
+      [userId],
+    );
 
     const outstandingBucketsRes = await query(
       `
@@ -219,8 +219,8 @@ router.get('/analytics', authenticateToken, async (req, res, next) => {
             FROM invoices
             WHERE user_id = $1 AND status IN ('pending','overdue')
         `,
-      [userId]
-    )
+      [userId],
+    );
 
     // Pipeline devis envoyés sur 12 mois
     const pipelineSentRes = await query(
@@ -239,8 +239,8 @@ router.get('/analytics', authenticateToken, async (req, res, next) => {
             GROUP BY m.month
             ORDER BY m.month
         `,
-      [userId]
-    )
+      [userId],
+    );
 
     res.json({
       revenueByMonth: revenueByMonthRes.rows.map((r) => ({
@@ -269,8 +269,8 @@ router.get('/analytics', authenticateToken, async (req, res, next) => {
         o90_plus: parseFloat(outstandingBucketsRes.rows[0].o90_plus),
         dueSoon: parseFloat(outstandingBucketsRes.rows[0].due_soon),
       },
-    })
+    });
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});

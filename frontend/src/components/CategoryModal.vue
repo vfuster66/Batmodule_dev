@@ -147,12 +147,12 @@
                         <p
                           class="text-sm font-medium text-gray-900 dark:text-white"
                         >
-                          {{ formData.name || 'Nom de la catégorie' }}
+                          {{ formData.name || "Nom de la catégorie" }}
                         </p>
                         <p class="text-xs text-gray-500 dark:text-gray-400">
                           {{
                             formData.description ||
-                            'Description de la catégorie'
+                            "Description de la catégorie"
                           }}
                         </p>
                       </div>
@@ -209,75 +209,75 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive } from "vue";
 
-const emit = defineEmits(['close', 'save'])
+const emit = defineEmits(["close", "save"]);
 
-const loading = ref(false)
+const loading = ref(false);
 
 // Couleurs prédéfinies
 const predefinedColors = [
-  '#FF6B6B', // Rouge
-  '#4ECDC4', // Turquoise
-  '#45B7D1', // Bleu
-  '#96CEB4', // Vert
-  '#FFEAA7', // Jaune
-  '#DDA0DD', // Violet
-  '#98D8C8', // Vert menthe
-  '#F7DC6F', // Jaune doré
-  '#BB8FCE', // Lavande
-  '#85C1E9', // Bleu ciel
-  '#F8C471', // Orange
-  '#82E0AA', // Vert clair
-]
+  "#FF6B6B", // Rouge
+  "#4ECDC4", // Turquoise
+  "#45B7D1", // Bleu
+  "#96CEB4", // Vert
+  "#FFEAA7", // Jaune
+  "#DDA0DD", // Violet
+  "#98D8C8", // Vert menthe
+  "#F7DC6F", // Jaune doré
+  "#BB8FCE", // Lavande
+  "#85C1E9", // Bleu ciel
+  "#F8C471", // Orange
+  "#82E0AA", // Vert clair
+];
 
 // Données du formulaire
 const formData = reactive({
-  name: '',
-  description: '',
-  color: '#004AAD',
-})
+  name: "",
+  description: "",
+  color: "#004AAD",
+});
 
 // Gestion de la soumission
 const handleSubmit = async () => {
-  loading.value = true
+  loading.value = true;
 
   try {
     // Validation basique
     if (!formData.name.trim()) {
-      throw new Error('Le nom de la catégorie est obligatoire')
+      throw new Error("Le nom de la catégorie est obligatoire");
     }
 
     // Préparer les données à envoyer
-    const categoryData = { ...formData }
+    const categoryData = { ...formData };
 
     // Nettoyer les champs vides
-    if (categoryData.description === '') {
-      categoryData.description = null
+    if (categoryData.description === "") {
+      categoryData.description = null;
     }
 
-    emit('save', categoryData)
+    emit("save", categoryData);
   } catch (error) {
-    console.error('Erreur lors de la validation:', error)
+    console.error("Erreur lors de la validation:", error);
     // L'erreur sera gérée par le composant parent
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Fermer le modal
 const closeModal = () => {
-  emit('close')
-}
+  emit("close");
+};
 
 // Utilitaires
 const getInitials = (name) => {
-  if (!name) return '??'
+  if (!name) return "??";
   return name
-    .split(' ')
+    .split(" ")
     .map((word) => word.charAt(0))
-    .join('')
+    .join("")
     .toUpperCase()
-    .substring(0, 2)
-}
+    .substring(0, 2);
+};
 </script>

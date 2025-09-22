@@ -44,23 +44,23 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter } from "vue-router";
 
-const router = useRouter()
+const router = useRouter();
 
 // Champs obligatoires pour la configuration de base
 const requiredFields = [
   "Nom de l'entreprise",
-  'SIRET',
-  'Forme juridique',
-  'Adresse',
-  'Code postal',
-  'Ville',
-  'Téléphone',
-  'Email',
-]
+  "SIRET",
+  "Forme juridique",
+  "Adresse",
+  "Code postal",
+  "Ville",
+  "Téléphone",
+  "Email",
+];
 
 const goToSettings = () => {
-  router.push('/company-settings')
-}
+  router.push("/company-settings");
+};
 </script>

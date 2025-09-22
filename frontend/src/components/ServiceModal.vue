@@ -35,7 +35,7 @@
                     class="text-lg leading-6 font-medium text-gray-900 dark:text-white"
                     id="modal-title"
                   >
-                    {{ isEdit ? 'Modifier le service' : 'Nouveau service' }}
+                    {{ isEdit ? "Modifier le service" : "Nouveau service" }}
                   </h3>
                   <button
                     type="button"
@@ -252,7 +252,7 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              {{ isEdit ? 'Mettre à jour' : 'Créer' }}
+              {{ isEdit ? "Mettre à jour" : "Créer" }}
             </button>
             <button
               type="button"
@@ -269,7 +269,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch } from "vue";
 
 const props = defineProps({
   service: {
@@ -284,108 +284,108 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+});
 
-const emit = defineEmits(['close', 'save'])
+const emit = defineEmits(["close", "save"]);
 
-const loading = ref(false)
+const loading = ref(false);
 
 // Données du formulaire
 const formData = reactive({
-  name: '',
-  description: '',
-  unit: 'm²',
+  name: "",
+  description: "",
+  unit: "m²",
   price_ht: 0,
   price_ttc: 0,
   vat_rate: 20.0,
-  category_id: '',
+  category_id: "",
   is_active: true,
-})
+});
 
 // Initialiser le formulaire
 const initForm = () => {
   if (props.service) {
     Object.assign(formData, {
-      name: props.service.name || '',
-      description: props.service.description || '',
-      unit: props.service.unit || 'm²',
+      name: props.service.name || "",
+      description: props.service.description || "",
+      unit: props.service.unit || "m²",
       price_ht: parseFloat(props.service.price_ht) || 0,
       price_ttc: parseFloat(props.service.price_ttc) || 0,
       vat_rate: parseFloat(props.service.vat_rate) || 20.0,
-      category_id: props.service.category_id || '',
+      category_id: props.service.category_id || "",
       is_active: props.service.is_active !== false,
-    })
+    });
   } else {
     // Réinitialiser le formulaire
     Object.assign(formData, {
-      name: '',
-      description: '',
-      unit: 'm²',
+      name: "",
+      description: "",
+      unit: "m²",
       price_ht: 0,
       price_ttc: 0,
       vat_rate: 20.0,
-      category_id: '',
+      category_id: "",
       is_active: true,
-    })
+    });
   }
-}
+};
 
 // Calculer le prix TTC
 const calculateTTC = () => {
-  const ht = parseFloat(formData.price_ht) || 0
-  const vat = parseFloat(formData.vat_rate) || 0
-  formData.price_ttc = ht * (1 + vat / 100)
-}
+  const ht = parseFloat(formData.price_ht) || 0;
+  const vat = parseFloat(formData.vat_rate) || 0;
+  formData.price_ttc = ht * (1 + vat / 100);
+};
 
 // Watcher pour réinitialiser le formulaire quand le service change
 watch(
   () => props.service,
   () => {
-    initForm()
+    initForm();
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 // Gestion de la soumission
 const handleSubmit = async () => {
-  loading.value = true
+  loading.value = true;
 
   try {
     // Validation basique
     if (!formData.name || !formData.price_ht || !formData.price_ttc) {
-      throw new Error('Les champs nom, prix HT et prix TTC sont obligatoires')
+      throw new Error("Les champs nom, prix HT et prix TTC sont obligatoires");
     }
 
     // Préparer les données à envoyer
-    const serviceData = { ...formData }
+    const serviceData = { ...formData };
 
     // Nettoyer les champs vides
-    if (serviceData.category_id === '') {
-      serviceData.category_id = null
+    if (serviceData.category_id === "") {
+      serviceData.category_id = null;
     }
-    if (serviceData.description === '') {
-      serviceData.description = null
+    if (serviceData.description === "") {
+      serviceData.description = null;
     }
 
-    emit('save', serviceData)
+    emit("save", serviceData);
   } catch (error) {
-    console.error('Erreur lors de la validation:', error)
+    console.error("Erreur lors de la validation:", error);
     // L'erreur sera gérée par le composant parent
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Fermer le modal
 const closeModal = () => {
-  emit('close')
-}
+  emit("close");
+};
 
 // Utilitaires
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount || 0)
-}
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount || 0);
+};
 </script>

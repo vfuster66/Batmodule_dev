@@ -1,18 +1,18 @@
-const express = require('express')
-const { query, transaction } = require('../config/database')
-const { authenticateToken } = require('../middleware/auth')
-const calculationService = require('../services/calculationService')
+const express = require("express");
+const { query, transaction } = require("../config/database");
+const { authenticateToken } = require("../middleware/auth");
+const calculationService = require("../services/calculationService");
 
-const router = express.Router()
+const router = express.Router();
 
 async function ensureSchema() {
   // Ajouter colonnes de numérotation si manquantes
   await query(
-    "ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS credit_prefix VARCHAR(10) DEFAULT 'AVO'"
-  )
+    "ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS credit_prefix VARCHAR(10) DEFAULT 'AVO'",
+  );
   await query(
-    'ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS credit_counter INTEGER DEFAULT 0'
-  )
+    "ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS credit_counter INTEGER DEFAULT 0",
+  );
 
   // Créer tables avoirs si absentes
   await query(`CREATE TABLE IF NOT EXISTS credits (
@@ -29,7 +29,7 @@ async function ensureSchema() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, credit_number)
-    )`)
+    )`);
 
   await query(`CREATE TABLE IF NOT EXISTS credit_items (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -44,60 +44,60 @@ async function ensureSchema() {
         total_ttc DECIMAL(10,2) NOT NULL,
         sort_order INTEGER DEFAULT 0,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    )`)
+    )`);
 }
 
 // POST /api/credits/from-invoice/:id - Créer un avoir à partir d'une facture
-router.post('/from-invoice/:id', authenticateToken, async (req, res, next) => {
+router.post("/from-invoice/:id", authenticateToken, async (req, res, next) => {
   try {
-    await ensureSchema()
-    const { id: invoiceId } = req.params
+    await ensureSchema();
+    const { id: invoiceId } = req.params;
 
     const result = await transaction(async (client) => {
       // Charger la facture
       const invoiceRes = await client.query(
         `SELECT * FROM invoices WHERE id = $1 AND user_id = $2`,
-        [invoiceId, req.user.userId]
-      )
+        [invoiceId, req.user.userId],
+      );
       if (invoiceRes.rows.length === 0) {
-        return { error: 404 }
+        return { error: 404 };
       }
-      const invoice = invoiceRes.rows[0]
+      const invoice = invoiceRes.rows[0];
 
       // Charger les lignes
       const itemsRes = await client.query(
         `SELECT service_id, description, quantity, unit_price_ht, vat_rate, sort_order
                  FROM invoice_items WHERE invoice_id = $1 ORDER BY sort_order, created_at`,
-        [invoiceId]
-      )
+        [invoiceId],
+      );
 
       // Numérotation
-      const year = new Date().getFullYear()
+      const year = new Date().getFullYear();
       const settingsRes = await client.query(
-        'SELECT credit_prefix, credit_counter FROM company_settings WHERE user_id = $1 FOR UPDATE',
-        [req.user.userId]
-      )
-      const prefix = settingsRes.rows[0]?.credit_prefix || 'AVO'
-      let counter = settingsRes.rows[0]?.credit_counter ?? 0
+        "SELECT credit_prefix, credit_counter FROM company_settings WHERE user_id = $1 FOR UPDATE",
+        [req.user.userId],
+      );
+      const prefix = settingsRes.rows[0]?.credit_prefix || "AVO";
+      let counter = settingsRes.rows[0]?.credit_counter ?? 0;
       const cntYear = await client.query(
-        'SELECT COUNT(*) AS cnt FROM credits WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2',
-        [req.user.userId, year]
-      )
-      if (parseInt(cntYear.rows[0].cnt, 10) === 0) counter = 0
-      counter += 1
+        "SELECT COUNT(*) AS cnt FROM credits WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2",
+        [req.user.userId, year],
+      );
+      if (parseInt(cntYear.rows[0].cnt, 10) === 0) counter = 0;
+      counter += 1;
       await client.query(
-        'UPDATE company_settings SET credit_counter = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2',
-        [counter, req.user.userId]
-      )
-      const creditNumber = `${prefix}-${year}-${String(counter).padStart(4, '0')}`
+        "UPDATE company_settings SET credit_counter = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
+        [counter, req.user.userId],
+      );
+      const creditNumber = `${prefix}-${year}-${String(counter).padStart(4, "0")}`;
 
       // Calculer totaux (quantités et montants négatifs)
       const itemsForCalc = itemsRes.rows.map((it) => ({
         quantity: -parseFloat(it.quantity),
         unitPriceHt: parseFloat(it.unit_price_ht),
         vatRate: parseFloat(it.vat_rate),
-      }))
-      const calcs = calculationService.calculateTotals(itemsForCalc)
+      }));
+      const calcs = calculationService.calculateTotals(itemsForCalc);
 
       // Créer avoir
       const creditRes = await client.query(
@@ -114,14 +114,14 @@ router.post('/from-invoice/:id', authenticateToken, async (req, res, next) => {
           calcs.totalVat,
           calcs.totalTtc,
           `Avoir basé sur la facture ${invoice.invoice_number}`,
-        ]
-      )
-      const credit = creditRes.rows[0]
+        ],
+      );
+      const credit = creditRes.rows[0];
 
       // Lignes d'avoir
       for (let i = 0; i < calcs.items.length; i++) {
-        const src = itemsRes.rows[i]
-        const it = calcs.items[i]
+        const src = itemsRes.rows[i];
+        const it = calcs.items[i];
         await client.query(
           `INSERT INTO credit_items (credit_id, service_id, description, quantity, unit_price_ht, unit_price_ttc, vat_rate, total_ht, total_ttc, sort_order)
                      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
@@ -136,20 +136,20 @@ router.post('/from-invoice/:id', authenticateToken, async (req, res, next) => {
             it.totalHt,
             it.totalTtc,
             src.sort_order || i,
-          ]
-        )
+          ],
+        );
       }
 
-      return { credit }
-    })
+      return { credit };
+    });
 
     if (result?.error === 404) {
-      return res.status(404).json({ error: 'Facture non trouvée' })
+      return res.status(404).json({ error: "Facture non trouvée" });
     }
 
-    const c = result.credit
+    const c = result.credit;
     res.status(201).json({
-      message: 'Avoir créé avec succès',
+      message: "Avoir créé avec succès",
       credit: {
         id: c.id,
         creditNumber: c.credit_number,
@@ -163,10 +163,10 @@ router.post('/from-invoice/:id', authenticateToken, async (req, res, next) => {
         createdAt: c.created_at,
         updatedAt: c.updated_at,
       },
-    })
+    });
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
-module.exports = router
+module.exports = router;

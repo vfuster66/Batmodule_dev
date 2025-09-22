@@ -8,7 +8,7 @@
         <div class="flex items-center justify-between mb-6">
           <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-              Devis {{ quote?.quoteNumber || '' }}
+              Devis {{ quote?.quoteNumber || "" }}
             </h1>
             <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
               Consultation et acceptation en ligne
@@ -198,7 +198,7 @@
                       <td class="py-3 px-2">{{ item.description }}</td>
                       <td class="py-3 px-2 text-right">{{ item.quantity }}</td>
                       <td class="py-3 px-2 text-right">
-                        {{ item.unit || '—' }}
+                        {{ item.unit || "—" }}
                       </td>
                       <td class="py-3 px-2 text-right">
                         {{ formatCurrency(item.unitPriceHt) }}
@@ -242,7 +242,7 @@
                   >
                     <td class="py-3 px-2">{{ item.description }}</td>
                     <td class="py-3 px-2 text-right">{{ item.quantity }}</td>
-                    <td class="py-3 px-2 text-right">{{ item.unit || '—' }}</td>
+                    <td class="py-3 px-2 text-right">{{ item.unit || "—" }}</td>
                     <td class="py-3 px-2 text-right">
                       {{ formatCurrency(item.unitPriceHt) }}
                     </td>
@@ -407,114 +407,114 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import api from '@/utils/api'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted } from "vue";
+import api from "@/utils/api";
+import { useRoute } from "vue-router";
 
-const route = useRoute()
-const id = computed(() => route.params.id)
-const token = computed(() => route.query.token)
+const route = useRoute();
+const id = computed(() => route.params.id);
+const token = computed(() => route.query.token);
 
-const loading = ref(true)
-const error = ref('')
-const quote = ref(null)
+const loading = ref(true);
+const error = ref("");
+const quote = ref(null);
 
-const otp = ref('')
-const otpSent = ref(false)
-const otpSending = ref(false)
-const accepting = ref(false)
-const rejecting = ref(false)
-const rejectReason = ref('')
+const otp = ref("");
+const otpSent = ref(false);
+const otpSending = ref(false);
+const accepting = ref(false);
+const rejecting = ref(false);
+const rejectReason = ref("");
 
 const formatCurrency = (amount) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
-    Number(amount || 0)
-  )
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
+    Number(amount || 0),
+  );
 const formatDate = (d) => {
-  if (!d) return '—'
-  const dt = new Date(d)
-  if (isNaN(dt.getTime())) return '—'
-  return dt.toLocaleDateString('fr-FR')
-}
-const isValidOtp = computed(() => /^\d{6}$/.test(otp.value || ''))
+  if (!d) return "—";
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString("fr-FR");
+};
+const isValidOtp = computed(() => /^\d{6}$/.test(otp.value || ""));
 
 const getStatusLabel = (status) => {
   const labels = {
-    draft: 'Brouillon',
-    sent: 'Envoyé',
-    accepted: 'Accepté',
-    rejected: 'Refusé',
-  }
-  return labels[status] || status
-}
+    draft: "Brouillon",
+    sent: "Envoyé",
+    accepted: "Accepté",
+    rejected: "Refusé",
+  };
+  return labels[status] || status;
+};
 
 const getItemsForSection = (sectionId) => {
-  if (!quote.value?.items) return []
-  return quote.value.items.filter((item) => item.sectionId === sectionId)
-}
+  if (!quote.value?.items) return [];
+  return quote.value.items.filter((item) => item.sectionId === sectionId);
+};
 
 onMounted(async () => {
   try {
     const { data } = await api.get(`/quotes/${id.value}/public.json`, {
       params: { token: token.value },
-    })
-    quote.value = data.quote
+    });
+    quote.value = data.quote;
   } catch (e) {
-    error.value = e?.response?.data?.error || 'Erreur de chargement'
+    error.value = e?.response?.data?.error || "Erreur de chargement";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-})
+});
 
 async function requestOtp() {
-  otpSending.value = true
+  otpSending.value = true;
   try {
-    await api.post(`/quotes/${id.value}/otp`, { token: token.value })
-    otpSent.value = true
+    await api.post(`/quotes/${id.value}/otp`, { token: token.value });
+    otpSent.value = true;
   } catch (e) {
-    error.value = e?.response?.data || 'Envoi du code impossible'
+    error.value = e?.response?.data || "Envoi du code impossible";
   } finally {
-    otpSending.value = false
+    otpSending.value = false;
   }
 }
 
 async function acceptQuote() {
-  if (!isValidOtp.value) return
-  accepting.value = true
+  if (!isValidOtp.value) return;
+  accepting.value = true;
   try {
     await api.post(`/quotes/${id.value}/accept`, {
       token: token.value,
       otp: otp.value,
-    })
+    });
     // Recharger l'état pour montrer accepté
     const { data } = await api.get(`/quotes/${id.value}/public.json`, {
       params: { token: token.value },
-    })
-    quote.value = data.quote
-    alert('Merci, devis accepté. Un accusé de réception vous a été envoyé.')
+    });
+    quote.value = data.quote;
+    alert("Merci, devis accepté. Un accusé de réception vous a été envoyé.");
   } catch (e) {
-    alert(e?.response?.data || 'Échec de l’acceptation')
+    alert(e?.response?.data || "Échec de l’acceptation");
   } finally {
-    accepting.value = false
+    accepting.value = false;
   }
 }
 
 async function rejectQuote() {
-  rejecting.value = true
+  rejecting.value = true;
   try {
     await api.post(`/quotes/${id.value}/reject`, {
       token: token.value,
       reason: rejectReason.value || undefined,
-    })
+    });
     const { data } = await api.get(`/quotes/${id.value}/public.json`, {
       params: { token: token.value },
-    })
-    quote.value = data.quote
-    alert('Votre refus a été enregistré.')
+    });
+    quote.value = data.quote;
+    alert("Votre refus a été enregistré.");
   } catch (e) {
-    alert(e?.response?.data || 'Échec du refus')
+    alert(e?.response?.data || "Échec du refus");
   } finally {
-    rejecting.value = false
+    rejecting.value = false;
   }
 }
 </script>

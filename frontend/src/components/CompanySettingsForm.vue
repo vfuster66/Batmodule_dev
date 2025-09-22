@@ -104,6 +104,7 @@
               required
               maxlength="14"
               pattern="[0-9]{14}"
+              placeholder="123 456 789 01234"
               @input="formatSIRETInput"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               :class="{
@@ -218,10 +219,88 @@
                       d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                     />
                   </svg>
-                  {{ form.logo_base64 ? 'Changer le logo' : 'Ajouter un logo' }}
+                  {{ form.logo_base64 ? "Changer le logo" : "Ajouter un logo" }}
                 </button>
                 <p class="mt-1 text-sm text-gray-500">
                   Formats acceptés : JPG, PNG, SVG (max 5MB)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload du cachet -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Cachet de l'entreprise
+            </label>
+            <div class="flex items-center space-x-4">
+              <!-- Aperçu du cachet actuel -->
+              <div v-if="form.stamp_base64" class="flex-shrink-0">
+                <img
+                  :src="form.stamp_base64"
+                  alt="Cachet actuel"
+                  class="h-16 w-16 object-contain border border-gray-300 rounded"
+                />
+              </div>
+              <div
+                v-else
+                class="flex-shrink-0 h-16 w-16 border-2 border-dashed border-gray-300 rounded flex items-center justify-center"
+              >
+                <svg
+                  class="h-8 w-8 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+
+              <!-- Bouton d'upload -->
+              <div class="flex-1">
+                <input
+                  ref="stampInput"
+                  type="file"
+                  accept="image/*"
+                  @change="handleStampUpload"
+                  class="hidden"
+                />
+                <button
+                  type="button"
+                  @click="$refs.stampInput.click()"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg
+                    class="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  {{
+                    form.stamp_base64
+                      ? "Changer le cachet"
+                      : "Ajouter un cachet"
+                  }}
+                </button>
+                <p class="mt-1 text-sm text-gray-500">
+                  Formats acceptés : JPG, PNG, SVG (max 5MB) - Utilisé dans les
+                  signatures de documents
+                </p>
+                <p class="mt-1 text-xs text-orange-600">
+                  ⚠️ Pour les fichiers SVG, privilégiez des fichiers de moins de
+                  100KB pour de meilleures performances
                 </p>
               </div>
             </div>
@@ -373,6 +452,7 @@
               type="tel"
               required
               @input="formatPhoneInput"
+              placeholder="04 12 34 56 78"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -385,6 +465,7 @@
               v-model="form.email"
               type="email"
               required
+              placeholder="contact@monentreprise.fr"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               :class="{
                 'border-red-500': form.email && !validateEmail(form.email),
@@ -524,6 +605,7 @@
               v-model="form.iban"
               type="text"
               @input="formatIBANInput"
+              placeholder="FR14 2004 1010 0505 0001 3M02 606"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               :class="{
                 'border-red-500': form.iban && !validateIBAN(form.iban),
@@ -544,8 +626,18 @@
             <input
               v-model="form.bic"
               type="text"
+              placeholder="BNPAFRPP"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              :class="{
+                'border-red-500': form.bic && !validateBIC(form.bic),
+              }"
             />
+            <p
+              v-if="form.bic && !validateBIC(form.bic)"
+              class="mt-1 text-sm text-red-600"
+            >
+              Format BIC invalide (8 ou 11 caractères)
+            </p>
           </div>
 
           <div class="md:col-span-2">
@@ -685,7 +777,7 @@
             :disabled="loading"
             class="px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            {{ loading ? 'Sauvegarde...' : 'Sauvegarder' }}
+            {{ loading ? "Sauvegarde..." : "Sauvegarder" }}
           </button>
         </div>
       </div>
@@ -694,289 +786,317 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useCompanySettingsStore } from '../stores/companySettings'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onMounted, watch } from "vue";
+import { useCompanySettingsStore } from "../stores/companySettings";
+import { useToast } from "vue-toastification";
 
-const store = useCompanySettingsStore()
-const toast = useToast()
+const store = useCompanySettingsStore();
+const toast = useToast();
 
 // État local
-const form = ref({})
-const loading = ref(false)
+const form = ref({});
+const loading = ref(false);
 
 // Variables pour les domaines de sites web
-const websiteDomain = ref('')
-const mediatorWebsiteDomain = ref('')
+const websiteDomain = ref("");
+const mediatorWebsiteDomain = ref("");
 
 // Watchers pour synchroniser les domaines avec le formulaire
 watch(websiteDomain, (newValue) => {
   if (newValue) {
     // Supprimer le protocole s'il est déjà présent
-    let domain = newValue.replace(/^https?:\/\//, '')
+    let domain = newValue.replace(/^https?:\/\//, "");
     // Supprimer le slash final s'il existe
-    domain = domain.replace(/\/$/, '')
+    domain = domain.replace(/\/$/, "");
     // Ajouter le protocole https://
-    form.value.website = `https://${domain}`
+    form.value.website = `https://${domain}`;
   } else {
-    form.value.website = ''
+    form.value.website = "";
   }
-})
+});
 
 watch(mediatorWebsiteDomain, (newValue) => {
   if (newValue) {
     // Supprimer le protocole s'il est déjà présent
-    let domain = newValue.replace(/^https?:\/\//, '')
+    let domain = newValue.replace(/^https?:\/\//, "");
     // Supprimer le slash final s'il existe
-    domain = domain.replace(/\/$/, '')
+    domain = domain.replace(/\/$/, "");
     // Ajouter le protocole https://
-    form.value.mediator_website = `https://${domain}`
+    form.value.mediator_website = `https://${domain}`;
   } else {
-    form.value.mediator_website = ''
+    form.value.mediator_website = "";
   }
-})
+});
 
 // Watchers pour synchroniser le formulaire avec les domaines
 watch(
   () => form.value.website,
   (newValue) => {
     if (newValue) {
-      websiteDomain.value = newValue.replace(/^https?:\/\//, '')
+      websiteDomain.value = newValue.replace(/^https?:\/\//, "");
     } else {
-      websiteDomain.value = ''
+      websiteDomain.value = "";
     }
-  }
-)
+  },
+);
 
 watch(
   () => form.value.mediator_website,
   (newValue) => {
     if (newValue) {
-      mediatorWebsiteDomain.value = newValue.replace(/^https?:\/\//, '')
+      mediatorWebsiteDomain.value = newValue.replace(/^https?:\/\//, "");
     } else {
-      mediatorWebsiteDomain.value = ''
+      mediatorWebsiteDomain.value = "";
     }
-  }
-)
+  },
+);
 
 // Getters
-const complianceScore = computed(() => store.complianceScore)
-const isCompliant = computed(() => store.isCompliant)
-const missingFields = computed(() => store.missingFields)
-const recommendations = computed(() => store.recommendations)
+const complianceScore = computed(() => store.complianceScore);
+const isCompliant = computed(() => store.isCompliant);
+const missingFields = computed(() => store.missingFields);
+const recommendations = computed(() => store.recommendations);
 
 // Classes CSS pour le score
 const complianceScoreClass = computed(() => {
-  if (complianceScore.value >= 80) return 'text-green-600'
-  if (complianceScore.value >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-})
+  if (complianceScore.value >= 80) return "text-green-600";
+  if (complianceScore.value >= 60) return "text-yellow-600";
+  return "text-red-600";
+});
 
 const complianceScoreColor = computed(() => {
-  if (complianceScore.value >= 80) return 'text-green-500'
-  if (complianceScore.value >= 60) return 'text-yellow-500'
-  return 'text-red-500'
-})
+  if (complianceScore.value >= 80) return "text-green-500";
+  if (complianceScore.value >= 60) return "text-yellow-500";
+  return "text-red-500";
+});
 
 // Méthodes
 const loadSettings = async () => {
   try {
-    await store.fetchSettings()
-    form.value = { ...store.settings }
+    await store.fetchSettings();
+    form.value = { ...store.settings };
 
     // Forcer la synchronisation des domaines après le chargement
     if (form.value.website) {
-      websiteDomain.value = form.value.website.replace(/^https?:\/\//, '')
+      websiteDomain.value = form.value.website.replace(/^https?:\/\//, "");
     }
     if (form.value.mediator_website) {
       mediatorWebsiteDomain.value = form.value.mediator_website.replace(
         /^https?:\/\//,
-        ''
-      )
+        "",
+      );
     }
 
     // Calculer le score de conformité
-    await store.validateSettings()
+    await store.validateSettings();
   } catch (error) {
-    toast.error('Erreur lors du chargement des paramètres')
+    toast.error("Erreur lors du chargement des paramètres");
   }
-}
+};
 
 const handleSubmit = async () => {
-  loading.value = true
+  loading.value = true;
   try {
     // Nettoyer les données en supprimant les champs non modifiables
-    const cleanData = { ...form.value }
-    delete cleanData.id
-    delete cleanData.user_id
-    delete cleanData.created_at
-    delete cleanData.updated_at
+    const cleanData = { ...form.value };
+    delete cleanData.id;
+    delete cleanData.user_id;
+    delete cleanData.created_at;
+    delete cleanData.updated_at;
 
-    await store.updateSettings(cleanData)
+    await store.updateSettings(cleanData);
 
     // Recalculer le score de conformité après la sauvegarde
-    await store.validateSettings()
+    await store.validateSettings();
 
-    toast.success('Paramètres sauvegardés avec succès')
+    toast.success("Paramètres sauvegardés avec succès");
     // Recharger les données pour mettre à jour l'affichage
-    await loadSettings()
+    await loadSettings();
   } catch (error) {
-    toast.error('Erreur lors de la sauvegarde')
+    toast.error("Erreur lors de la sauvegarde");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const validateForm = async () => {
   try {
-    await store.validateSettings()
+    await store.validateSettings();
     if (store.isCompliant) {
-      toast.success('Configuration conforme !')
+      toast.success("Configuration conforme !");
     } else {
-      toast.warning('Configuration incomplète')
+      toast.warning("Configuration incomplète");
     }
   } catch (error) {
-    toast.error('Erreur lors de la validation')
+    toast.error("Erreur lors de la validation");
   }
-}
+};
 
 const resetForm = () => {
-  form.value = { ...store.settings }
-}
+  form.value = { ...store.settings };
+};
 
 const handleLogoUpload = async (event) => {
-  const file = event.target.files[0]
-  if (!file) return
+  const file = event.target.files[0];
+  if (!file) return;
 
   try {
     // Vérifier la taille du fichier (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Le fichier est trop volumineux (max 5MB)')
-      return
+      toast.error("Le fichier est trop volumineux (max 5MB)");
+      return;
     }
 
     // Vérifier le type de fichier
-    if (!file.type.startsWith('image/')) {
-      toast.error('Veuillez sélectionner un fichier image')
-      return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner un fichier image");
+      return;
     }
 
     // Uploader le logo via le store
-    const base64 = await store.uploadLogo(file)
-    form.value.logo_base64 = base64
-    toast.success('Logo uploadé avec succès')
+    const base64 = await store.uploadLogo(file);
+    form.value.logo_base64 = base64;
+    toast.success("Logo uploadé avec succès");
   } catch (error) {
-    console.error("Erreur lors de l'upload du logo:", error)
-    toast.error("Erreur lors de l'upload du logo")
+    console.error("Erreur lors de l'upload du logo:", error);
+    toast.error("Erreur lors de l'upload du logo");
   }
-}
+};
+
+const handleStampUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    // Vérifier la taille du fichier (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux (max 5MB)");
+      return;
+    }
+
+    // Vérifier le type de fichier
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner un fichier image");
+      return;
+    }
+
+    // Uploader le cachet via le store
+    const base64 = await store.uploadStamp(file);
+    form.value.stamp_base64 = base64;
+    toast.success("Cachet uploadé avec succès");
+  } catch (error) {
+    console.error("Erreur lors de l'upload du cachet:", error);
+    toast.error("Erreur lors de l'upload du cachet");
+  }
+};
 
 // Fonctions de formatage des sites web
 const formatWebsite = () => {
   if (websiteDomain.value) {
     // Supprimer le protocole s'il est déjà présent
-    let domain = websiteDomain.value.replace(/^https?:\/\//, '')
+    let domain = websiteDomain.value.replace(/^https?:\/\//, "");
     // Supprimer le slash final s'il existe
-    domain = domain.replace(/\/$/, '')
+    domain = domain.replace(/\/$/, "");
     // Ajouter le protocole https://
-    form.value.website = `https://${domain}`
+    form.value.website = `https://${domain}`;
   } else {
-    form.value.website = ''
+    form.value.website = "";
   }
-}
+};
 
 const formatMediatorWebsite = () => {
   if (mediatorWebsiteDomain.value) {
     // Supprimer le protocole s'il est déjà présent
-    let domain = mediatorWebsiteDomain.value.replace(/^https?:\/\//, '')
+    let domain = mediatorWebsiteDomain.value.replace(/^https?:\/\//, "");
     // Supprimer le slash final s'il existe
-    domain = domain.replace(/\/$/, '')
+    domain = domain.replace(/\/$/, "");
     // Ajouter le protocole https://
-    form.value.mediator_website = `https://${domain}`
+    form.value.mediator_website = `https://${domain}`;
   } else {
-    form.value.mediator_website = ''
+    form.value.mediator_website = "";
   }
-}
+};
 
 // Validation locale
-const validateSIRET = (siret) => store.validateSIRET(siret)
-const validateEmail = (email) => store.validateEmail(email)
-const validatePhone = (phone) => store.validatePhone(phone)
-const validateIBAN = (iban) => store.validateIBAN(iban)
+const validateSIRET = (siret) => store.validateSIRET(siret);
+const validateEmail = (email) => store.validateEmail(email);
+const validatePhone = (phone) => store.validatePhone(phone);
+const validateIBAN = (iban) => store.validateIBAN(iban);
+const validateBIC = (bic) => store.validateBIC(bic);
 
 // Formatters
 const formatSIRETInput = (event) => {
-  const value = event.target.value.replace(/\D/g, '')
+  const value = event.target.value.replace(/\D/g, "");
   if (value.length <= 14) {
-    form.value.siret = value
+    form.value.siret = value;
   }
-}
+};
 
 const formatPhoneInput = (event) => {
-  const value = event.target.value.replace(/\D/g, '')
+  const value = event.target.value.replace(/\D/g, "");
   if (value.length <= 10) {
-    form.value.phone = store.formatPhone(value)
+    form.value.phone = store.formatPhone(value);
   }
-}
+};
 
 const formatIBANInput = (event) => {
-  const value = event.target.value.replace(/\s/g, '')
-  form.value.iban = store.formatIBAN(value)
-}
+  const value = event.target.value.replace(/\s/g, "");
+  form.value.iban = store.formatIBAN(value);
+};
 
 const getFieldLabel = (field) => {
   const labels = {
     company_name: "Nom de l'entreprise",
-    siret: 'SIRET',
-    forme_juridique: 'Forme juridique',
-    address_line1: 'Adresse',
-    postal_code: 'Code postal',
-    city: 'Ville',
-    phone: 'Téléphone',
-    email: 'Email',
-  }
-  return labels[field] || field
-}
+    siret: "SIRET",
+    forme_juridique: "Forme juridique",
+    address_line1: "Adresse",
+    postal_code: "Code postal",
+    city: "Ville",
+    phone: "Téléphone",
+    email: "Email",
+  };
+  return labels[field] || field;
+};
 
 // Lifecycle
 onMounted(() => {
   // Ne pas charger les paramètres ici car ils sont déjà chargés par CompanySettingsView
-  const currentSettings = store.settings || {}
+  const currentSettings = store.settings || {};
   if (!currentSettings || Object.keys(currentSettings).length === 0) {
-    loadSettings()
+    loadSettings();
   } else {
-    form.value = { ...currentSettings }
+    form.value = { ...currentSettings };
     // Synchroniser les domaines même si les paramètres sont déjà chargés
     if (form.value.website) {
-      websiteDomain.value = form.value.website.replace(/^https?:\/\//, '')
+      websiteDomain.value = form.value.website.replace(/^https?:\/\//, "");
     }
     if (form.value.mediator_website) {
       mediatorWebsiteDomain.value = form.value.mediator_website.replace(
         /^https?:\/\//,
-        ''
-      )
+        "",
+      );
     }
   }
-})
+});
 
 // Watchers
 watch(
   () => store.settings,
   (newSettings) => {
     if (newSettings && Object.keys(newSettings).length > 0) {
-      form.value = { ...newSettings }
+      form.value = { ...newSettings };
       // Synchroniser les domaines quand les paramètres changent
       if (form.value.website) {
-        websiteDomain.value = form.value.website.replace(/^https?:\/\//, '')
+        websiteDomain.value = form.value.website.replace(/^https?:\/\//, "");
       }
       if (form.value.mediator_website) {
         mediatorWebsiteDomain.value = form.value.mediator_website.replace(
           /^https?:\/\//,
-          ''
-        )
+          "",
+        );
       }
     }
   },
-  { deep: true }
-)
+  { deep: true },
+);
 </script>

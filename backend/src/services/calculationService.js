@@ -5,31 +5,31 @@ class CalculationService {
    * @returns {Object} - L'item avec les totaux calculés
    */
   calculateItemTotals(item) {
-    const quantity = parseFloat(item.quantity) || 0
-    const unitPriceHt = parseFloat(item.unitPriceHt) || 0
-    const vatRate = parseFloat(item.vatRate) || 0
+    const quantity = parseFloat(item.quantity) || 0;
+    const unitPriceHt = parseFloat(item.unitPriceHt) || 0;
+    const vatRate = parseFloat(item.vatRate) || 0;
     const discountPercent =
-      Math.max(0, Math.min(100, parseFloat(item.discountPercent ?? 0))) || 0
+      Math.max(0, Math.min(100, parseFloat(item.discountPercent ?? 0))) || 0;
     const markupPercent =
       Math.max(
         0,
         Math.min(
           100,
-          parseFloat(item.markupPercent ?? item.surchargePercent ?? 0)
-        )
-      ) || 0
+          parseFloat(item.markupPercent ?? item.surchargePercent ?? 0),
+        ),
+      ) || 0;
 
     // Appliquer remise et/ou majoration sur le prix unitaire HT
     const unitPriceNetHt =
-      unitPriceHt * (1 - discountPercent / 100) * (1 + markupPercent / 100)
+      unitPriceHt * (1 - discountPercent / 100) * (1 + markupPercent / 100);
 
     // Calcul du prix unitaire TTC
-    const unitPriceTtc = unitPriceNetHt * (1 + vatRate / 100)
+    const unitPriceTtc = unitPriceNetHt * (1 + vatRate / 100);
 
     // Calcul des totaux
-    const totalHt = quantity * unitPriceNetHt
-    const totalVat = totalHt * (vatRate / 100)
-    const totalTtc = totalHt + totalVat
+    const totalHt = quantity * unitPriceNetHt;
+    const totalVat = totalHt * (vatRate / 100);
+    const totalTtc = totalHt + totalVat;
 
     return {
       ...item,
@@ -38,7 +38,7 @@ class CalculationService {
       totalHt: Math.round(totalHt * 100) / 100,
       totalVat: Math.round(totalVat * 100) / 100,
       totalTtc: Math.round(totalTtc * 100) / 100,
-    }
+    };
   }
 
   /**
@@ -53,32 +53,32 @@ class CalculationService {
         subtotalHt: 0,
         totalVat: 0,
         totalTtc: 0,
-      }
+      };
     }
 
     // Calculer les totaux pour chaque item
-    const calculatedItems = items.map((item) => this.calculateItemTotals(item))
+    const calculatedItems = items.map((item) => this.calculateItemTotals(item));
 
     // Calculer les totaux globaux
     const subtotalHt = calculatedItems.reduce(
       (sum, item) => sum + item.totalHt,
-      0
-    )
+      0,
+    );
     const totalVat = calculatedItems.reduce(
       (sum, item) => sum + item.totalVat,
-      0
-    )
+      0,
+    );
     const totalTtc = calculatedItems.reduce(
       (sum, item) => sum + item.totalTtc,
-      0
-    )
+      0,
+    );
 
     return {
       items: calculatedItems,
       subtotalHt: Math.round(subtotalHt * 100) / 100,
       totalVat: Math.round(totalVat * 100) / 100,
       totalTtc: Math.round(totalTtc * 100) / 100,
-    }
+    };
   }
 
   /**
@@ -87,7 +87,7 @@ class CalculationService {
    * @returns {Object} - Devis avec les totaux calculés
    */
   calculateQuoteTotals(quoteData) {
-    const calculations = this.calculateTotals(quoteData.items)
+    const calculations = this.calculateTotals(quoteData.items);
 
     return {
       ...quoteData,
@@ -95,7 +95,7 @@ class CalculationService {
       subtotalHt: calculations.subtotalHt,
       totalVat: calculations.totalVat,
       totalTtc: calculations.totalTtc,
-    }
+    };
   }
 
   /**
@@ -104,7 +104,7 @@ class CalculationService {
    * @returns {Object} - Facture avec les totaux calculés
    */
   calculateInvoiceTotals(invoiceData) {
-    const calculations = this.calculateTotals(invoiceData.items)
+    const calculations = this.calculateTotals(invoiceData.items);
 
     return {
       ...invoiceData,
@@ -112,7 +112,7 @@ class CalculationService {
       subtotalHt: calculations.subtotalHt,
       totalVat: calculations.totalVat,
       totalTtc: calculations.totalTtc,
-    }
+    };
   }
 
   /**
@@ -121,18 +121,18 @@ class CalculationService {
    * @returns {Object} - Résultat de la validation
    */
   validateItem(item) {
-    const errors = []
+    const errors = [];
 
-    if (!item.description || item.description.trim() === '') {
-      errors.push('La description est obligatoire')
+    if (!item.description || item.description.trim() === "") {
+      errors.push("La description est obligatoire");
     }
 
     if (!item.quantity || parseFloat(item.quantity) <= 0) {
-      errors.push('La quantité doit être supérieure à 0')
+      errors.push("La quantité doit être supérieure à 0");
     }
 
     if (!item.unitPriceHt || parseFloat(item.unitPriceHt) < 0) {
-      errors.push('Le prix unitaire HT doit être positif')
+      errors.push("Le prix unitaire HT doit être positif");
     }
 
     if (
@@ -140,13 +140,13 @@ class CalculationService {
       item.vatRate === null ||
       parseFloat(item.vatRate) < 0
     ) {
-      errors.push('Le taux de TVA doit être défini et positif')
+      errors.push("Le taux de TVA doit être défini et positif");
     }
 
     if (item.discountPercent !== undefined) {
-      const d = parseFloat(item.discountPercent)
+      const d = parseFloat(item.discountPercent);
       if (isNaN(d) || d < 0 || d > 100) {
-        errors.push('La remise (%) doit être comprise entre 0 et 100')
+        errors.push("La remise (%) doit être comprise entre 0 et 100");
       }
     }
 
@@ -154,16 +154,16 @@ class CalculationService {
       item.markupPercent !== undefined ||
       item.surchargePercent !== undefined
     ) {
-      const m = parseFloat(item.markupPercent ?? item.surchargePercent)
+      const m = parseFloat(item.markupPercent ?? item.surchargePercent);
       if (isNaN(m) || m < 0 || m > 100) {
-        errors.push('La majoration (%) doit être comprise entre 0 et 100')
+        errors.push("La majoration (%) doit être comprise entre 0 et 100");
       }
     }
 
     return {
       isValid: errors.length === 0,
       errors,
-    }
+    };
   }
 
   /**
@@ -175,24 +175,24 @@ class CalculationService {
     if (!Array.isArray(items) || items.length === 0) {
       return {
         isValid: false,
-        errors: ['Au moins un item est requis'],
-      }
+        errors: ["Au moins un item est requis"],
+      };
     }
 
-    const allErrors = []
+    const allErrors = [];
     items.forEach((item, index) => {
-      const validation = this.validateItem(item)
+      const validation = this.validateItem(item);
       if (!validation.isValid) {
         validation.errors.forEach((error) => {
-          allErrors.push(`Item ${index + 1}: ${error}`)
-        })
+          allErrors.push(`Item ${index + 1}: ${error}`);
+        });
       }
-    })
+    });
 
     return {
       isValid: allErrors.length === 0,
       errors: allErrors,
-    }
+    };
   }
 
   /**
@@ -201,9 +201,9 @@ class CalculationService {
    * @returns {number} - Montant restant à payer
    */
   calculateRemainingAmount(invoice) {
-    const totalTtc = parseFloat(invoice.totalTtc) || 0
-    const paidAmount = parseFloat(invoice.paidAmount) || 0
-    return Math.round((totalTtc - paidAmount) * 100) / 100
+    const totalTtc = parseFloat(invoice.totalTtc) || 0;
+    const paidAmount = parseFloat(invoice.paidAmount) || 0;
+    return Math.round((totalTtc - paidAmount) * 100) / 100;
   }
 
   /**
@@ -212,16 +212,16 @@ class CalculationService {
    * @returns {string} - Statut de paiement
    */
   getPaymentStatus(invoice) {
-    const remainingAmount = this.calculateRemainingAmount(invoice)
+    const remainingAmount = this.calculateRemainingAmount(invoice);
 
     if (remainingAmount <= 0) {
-      return 'paid'
+      return "paid";
     } else if (remainingAmount < parseFloat(invoice.totalTtc)) {
-      return 'partially_paid'
+      return "partially_paid";
     } else {
-      return 'pending'
+      return "pending";
     }
   }
 }
 
-module.exports = new CalculationService()
+module.exports = new CalculationService();

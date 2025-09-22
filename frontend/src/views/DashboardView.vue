@@ -537,12 +537,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import Layout from '@/components/Layout.vue'
-import api from '@/utils/api'
+import { ref, onMounted } from "vue";
+import { useAuthStore } from "@/stores/auth";
+import Layout from "@/components/Layout.vue";
+import api from "@/utils/api";
 
-const authStore = useAuthStore()
+const authStore = useAuthStore();
 
 const stats = ref({
   clients: 0,
@@ -554,80 +554,80 @@ const stats = ref({
   paidInvoices: 0,
   followUpsNeeded: 0,
   overdueInvoices: 0,
-})
+});
 
 const recentActivities = ref([
   {
-    content: 'Nouveau client ajouté : Jean Dupont',
-    time: '2h',
-    dateTime: '2023-12-07T10:00:00Z',
+    content: "Nouveau client ajouté : Jean Dupont",
+    time: "2h",
+    dateTime: "2023-12-07T10:00:00Z",
     iconPath:
-      'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z',
-    iconBg: 'bg-blue-500',
-    iconColor: 'text-white',
+      "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z",
+    iconBg: "bg-blue-500",
+    iconColor: "text-white",
   },
   {
-    content: 'Devis #DEV-2023-001 envoyé',
-    time: '4h',
-    dateTime: '2023-12-07T08:00:00Z',
+    content: "Devis #DEV-2023-001 envoyé",
+    time: "4h",
+    dateTime: "2023-12-07T08:00:00Z",
     iconPath:
-      'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    iconBg: 'bg-green-500',
-    iconColor: 'text-white',
+      "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+    iconBg: "bg-green-500",
+    iconColor: "text-white",
   },
   {
-    content: 'Facture #FAC-2023-045 payée',
-    time: '1j',
-    dateTime: '2023-12-06T14:00:00Z',
+    content: "Facture #FAC-2023-045 payée",
+    time: "1j",
+    dateTime: "2023-12-06T14:00:00Z",
     iconPath:
-      'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
-    iconBg: 'bg-yellow-500',
-    iconColor: 'text-white',
+      "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z",
+    iconBg: "bg-yellow-500",
+    iconColor: "text-white",
   },
-])
+]);
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount)
-}
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount);
+};
 
 onMounted(async () => {
   try {
     const [statsRes, activityRes] = await Promise.all([
-      api.get('/dashboard/stats'),
-      api.get('/dashboard/recent-activity'),
-    ])
-    stats.value = statsRes.data
+      api.get("/dashboard/stats"),
+      api.get("/dashboard/recent-activity"),
+    ]);
+    stats.value = statsRes.data;
     recentActivities.value = (activityRes.data.activities || []).map((a) => ({
       content:
-        a.type === 'client'
+        a.type === "client"
           ? `Nouveau client: ${a.label}`
-          : a.type === 'quote'
+          : a.type === "quote"
             ? `Devis ${a.label} créé`
             : `Facture ${a.label} créée`,
-      time: new Date(a.createdAt).toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
+      time: new Date(a.createdAt).toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
       }),
       dateTime: a.createdAt,
       iconPath:
-        a.type === 'client'
-          ? 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
-          : a.type === 'quote'
-            ? 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-            : 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
+        a.type === "client"
+          ? "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+          : a.type === "quote"
+            ? "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            : "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z",
       iconBg:
-        a.type === 'client'
-          ? 'bg-blue-500'
-          : a.type === 'quote'
-            ? 'bg-green-500'
-            : 'bg-yellow-500',
-      iconColor: 'text-white',
-    }))
+        a.type === "client"
+          ? "bg-blue-500"
+          : a.type === "quote"
+            ? "bg-green-500"
+            : "bg-yellow-500",
+      iconColor: "text-white",
+    }));
   } catch (error) {
-    console.error('Erreur chargement dashboard:', error)
+    console.error("Erreur chargement dashboard:", error);
   }
-})
+});
 </script>

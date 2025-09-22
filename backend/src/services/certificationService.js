@@ -1,4 +1,4 @@
-const { query } = require('../config/database')
+const { query } = require("../config/database");
 
 class CertificationService {
   /**
@@ -9,25 +9,28 @@ class CertificationService {
    */
   async getCertifications(userId, type = null) {
     try {
-      let whereClause = 'WHERE user_id = $1'
-      let params = [userId]
+      let whereClause = "WHERE user_id = $1";
+      let params = [userId];
 
       if (type) {
-        whereClause += ' AND certification_type = $2'
-        params.push(type)
+        whereClause += " AND certification_type = $2";
+        params.push(type);
       }
 
       const result = await query(
         `SELECT * FROM certifications 
                  ${whereClause}
                  ORDER BY end_date DESC, created_at DESC`,
-        params
-      )
+        params,
+      );
 
-      return result.rows
+      return result.rows;
     } catch (error) {
-      console.error('Erreur lors de la récupération des certifications:', error)
-      throw new Error('Échec de la récupération des certifications')
+      console.error(
+        "Erreur lors de la récupération des certifications:",
+        error,
+      );
+      throw new Error("Échec de la récupération des certifications");
     }
   }
 
@@ -40,21 +43,21 @@ class CertificationService {
   async getCertificationById(certificationId, userId) {
     try {
       const result = await query(
-        'SELECT * FROM certifications WHERE id = $1 AND user_id = $2',
-        [certificationId, userId]
-      )
+        "SELECT * FROM certifications WHERE id = $1 AND user_id = $2",
+        [certificationId, userId],
+      );
 
       if (result.rows.length === 0) {
-        throw new Error('Certification non trouvée')
+        throw new Error("Certification non trouvée");
       }
 
-      return result.rows[0]
+      return result.rows[0];
     } catch (error) {
       console.error(
-        'Erreur lors de la récupération de la certification:',
-        error
-      )
-      throw error
+        "Erreur lors de la récupération de la certification:",
+        error,
+      );
+      throw error;
     }
   }
 
@@ -75,7 +78,7 @@ class CertificationService {
         scope,
         notes,
         documentUrl,
-      } = certificationData
+      } = certificationData;
 
       const result = await query(
         `INSERT INTO certifications 
@@ -93,13 +96,13 @@ class CertificationService {
           scope,
           notes,
           documentUrl,
-        ]
-      )
+        ],
+      );
 
-      return result.rows[0]
+      return result.rows[0];
     } catch (error) {
-      console.error('Erreur lors de la création de la certification:', error)
-      throw new Error('Échec de la création de la certification')
+      console.error("Erreur lors de la création de la certification:", error);
+      throw new Error("Échec de la création de la certification");
     }
   }
 
@@ -112,42 +115,45 @@ class CertificationService {
    */
   async updateCertification(certificationId, userId, updateData) {
     try {
-      const fields = []
-      const values = []
-      let paramCount = 1
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
 
       // Construire dynamiquement la requête UPDATE
       Object.keys(updateData).forEach((key) => {
         if (updateData[key] !== undefined) {
-          fields.push(`${key} = $${paramCount}`)
-          values.push(updateData[key])
-          paramCount++
+          fields.push(`${key} = $${paramCount}`);
+          values.push(updateData[key]);
+          paramCount++;
         }
-      })
+      });
 
       if (fields.length === 0) {
-        throw new Error('Aucune donnée à mettre à jour')
+        throw new Error("Aucune donnée à mettre à jour");
       }
 
-      fields.push(`updated_at = CURRENT_TIMESTAMP`)
-      values.push(certificationId, userId)
+      fields.push(`updated_at = CURRENT_TIMESTAMP`);
+      values.push(certificationId, userId);
 
       const result = await query(
         `UPDATE certifications 
-                 SET ${fields.join(', ')}
+                 SET ${fields.join(", ")}
                  WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
                  RETURNING *`,
-        values
-      )
+        values,
+      );
 
       if (result.rows.length === 0) {
-        throw new Error('Certification non trouvée')
+        throw new Error("Certification non trouvée");
       }
 
-      return result.rows[0]
+      return result.rows[0];
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de la certification:', error)
-      throw error
+      console.error(
+        "Erreur lors de la mise à jour de la certification:",
+        error,
+      );
+      throw error;
     }
   }
 
@@ -160,14 +166,17 @@ class CertificationService {
   async deleteCertification(certificationId, userId) {
     try {
       const result = await query(
-        'DELETE FROM certifications WHERE id = $1 AND user_id = $2',
-        [certificationId, userId]
-      )
+        "DELETE FROM certifications WHERE id = $1 AND user_id = $2",
+        [certificationId, userId],
+      );
 
-      return result.rowCount > 0
+      return result.rowCount > 0;
     } catch (error) {
-      console.error('Erreur lors de la suppression de la certification:', error)
-      throw new Error('Échec de la suppression de la certification')
+      console.error(
+        "Erreur lors de la suppression de la certification:",
+        error,
+      );
+      throw new Error("Échec de la suppression de la certification");
     }
   }
 
@@ -185,16 +194,16 @@ class CertificationService {
                  AND is_active = true 
                  AND end_date <= CURRENT_DATE + INTERVAL '${days} days'
                  ORDER BY end_date ASC`,
-        [userId]
-      )
+        [userId],
+      );
 
-      return result.rows
+      return result.rows;
     } catch (error) {
       console.error(
-        'Erreur lors de la récupération des certifications expirantes:',
-        error
-      )
-      throw new Error('Échec de la récupération des certifications expirantes')
+        "Erreur lors de la récupération des certifications expirantes:",
+        error,
+      );
+      throw new Error("Échec de la récupération des certifications expirantes");
     }
   }
 
@@ -216,8 +225,8 @@ class CertificationService {
                  FROM certifications 
                  WHERE user_id = $1
                  GROUP BY certification_type`,
-        [userId]
-      )
+        [userId],
+      );
 
       const compliance = {
         isCompliant: true,
@@ -225,7 +234,7 @@ class CertificationService {
         errors: [],
         summary: {},
         recommendations: [],
-      }
+      };
 
       result.rows.forEach((row) => {
         compliance.summary[row.certification_type] = {
@@ -234,44 +243,44 @@ class CertificationService {
           valid: parseInt(row.valid_count),
           expired: parseInt(row.expired_count),
           expiringSoon: parseInt(row.expiring_soon_count),
-        }
+        };
 
         // Vérifier les certifications importantes
-        if (row.certification_type === 'rge' && row.active_count == 0) {
+        if (row.certification_type === "rge" && row.active_count == 0) {
           compliance.warnings.push(
-            "Certification RGE recommandée pour les travaux d'efficacité énergétique"
-          )
+            "Certification RGE recommandée pour les travaux d'efficacité énergétique",
+          );
           compliance.recommendations.push(
-            'Obtenir la certification RGE pour accéder aux aides publiques'
-          )
+            "Obtenir la certification RGE pour accéder aux aides publiques",
+          );
         }
 
-        if (row.certification_type === 'qualibat' && row.active_count == 0) {
+        if (row.certification_type === "qualibat" && row.active_count == 0) {
           compliance.warnings.push(
-            'Certification Qualibat recommandée pour la qualité des prestations'
-          )
+            "Certification Qualibat recommandée pour la qualité des prestations",
+          );
           compliance.recommendations.push(
-            'Obtenir la certification Qualibat pour améliorer la crédibilité'
-          )
+            "Obtenir la certification Qualibat pour améliorer la crédibilité",
+          );
         }
 
         if (row.expired_count > 0) {
           compliance.warnings.push(
-            `${row.certification_type}: ${row.expired_count} certification(s) expirée(s)`
-          )
+            `${row.certification_type}: ${row.expired_count} certification(s) expirée(s)`,
+          );
         }
 
         if (row.expiring_soon_count > 0) {
           compliance.warnings.push(
-            `${row.certification_type}: ${row.expiring_soon_count} certification(s) expirant bientôt`
-          )
+            `${row.certification_type}: ${row.expiring_soon_count} certification(s) expirant bientôt`,
+          );
         }
-      })
+      });
 
-      return compliance
+      return compliance;
     } catch (error) {
-      console.error('Erreur lors de la vérification de conformité:', error)
-      throw new Error('Échec de la vérification de conformité')
+      console.error("Erreur lors de la vérification de conformité:", error);
+      throw new Error("Échec de la vérification de conformité");
     }
   }
 
@@ -286,47 +295,47 @@ class CertificationService {
         description: "Certification pour les travaux d'efficacité énergétique",
         benefits: [
           "Accès aux aides publiques (CITE, MaPrimeRénov')",
-          'Crédibilité auprès des clients',
-          'Différenciation concurrentielle',
+          "Crédibilité auprès des clients",
+          "Différenciation concurrentielle",
         ],
         requirements: [
-          'Formation technique obligatoire',
-          'Assurance décennale',
-          'Contrôle qualité des travaux',
+          "Formation technique obligatoire",
+          "Assurance décennale",
+          "Contrôle qualité des travaux",
         ],
-        validity: '3 ans',
+        validity: "3 ans",
       },
       qualibat: {
-        name: 'Qualibat',
-        description: 'Certification qualité des entreprises du bâtiment',
+        name: "Qualibat",
+        description: "Certification qualité des entreprises du bâtiment",
         benefits: [
-          'Gage de qualité et de professionnalisme',
-          'Accès aux marchés publics',
+          "Gage de qualité et de professionnalisme",
+          "Accès aux marchés publics",
           "Amélioration de l'image de marque",
         ],
         requirements: [
-          'Compétences techniques vérifiées',
-          'Références clients',
-          'Engagement qualité',
+          "Compétences techniques vérifiées",
+          "Références clients",
+          "Engagement qualité",
         ],
-        validity: '3 ans',
+        validity: "3 ans",
       },
       qualifelec: {
-        name: 'Qualifelec',
-        description: 'Certification pour les électriciens',
+        name: "Qualifelec",
+        description: "Certification pour les électriciens",
         benefits: [
-          'Spécialisation électricité',
-          'Accès aux marchés spécialisés',
-          'Formation continue',
+          "Spécialisation électricité",
+          "Accès aux marchés spécialisés",
+          "Formation continue",
         ],
         requirements: [
-          'Formation électricité',
-          'Expérience professionnelle',
-          'Contrôle technique',
+          "Formation électricité",
+          "Expérience professionnelle",
+          "Contrôle technique",
         ],
-        validity: '3 ans',
+        validity: "3 ans",
       },
-    }
+    };
   }
 
   /**
@@ -349,8 +358,8 @@ class CertificationService {
                  WHERE c.user_id = $1
                  AND c.created_at BETWEEN $2 AND $3
                  ORDER BY c.created_at DESC`,
-        [userId, startDate, endDate]
-      )
+        [userId, startDate, endDate],
+      );
 
       const summary = {
         totalCertifications: result.rows.length,
@@ -358,39 +367,39 @@ class CertificationService {
         expiringSoon: 0,
         expired: 0,
         active: 0,
-      }
+      };
 
       result.rows.forEach((certification) => {
-        const type = certification.certification_type
+        const type = certification.certification_type;
         if (!summary.byType[type]) {
-          summary.byType[type] = 0
+          summary.byType[type] = 0;
         }
-        summary.byType[type]++
+        summary.byType[type]++;
 
         if (certification.is_active) {
-          summary.active++
+          summary.active++;
         }
 
         if (certification.end_date <= new Date()) {
-          summary.expired++
+          summary.expired++;
         } else if (
           certification.end_date <=
           new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         ) {
-          summary.expiringSoon++
+          summary.expiringSoon++;
         }
-      })
+      });
 
       return {
         period: { startDate, endDate },
         certifications: result.rows,
         summary,
-      }
+      };
     } catch (error) {
-      console.error('Erreur lors de la génération du rapport:', error)
-      throw new Error('Échec de la génération du rapport de certifications')
+      console.error("Erreur lors de la génération du rapport:", error);
+      throw new Error("Échec de la génération du rapport de certifications");
     }
   }
 }
 
-module.exports = new CertificationService()
+module.exports = new CertificationService();

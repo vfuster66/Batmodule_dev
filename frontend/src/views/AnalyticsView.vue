@@ -222,82 +222,82 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import Layout from '@/components/Layout.vue'
-import api from '@/utils/api'
+import { ref, computed, onMounted } from "vue";
+import Layout from "@/components/Layout.vue";
+import api from "@/utils/api";
 
 const width = 720,
-  height = 220
-const m = { top: 10, right: 10, bottom: 24, left: 32 }
-const innerW = width - m.left - m.right
-const innerH = height - m.top - m.bottom
+  height = 220;
+const m = { top: 10, right: 10, bottom: 24, left: 32 };
+const innerW = width - m.left - m.right;
+const innerH = height - m.top - m.bottom;
 
-const revenueByMonth = ref([])
-const quotesMonthly = ref([])
-const pipelineByMonth = ref([])
-const topClients90 = ref([])
-const aging = ref({ o0_30: 0, o31_60: 0, o61_90: 0, o90_plus: 0, dueSoon: 0 })
+const revenueByMonth = ref([]);
+const quotesMonthly = ref([]);
+const pipelineByMonth = ref([]);
+const topClients90 = ref([]);
+const aging = ref({ o0_30: 0, o31_60: 0, o61_90: 0, o90_plus: 0, dueSoon: 0 });
 
 onMounted(async () => {
   try {
-    const { data } = await api.get('/dashboard/analytics')
-    revenueByMonth.value = data.revenueByMonth || []
-    quotesMonthly.value = data.quotesMonthly || []
-    pipelineByMonth.value = data.pipelineSentByMonth || []
-    topClients90.value = data.topClients90 || []
-    aging.value = data.outstandingAging || aging.value
+    const { data } = await api.get("/dashboard/analytics");
+    revenueByMonth.value = data.revenueByMonth || [];
+    quotesMonthly.value = data.quotesMonthly || [];
+    pipelineByMonth.value = data.pipelineSentByMonth || [];
+    topClients90.value = data.topClients90 || [];
+    aging.value = data.outstandingAging || aging.value;
   } catch (e) {
     /* handled by api */
   }
-})
+});
 
-const labels = computed(() => (revenueByMonth.value || []).map((d) => d.label))
+const labels = computed(() => (revenueByMonth.value || []).map((d) => d.label));
 
 function sum(arr) {
-  return (arr || []).reduce((a, b) => a + (+b || 0), 0)
+  return (arr || []).reduce((a, b) => a + (+b || 0), 0);
 }
 function formatCurrency(v) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(Number(v || 0))
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(Number(v || 0));
 }
 function shortMonth(ym) {
-  const [y, m] = (ym || '').split('-')
+  const [y, m] = (ym || "").split("-");
   const months = [
-    '',
-    'jan',
-    'fév',
-    'mar',
-    'avr',
-    'mai',
-    'jui',
-    'jui',
-    'aoû',
-    'sep',
-    'oct',
-    'nov',
-    'déc',
-  ]
-  return months[Number(m)]
+    "",
+    "jan",
+    "fév",
+    "mar",
+    "avr",
+    "mai",
+    "jui",
+    "jui",
+    "aoû",
+    "sep",
+    "oct",
+    "nov",
+    "déc",
+  ];
+  return months[Number(m)];
 }
 function formatShort(v) {
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M'
-  if (v >= 1e3) return (v / 1e3).toFixed(0) + 'k'
-  return Math.round(v).toString()
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+  if (v >= 1e3) return (v / 1e3).toFixed(0) + "k";
+  return Math.round(v).toString();
 }
 
 // Bars revenue
 const revenueMax = computed(() =>
-  Math.max(1, ...revenueByMonth.value.map((d) => d.value))
-)
+  Math.max(1, ...revenueByMonth.value.map((d) => d.value)),
+);
 const barW = computed(
-  () => innerW / Math.max(1, revenueByMonth.value.length) - 6
-)
+  () => innerW / Math.max(1, revenueByMonth.value.length) - 6,
+);
 const revenueBars = computed(() =>
   revenueByMonth.value.map((d, i) => {
-    const x = i * (innerW / revenueByMonth.value.length) + 3
-    const h = (d.value / revenueMax.value) * innerH
+    const x = i * (innerW / revenueByMonth.value.length) + 3;
+    const h = (d.value / revenueMax.value) * innerH;
     return {
       x,
       y: innerH - h,
@@ -305,40 +305,40 @@ const revenueBars = computed(() =>
       h,
       value: d.value,
       label: d.label,
-    }
-  })
-)
+    };
+  }),
+);
 
 // Lines quotes accepted/sent
 const acceptedSeries = computed(() =>
-  quotesMonthly.value.map((d) => ({ label: d.label, value: d.accepted }))
-)
+  quotesMonthly.value.map((d) => ({ label: d.label, value: d.accepted })),
+);
 const sentSeries = computed(() =>
-  quotesMonthly.value.map((d) => ({ label: d.label, value: d.sent }))
-)
+  quotesMonthly.value.map((d) => ({ label: d.label, value: d.sent })),
+);
 function x(i) {
-  return i * (innerW / Math.max(1, labels.value.length - 1))
+  return i * (innerW / Math.max(1, labels.value.length - 1));
 }
 function y2(v) {
   const max = Math.max(
     1,
-    ...quotesMonthly.value.map((d) => Math.max(d.accepted, d.sent))
-  )
-  return innerH - (v / max) * innerH
+    ...quotesMonthly.value.map((d) => Math.max(d.accepted, d.sent)),
+  );
+  return innerH - (v / max) * innerH;
 }
 function linePoints(series) {
-  const arr = Array.isArray(series) ? series : series?.value || []
-  return arr.map((d, i) => `${x(i)},${y2(d.value)}`).join(' ')
+  const arr = Array.isArray(series) ? series : series?.value || [];
+  return arr.map((d, i) => `${x(i)},${y2(d.value)}`).join(" ");
 }
 
 // Bars pipeline
 const pipelineMax = computed(() =>
-  Math.max(1, ...pipelineByMonth.value.map((d) => d.value))
-)
+  Math.max(1, ...pipelineByMonth.value.map((d) => d.value)),
+);
 const pipelineBars = computed(() =>
   pipelineByMonth.value.map((d, i) => {
-    const x = i * (innerW / pipelineByMonth.value.length) + 3
-    const h = (d.value / pipelineMax.value) * innerH
+    const x = i * (innerW / pipelineByMonth.value.length) + 3;
+    const h = (d.value / pipelineMax.value) * innerH;
     return {
       x,
       y: innerH - h,
@@ -346,9 +346,9 @@ const pipelineBars = computed(() =>
       h,
       value: d.value,
       label: d.label,
-    }
-  })
-)
+    };
+  }),
+);
 </script>
 
 <style scoped>

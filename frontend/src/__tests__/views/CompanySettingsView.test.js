@@ -1,18 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-import CompanySettingsView from '../../views/CompanySettingsView.vue'
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
+import CompanySettingsView from "../../views/CompanySettingsView.vue";
 
 // Mock du composant Layout
-vi.mock('../../components/Layout.vue', () => ({
+vi.mock("../../components/Layout.vue", () => ({
   default: {
-    name: 'Layout',
+    name: "Layout",
     template: '<div class="layout"><slot /></div>',
   },
-}))
+}));
 
 // Mock du store companySettings
-vi.mock('../../stores/companySettings', () => ({
+vi.mock("../../stores/companySettings", () => ({
   useCompanySettingsStore: () => ({
     settings: {},
     loading: false,
@@ -28,23 +28,23 @@ vi.mock('../../stores/companySettings', () => ({
     validateSettings: vi.fn(),
     resetSettings: vi.fn(),
   }),
-}))
+}));
 
-describe('CompanySettingsView', () => {
+describe("CompanySettingsView", () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-    vi.clearAllMocks()
-  })
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
 
-  it('should render company settings view', () => {
-    const wrapper = mount(CompanySettingsView)
+  it("should render company settings view", () => {
+    const wrapper = mount(CompanySettingsView);
 
-    expect(wrapper.find('div').exists()).toBe(true)
-  })
+    expect(wrapper.find("div").exists()).toBe(true);
+  });
 
-  it('should have correct CSS classes', () => {
-    const wrapper = mount(CompanySettingsView)
+  it("should have correct CSS classes", () => {
+    const wrapper = mount(CompanySettingsView);
 
-    expect(wrapper.find('.space-y-6').exists()).toBe(true)
-  })
-})
+    expect(wrapper.find(".space-y-6").exists()).toBe(true);
+  });
+});

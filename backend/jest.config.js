@@ -1,17 +1,17 @@
 module.exports = {
-  testEnvironment: 'node',
-  testMatch: ['**/__tests__/**/*.test.js', '**/?(*.)+(spec|test).js'],
+  testEnvironment: "node",
+  testMatch: ["**/__tests__/**/*.test.js", "**/?(*.)+(spec|test).js"],
   collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/server.js',
+    "src/**/*.js",
+    "!src/server.js",
     // Exclure la config d'env/DB de la couverture (peu pertinent)
-    '!src/config/**',
-    '!src/migrations/**',
-    '!**/node_modules/**',
-    '!**/__tests__/**',
+    "!src/config/**",
+    "!src/migrations/**",
+    "!**/node_modules/**",
+    "!**/__tests__/**",
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html', 'json'],
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "lcov", "html", "json"],
   coverageThreshold: {
     global: {
       branches: 68,
@@ -20,7 +20,7 @@ module.exports = {
       statements: 80,
     },
   },
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.js'],
+  setupFilesAfterEnv: ["<rootDir>/src/__tests__/setup.js"],
   testTimeout: 15000,
   verbose: true,
   watchman: false,
@@ -28,4 +28,4 @@ module.exports = {
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,
-}
+};

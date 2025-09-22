@@ -90,7 +90,7 @@
               <p class="text-sm text-gray-600 dark:text-gray-300">
                 {{
                   invoice.client?.companyName ||
-                  invoice.client?.firstName + ' ' + invoice.client?.lastName
+                  invoice.client?.firstName + " " + invoice.client?.lastName
                 }}
               </p>
               <p class="text-sm text-gray-600 dark:text-gray-300">
@@ -310,7 +310,7 @@
                     <td class="px-4 py-2 text-sm capitalize">
                       {{ p.paymentMethod }}
                     </td>
-                    <td class="px-4 py-2 text-sm">{{ p.reference || '—' }}</td>
+                    <td class="px-4 py-2 text-sm">{{ p.reference || "—" }}</td>
                     <td class="px-4 py-2 text-sm text-right">
                       {{ formatCurrency(p.amount) }}
                     </td>
@@ -343,7 +343,7 @@
                 JSON.stringify(
                   lastVerification.verification || lastVerification,
                   null,
-                  2
+                  2,
                 )
               }}</pre
             >
@@ -525,82 +525,82 @@
 </template>
 
 <script setup>
-import Layout from '@/components/Layout.vue'
-import api from '@/utils/api'
-import { useRoute } from 'vue-router'
-import { useToast } from 'vue-toastification'
-import { ref, onMounted, computed } from 'vue'
-import { useInvoicesStore } from '@/stores/invoices'
+import Layout from "@/components/Layout.vue";
+import api from "@/utils/api";
+import { useRoute } from "vue-router";
+import { useToast } from "vue-toastification";
+import { ref, onMounted, computed } from "vue";
+import { useInvoicesStore } from "@/stores/invoices";
 
-const route = useRoute()
-const toast = useToast()
-const store = useInvoicesStore()
-const invoice = ref(null)
-const showPaymentModal = ref(false)
+const route = useRoute();
+const toast = useToast();
+const store = useInvoicesStore();
+const invoice = ref(null);
+const showPaymentModal = ref(false);
 const paymentForm = ref({
   amount: 0,
-  paymentMethod: 'transfer',
-  paymentDate: '',
-  reference: '',
-  notes: '',
-})
-const lastVerification = ref(null)
-const showFinalModal = ref(false)
-const finalForm = ref({ title: '', dueDate: '' })
-const related = ref(null)
-const quoteTotalTtc = ref(0)
-const advanceAmount = ref(0)
+  paymentMethod: "transfer",
+  paymentDate: "",
+  reference: "",
+  notes: "",
+});
+const lastVerification = ref(null);
+const showFinalModal = ref(false);
+const finalForm = ref({ title: "", dueDate: "" });
+const related = ref(null);
+const quoteTotalTtc = ref(0);
+const advanceAmount = ref(0);
 const canCreateFinal = computed(() => {
-  if (!related.value) return false
-  return !!related.value.advance && !related.value.final
-})
+  if (!related.value) return false;
+  return !!related.value.advance && !related.value.final;
+});
 
 const createCreditNote = async () => {
   try {
-    const id = route.params.id
-    const { data } = await api.post(`/credits/from-invoice/${id}`)
-    toast.success('Avoir créé: ' + data.credit.creditNumber)
+    const id = route.params.id;
+    const { data } = await api.post(`/credits/from-invoice/${id}`);
+    toast.success("Avoir créé: " + data.credit.creditNumber);
   } catch (e) {
-    toast.error("Erreur lors de la création de l'avoir")
+    toast.error("Erreur lors de la création de l'avoir");
   }
-}
+};
 
 const fetch = async () => {
-  const id = route.params.id
-  const data = await store.fetchInvoice(id)
-  invoice.value = data
-}
+  const id = route.params.id;
+  const data = await store.fetchInvoice(id);
+  invoice.value = data;
+};
 
 const downloadPdf = async () => {
-  await store.downloadPdf(route.params.id)
-}
+  await store.downloadPdf(route.params.id);
+};
 
 const remainingAmount = computed(() => {
-  if (!invoice.value) return 0
+  if (!invoice.value) return 0;
   return (
     Number(invoice.value.totalTtc || 0) - Number(invoice.value.paidAmount || 0)
-  )
-})
+  );
+});
 
 function openPaymentModal() {
-  showPaymentModal.value = true
+  showPaymentModal.value = true;
   // Pré-remplir: montant restant et date du jour
-  paymentForm.value.amount = Number(remainingAmount.value.toFixed(2))
-  paymentForm.value.paymentDate = new Date().toISOString().slice(0, 10)
+  paymentForm.value.amount = Number(remainingAmount.value.toFixed(2));
+  paymentForm.value.paymentDate = new Date().toISOString().slice(0, 10);
 }
 function closePaymentModal() {
-  showPaymentModal.value = false
+  showPaymentModal.value = false;
 }
 const canSubmitPayment = computed(() => {
-  const a = Number(paymentForm.value.amount)
-  return a > 0 && paymentForm.value.paymentDate
-})
+  const a = Number(paymentForm.value.amount);
+  return a > 0 && paymentForm.value.paymentDate;
+});
 async function submitPayment() {
   try {
-    await store.addPayment(route.params.id, { ...paymentForm.value })
-    await fetch()
-    closePaymentModal()
-    toast.success('Paiement ajouté')
+    await store.addPayment(route.params.id, { ...paymentForm.value });
+    await fetch();
+    closePaymentModal();
+    toast.success("Paiement ajouté");
   } catch (e) {
     // handled in store
   }
@@ -608,109 +608,109 @@ async function submitPayment() {
 
 const markPaid = async () => {
   // Ajoute un paiement couvrant le solde restant
-  const amt = Number(remainingAmount.value.toFixed(2))
-  if (amt <= 0) return
+  const amt = Number(remainingAmount.value.toFixed(2));
+  if (amt <= 0) return;
   await store.addPayment(route.params.id, {
     amount: amt,
-    paymentMethod: 'transfer',
+    paymentMethod: "transfer",
     paymentDate: new Date().toISOString().slice(0, 10),
-    reference: 'Solde',
-  })
-  await fetch()
-  toast.success('Facture marquée comme payée')
-}
+    reference: "Solde",
+  });
+  await fetch();
+  toast.success("Facture marquée comme payée");
+};
 
 async function archive() {
   try {
-    const data = await store.archiveInvoice(route.params.id)
-    toast.success('Facture archivée')
+    const data = await store.archiveInvoice(route.params.id);
+    toast.success("Facture archivée");
   } catch (_) {}
 }
 
 async function verify() {
   try {
-    const data = await store.verifyInvoice(route.params.id)
-    lastVerification.value = data
+    const data = await store.verifyInvoice(route.params.id);
+    lastVerification.value = data;
   } catch (_) {}
 }
 
 function exportPaymentsCsv() {
-  const rows = invoice.value?.payments || []
-  const header = ['Date', 'Méthode', 'Référence', 'Montant']
-  const lines = [header.join(',')]
+  const rows = invoice.value?.payments || [];
+  const header = ["Date", "Méthode", "Référence", "Montant"];
+  const lines = [header.join(",")];
   for (const p of rows) {
-    const d = p.paymentDate || p.createdAt || ''
-    const method = p.paymentMethod || ''
-    const ref = (p.reference || '').replaceAll('"', '""')
-    const amt = Number(p.amount || 0).toFixed(2)
-    lines.push([d, method, `"${ref}"`, amt].join(','))
+    const d = p.paymentDate || p.createdAt || "";
+    const method = p.paymentMethod || "";
+    const ref = (p.reference || "").replaceAll('"', '""');
+    const amt = Number(p.amount || 0).toFixed(2);
+    lines.push([d, method, `"${ref}"`, amt].join(","));
   }
-  const blob = new Blob(['\ufeff' + lines.join('\n')], {
-    type: 'text/csv;charset=utf-8;',
-  })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.href = url
-  link.download = `paiements-${invoice.value?.invoiceNumber || route.params.id}.csv`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  const blob = new Blob(["\ufeff" + lines.join("\n")], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = `paiements-${invoice.value?.invoiceNumber || route.params.id}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 const formatCurrency = (amount) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
-    amount || 0
-  )
-const formatDate = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '')
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
+    amount || 0,
+  );
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString("fr-FR") : "");
 
-onMounted(fetch)
+onMounted(fetch);
 
 // Charger factures liées et totaux pour permettre la facture de solde
 onMounted(async () => {
   try {
-    const { data } = await api.get(`/invoices/${route.params.id}/related`)
-    related.value = data
+    const { data } = await api.get(`/invoices/${route.params.id}/related`);
+    related.value = data;
   } catch (_) {}
   try {
-    const qid = related.value?.advance?.quote_id
+    const qid = related.value?.advance?.quote_id;
     if (qid) {
-      const { data } = await api.get(`/quotes/${qid}`)
-      quoteTotalTtc.value = Number(data?.quote?.totalTtc || 0)
+      const { data } = await api.get(`/quotes/${qid}`);
+      quoteTotalTtc.value = Number(data?.quote?.totalTtc || 0);
     }
   } catch (_) {}
-  advanceAmount.value = Number(invoice.value?.totalTtc || 0)
-})
+  advanceAmount.value = Number(invoice.value?.totalTtc || 0);
+});
 
 function openFinalModal() {
-  finalForm.value.title = `Solde – ${invoice.value?.title || invoice.value?.invoiceNumber}`
+  finalForm.value.title = `Solde – ${invoice.value?.title || invoice.value?.invoiceNumber}`;
   finalForm.value.dueDate = new Date(Date.now() + 30 * 86400000)
     .toISOString()
-    .slice(0, 10)
-  showFinalModal.value = true
+    .slice(0, 10);
+  showFinalModal.value = true;
 }
 function closeFinalModal() {
-  showFinalModal.value = false
+  showFinalModal.value = false;
 }
 const canSubmitFinal = computed(
   () =>
     !!finalForm.value.title &&
     !!finalForm.value.dueDate &&
-    quoteTotalTtc.value > 0
-)
+    quoteTotalTtc.value > 0,
+);
 async function submitFinal() {
   try {
-    const quoteId = related.value?.advance?.quote_id
-    let items = []
+    const quoteId = related.value?.advance?.quote_id;
+    let items = [];
     if (quoteId) {
-      const { data } = await api.get(`/quotes/${quoteId}`)
-      const qi = data?.quote?.items || []
+      const { data } = await api.get(`/quotes/${quoteId}`);
+      const qi = data?.quote?.items || [];
       items = qi.map((it) => ({
         description: it.description,
         quantity: it.quantity,
         unitPriceHt: it.unitPriceHt,
         vatRate: it.vatRate,
-      }))
+      }));
     }
     const payload = {
       clientId: invoice.value.client?.id || invoice.value.clientId,
@@ -720,12 +720,12 @@ async function submitFinal() {
       description: `Solde basé sur ${invoice.value.invoiceNumber}`,
       items,
       dueDate: finalForm.value.dueDate,
-      notes: '',
-    }
-    const res = await store.createFinalInvoice(payload)
-    closeFinalModal()
+      notes: "",
+    };
+    const res = await store.createFinalInvoice(payload);
+    closeFinalModal();
     if (res?.invoice?.id) {
-      window.location.href = `/invoices/${res.invoice.id}`
+      window.location.href = `/invoices/${res.invoice.id}`;
     }
   } catch (_) {}
 }

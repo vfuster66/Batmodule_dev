@@ -1,19 +1,22 @@
-const { query, transaction } = require('../config/database')
-const fs = require('fs').promises
-const path = require('path')
-const archivingService = require('./archivingService')
+const { query, transaction } = require("../config/database");
+const fs = require("fs").promises;
+const path = require("path");
+const archivingService = require("./archivingService");
 
 class RGPDService {
   constructor() {
-    this.exportDir = process.env.EXPORT_DIR || './exports'
-    this.ensureExportDir()
+    this.exportDir = process.env.EXPORT_DIR || "./exports";
+    this.ensureExportDir();
   }
 
   async ensureExportDir() {
     try {
-      await fs.mkdir(this.exportDir, { recursive: true })
+      await fs.mkdir(this.exportDir, { recursive: true });
     } catch (error) {
-      console.error("Erreur lors de la création du répertoire d'export:", error)
+      console.error(
+        "Erreur lors de la création du répertoire d'export:",
+        error,
+      );
     }
   }
 
@@ -24,35 +27,35 @@ class RGPDService {
    */
   async exportUserData(userId) {
     try {
-      const exportData = {}
+      const exportData = {};
 
       // Informations utilisateur
       const userResult = await query(
-        'SELECT id, email, first_name, last_name, company_name, phone, address, created_at, updated_at FROM users WHERE id = $1',
-        [userId]
-      )
-      exportData.user = userResult.rows[0]
+        "SELECT id, email, first_name, last_name, company_name, phone, address, created_at, updated_at FROM users WHERE id = $1",
+        [userId],
+      );
+      exportData.user = userResult.rows[0];
 
       // Paramètres entreprise
       const companyResult = await query(
-        'SELECT * FROM company_settings WHERE user_id = $1',
-        [userId]
-      )
-      exportData.companySettings = companyResult.rows[0]
+        "SELECT * FROM company_settings WHERE user_id = $1",
+        [userId],
+      );
+      exportData.companySettings = companyResult.rows[0];
 
       // Clients
       const clientsResult = await query(
-        'SELECT * FROM clients WHERE user_id = $1 ORDER BY created_at DESC',
-        [userId]
-      )
-      exportData.clients = clientsResult.rows
+        "SELECT * FROM clients WHERE user_id = $1 ORDER BY created_at DESC",
+        [userId],
+      );
+      exportData.clients = clientsResult.rows;
 
       // Services
       const servicesResult = await query(
-        'SELECT * FROM services WHERE user_id = $1 ORDER BY created_at DESC',
-        [userId]
-      )
-      exportData.services = servicesResult.rows
+        "SELECT * FROM services WHERE user_id = $1 ORDER BY created_at DESC",
+        [userId],
+      );
+      exportData.services = servicesResult.rows;
 
       // Devis
       const quotesResult = await query(
@@ -60,9 +63,9 @@ class RGPDService {
                  FROM quotes q
                  LEFT JOIN clients c ON q.client_id = c.id
                  WHERE q.user_id = $1 ORDER BY q.created_at DESC`,
-        [userId]
-      )
-      exportData.quotes = quotesResult.rows
+        [userId],
+      );
+      exportData.quotes = quotesResult.rows;
 
       // Lignes de devis
       const quoteItemsResult = await query(
@@ -70,9 +73,9 @@ class RGPDService {
                  FROM quote_items qi
                  JOIN quotes q ON qi.quote_id = q.id
                  WHERE q.user_id = $1 ORDER BY qi.created_at DESC`,
-        [userId]
-      )
-      exportData.quoteItems = quoteItemsResult.rows
+        [userId],
+      );
+      exportData.quoteItems = quoteItemsResult.rows;
 
       // Factures
       const invoicesResult = await query(
@@ -80,9 +83,9 @@ class RGPDService {
                  FROM invoices i
                  LEFT JOIN clients c ON i.client_id = c.id
                  WHERE i.user_id = $1 ORDER BY i.created_at DESC`,
-        [userId]
-      )
-      exportData.invoices = invoicesResult.rows
+        [userId],
+      );
+      exportData.invoices = invoicesResult.rows;
 
       // Lignes de facture
       const invoiceItemsResult = await query(
@@ -90,9 +93,9 @@ class RGPDService {
                  FROM invoice_items ii
                  JOIN invoices i ON ii.invoice_id = i.id
                  WHERE i.user_id = $1 ORDER BY ii.created_at DESC`,
-        [userId]
-      )
-      exportData.invoiceItems = invoiceItemsResult.rows
+        [userId],
+      );
+      exportData.invoiceItems = invoiceItemsResult.rows;
 
       // Paiements
       const paymentsResult = await query(
@@ -100,9 +103,9 @@ class RGPDService {
                  FROM payments p
                  JOIN invoices i ON p.invoice_id = i.id
                  WHERE i.user_id = $1 ORDER BY p.created_at DESC`,
-        [userId]
-      )
-      exportData.payments = paymentsResult.rows
+        [userId],
+      );
+      exportData.payments = paymentsResult.rows;
 
       // Crédits/Avoirs
       const creditsResult = await query(
@@ -110,9 +113,9 @@ class RGPDService {
                  FROM credits cr
                  JOIN invoices i ON cr.invoice_id = i.id
                  WHERE cr.user_id = $1 ORDER BY cr.created_at DESC`,
-        [userId]
-      )
-      exportData.credits = creditsResult.rows
+        [userId],
+      );
+      exportData.credits = creditsResult.rows;
 
       // Historique des statuts de factures
       const invoiceHistoryResult = await query(
@@ -120,24 +123,24 @@ class RGPDService {
                  FROM invoice_status_history h
                  JOIN invoices i ON h.invoice_id = i.id
                  WHERE i.user_id = $1 ORDER BY h.changed_at DESC`,
-        [userId]
-      )
-      exportData.invoiceHistory = invoiceHistoryResult.rows
+        [userId],
+      );
+      exportData.invoiceHistory = invoiceHistoryResult.rows;
 
       // Métadonnées d'export
       exportData.exportMetadata = {
         exportDate: new Date().toISOString(),
         userId,
-        version: '1.0',
+        version: "1.0",
         dataTypes: Object.keys(exportData).filter(
-          (key) => key !== 'exportMetadata'
+          (key) => key !== "exportMetadata",
         ),
-      }
+      };
 
-      return exportData
+      return exportData;
     } catch (error) {
-      console.error("Erreur lors de l'export des données utilisateur:", error)
-      throw new Error("Échec de l'export des données utilisateur")
+      console.error("Erreur lors de l'export des données utilisateur:", error);
+      throw new Error("Échec de l'export des données utilisateur");
     }
   }
 
@@ -149,15 +152,15 @@ class RGPDService {
    */
   async saveExportToFile(userId, exportData) {
     try {
-      const fileName = `export_user_${userId}_${Date.now()}.json`
-      const filePath = path.join(this.exportDir, fileName)
+      const fileName = `export_user_${userId}_${Date.now()}.json`;
+      const filePath = path.join(this.exportDir, fileName);
 
-      await fs.writeFile(filePath, JSON.stringify(exportData, null, 2), 'utf8')
+      await fs.writeFile(filePath, JSON.stringify(exportData, null, 2), "utf8");
 
-      return filePath
+      return filePath;
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde de l'export:", error)
-      throw new Error("Échec de la sauvegarde de l'export")
+      console.error("Erreur lors de la sauvegarde de l'export:", error);
+      throw new Error("Échec de la sauvegarde de l'export");
     }
   }
 
@@ -170,75 +173,75 @@ class RGPDService {
   async deleteUserData(userId, keepAccountingData = true) {
     try {
       return await transaction(async (client) => {
-        const deletedData = {}
+        const deletedData = {};
 
         // 1. Supprimer les données non comptables
         if (!keepAccountingData) {
           // Supprimer l'historique des statuts (non comptable)
           const historyResult = await client.query(
-            'DELETE FROM invoice_status_history WHERE invoice_id IN (SELECT id FROM invoices WHERE user_id = $1)',
-            [userId]
-          )
-          deletedData.invoiceHistory = historyResult.rowCount
+            "DELETE FROM invoice_status_history WHERE invoice_id IN (SELECT id FROM invoices WHERE user_id = $1)",
+            [userId],
+          );
+          deletedData.invoiceHistory = historyResult.rowCount;
 
           // Supprimer les factures et données liées
           const invoiceItemsResult = await client.query(
-            'DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE user_id = $1)',
-            [userId]
-          )
-          deletedData.invoiceItems = invoiceItemsResult.rowCount
+            "DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE user_id = $1)",
+            [userId],
+          );
+          deletedData.invoiceItems = invoiceItemsResult.rowCount;
 
           const paymentsResult = await client.query(
-            'DELETE FROM payments WHERE invoice_id IN (SELECT id FROM invoices WHERE user_id = $1)',
-            [userId]
-          )
-          deletedData.payments = paymentsResult.rowCount
+            "DELETE FROM payments WHERE invoice_id IN (SELECT id FROM invoices WHERE user_id = $1)",
+            [userId],
+          );
+          deletedData.payments = paymentsResult.rowCount;
 
           const creditsResult = await client.query(
-            'DELETE FROM credits WHERE user_id = $1',
-            [userId]
-          )
-          deletedData.credits = creditsResult.rowCount
+            "DELETE FROM credits WHERE user_id = $1",
+            [userId],
+          );
+          deletedData.credits = creditsResult.rowCount;
 
           const invoicesResult = await client.query(
-            'DELETE FROM invoices WHERE user_id = $1',
-            [userId]
-          )
-          deletedData.invoices = invoicesResult.rowCount
+            "DELETE FROM invoices WHERE user_id = $1",
+            [userId],
+          );
+          deletedData.invoices = invoicesResult.rowCount;
         }
 
         // 2. Supprimer les données de prospection (toujours supprimées)
         const quoteItemsResult = await client.query(
-          'DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE user_id = $1)',
-          [userId]
-        )
-        deletedData.quoteItems = quoteItemsResult.rowCount
+          "DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE user_id = $1)",
+          [userId],
+        );
+        deletedData.quoteItems = quoteItemsResult.rowCount;
 
         const quotesResult = await client.query(
-          'DELETE FROM quotes WHERE user_id = $1',
-          [userId]
-        )
-        deletedData.quotes = quotesResult.rowCount
+          "DELETE FROM quotes WHERE user_id = $1",
+          [userId],
+        );
+        deletedData.quotes = quotesResult.rowCount;
 
         // 3. Supprimer les données de contact
         const clientsResult = await client.query(
-          'DELETE FROM clients WHERE user_id = $1',
-          [userId]
-        )
-        deletedData.clients = clientsResult.rowCount
+          "DELETE FROM clients WHERE user_id = $1",
+          [userId],
+        );
+        deletedData.clients = clientsResult.rowCount;
 
         const servicesResult = await client.query(
-          'DELETE FROM services WHERE user_id = $1',
-          [userId]
-        )
-        deletedData.services = servicesResult.rowCount
+          "DELETE FROM services WHERE user_id = $1",
+          [userId],
+        );
+        deletedData.services = servicesResult.rowCount;
 
         // 4. Supprimer les paramètres entreprise
         const companyResult = await client.query(
-          'DELETE FROM company_settings WHERE user_id = $1',
-          [userId]
-        )
-        deletedData.companySettings = companyResult.rowCount
+          "DELETE FROM company_settings WHERE user_id = $1",
+          [userId],
+        );
+        deletedData.companySettings = companyResult.rowCount;
 
         // 5. Anonymiser les données utilisateur (garder l'ID pour les données comptables)
         const userResult = await client.query(
@@ -251,23 +254,23 @@ class RGPDService {
                      address = NULL,
                      updated_at = CURRENT_TIMESTAMP
                      WHERE id = $1`,
-          [userId]
-        )
-        deletedData.user = userResult.rowCount
+          [userId],
+        );
+        deletedData.user = userResult.rowCount;
 
         return {
           success: true,
           deletedData,
           keepAccountingData,
           deletionDate: new Date().toISOString(),
-        }
-      })
+        };
+      });
     } catch (error) {
       console.error(
-        'Erreur lors de la suppression des données utilisateur:',
-        error
-      )
-      throw new Error('Échec de la suppression des données utilisateur')
+        "Erreur lors de la suppression des données utilisateur:",
+        error,
+      );
+      throw new Error("Échec de la suppression des données utilisateur");
     }
   }
 
@@ -282,15 +285,15 @@ class RGPDService {
         prospectionYears = 3, // Données de prospection : 3 ans
         accountingYears = 10, // Données comptables : 10 ans
         logsYears = 1, // Logs : 1 an
-      } = retentionPolicy
+      } = retentionPolicy;
 
-      const purgeResults = {}
+      const purgeResults = {};
 
       // Purger les données de prospection (devis, clients non facturés)
-      const prospectionCutoff = new Date()
+      const prospectionCutoff = new Date();
       prospectionCutoff.setFullYear(
-        prospectionCutoff.getFullYear() - prospectionYears
-      )
+        prospectionCutoff.getFullYear() - prospectionYears,
+      );
 
       const oldQuotesResult = await query(
         `DELETE FROM quotes 
@@ -298,9 +301,9 @@ class RGPDService {
                      SELECT DISTINCT user_id FROM invoices 
                      WHERE created_at > $1
                  ) AND created_at < $1`,
-        [prospectionCutoff]
-      )
-      purgeResults.oldQuotes = oldQuotesResult.rowCount
+        [prospectionCutoff],
+      );
+      purgeResults.oldQuotes = oldQuotesResult.rowCount;
 
       // Purger les clients sans factures récentes
       const oldClientsResult = await query(
@@ -309,34 +312,34 @@ class RGPDService {
                      SELECT DISTINCT user_id FROM invoices 
                      WHERE created_at > $1
                  ) AND created_at < $1`,
-        [prospectionCutoff]
-      )
-      purgeResults.oldClients = oldClientsResult.rowCount
+        [prospectionCutoff],
+      );
+      purgeResults.oldClients = oldClientsResult.rowCount;
 
       // Purger les logs anciens
-      const logsCutoff = new Date()
-      logsCutoff.setFullYear(logsCutoff.getFullYear() - logsYears)
+      const logsCutoff = new Date();
+      logsCutoff.setFullYear(logsCutoff.getFullYear() - logsYears);
 
       const oldLogsResult = await query(
-        'DELETE FROM invoice_status_history WHERE changed_at < $1',
-        [logsCutoff]
-      )
-      purgeResults.oldLogs = oldLogsResult.rowCount
+        "DELETE FROM invoice_status_history WHERE changed_at < $1",
+        [logsCutoff],
+      );
+      purgeResults.oldLogs = oldLogsResult.rowCount;
 
       // Purger les archives selon la politique d'archivage
       const archivePurgeResult =
-        await archivingService.purgeArchives(accountingYears)
-      purgeResults.archives = archivePurgeResult
+        await archivingService.purgeArchives(accountingYears);
+      purgeResults.archives = archivePurgeResult;
 
       return {
         success: true,
         purgeResults,
         retentionPolicy,
         purgeDate: new Date().toISOString(),
-      }
+      };
     } catch (error) {
-      console.error('Erreur lors de la purge des données:', error)
-      throw new Error('Échec de la purge des données')
+      console.error("Erreur lors de la purge des données:", error);
+      throw new Error("Échec de la purge des données");
     }
   }
 
@@ -347,12 +350,12 @@ class RGPDService {
    */
   async generateRGPDComplianceReport(userId = null) {
     try {
-      let whereClause = ''
-      let params = []
+      let whereClause = "";
+      let params = [];
 
       if (userId) {
-        whereClause = 'WHERE u.id = $1'
-        params = [userId]
+        whereClause = "WHERE u.id = $1";
+        params = [userId];
       }
 
       // Statistiques générales
@@ -369,10 +372,10 @@ class RGPDService {
                  LEFT JOIN invoices i ON u.id = i.user_id
                  LEFT JOIN payments p ON i.id = p.invoice_id
                  ${whereClause}`,
-        params
-      )
+        params,
+      );
 
-      const stats = statsResult.rows[0]
+      const stats = statsResult.rows[0];
 
       // Données par utilisateur
       const usersDataResult = await query(
@@ -391,32 +394,32 @@ class RGPDService {
                  ${whereClause}
                  GROUP BY u.id, u.email, u.created_at
                  ORDER BY u.created_at DESC`,
-        params
-      )
+        params,
+      );
 
       return {
         reportDate: new Date().toISOString(),
         statistics: stats,
         usersData: usersDataResult.rows,
         complianceChecks: {
-          dataMinimization: 'OK',
-          purposeLimitation: 'OK',
-          storageLimitation: 'OK',
-          accuracy: 'OK',
-          security: 'OK',
+          dataMinimization: "OK",
+          purposeLimitation: "OK",
+          storageLimitation: "OK",
+          accuracy: "OK",
+          security: "OK",
         },
         recommendations: [
-          'Mettre en place une politique de rétention des données',
-          'Implémenter des audits de sécurité réguliers',
-          'Former les utilisateurs sur la protection des données',
-          'Documenter les traitements de données personnelles',
+          "Mettre en place une politique de rétention des données",
+          "Implémenter des audits de sécurité réguliers",
+          "Former les utilisateurs sur la protection des données",
+          "Documenter les traitements de données personnelles",
         ],
-      }
+      };
     } catch (error) {
-      console.error('Erreur lors de la génération du rapport RGPD:', error)
-      throw new Error('Échec de la génération du rapport RGPD')
+      console.error("Erreur lors de la génération du rapport RGPD:", error);
+      throw new Error("Échec de la génération du rapport RGPD");
     }
   }
 }
 
-module.exports = new RGPDService()
+module.exports = new RGPDService();

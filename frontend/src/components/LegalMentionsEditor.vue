@@ -279,7 +279,7 @@
           :disabled="loading"
           class="px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         >
-          {{ loading ? 'Sauvegarde...' : 'Sauvegarder' }}
+          {{ loading ? "Sauvegarde..." : "Sauvegarder" }}
         </button>
       </div>
     </form>
@@ -347,111 +347,111 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useCompanySettingsStore } from '../stores/companySettings'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onMounted, watch } from "vue";
+import { useCompanySettingsStore } from "../stores/companySettings";
+import { useToast } from "vue-toastification";
 
-const store = useCompanySettingsStore()
-const toast = useToast()
+const store = useCompanySettingsStore();
+const toast = useToast();
 
 // État local
-const form = ref({})
-const loading = ref(false)
-const selectedTemplate = ref('')
-const showPreview = ref(false)
-const templates = ref({})
+const form = ref({});
+const loading = ref(false);
+const selectedTemplate = ref("");
+const showPreview = ref(false);
+const templates = ref({});
 
 // Getters
-const isB2C = computed(() => store.settings.is_b2c)
+const isB2C = computed(() => store.settings.is_b2c);
 
 // Méthodes
 const loadSettings = async () => {
   try {
-    console.log('🔍 Chargement des paramètres dans LegalMentionsEditor...')
-    await store.fetchSettings()
-    form.value = { ...store.settings }
-    console.log('🔍 Paramètres chargés:', form.value)
+    console.log("🔍 Chargement des paramètres dans LegalMentionsEditor...");
+    await store.fetchSettings();
+    form.value = { ...store.settings };
+    console.log("🔍 Paramètres chargés:", form.value);
   } catch (error) {
-    console.error('🔍 Erreur lors du chargement des paramètres:', error)
-    toast.error('Erreur lors du chargement des paramètres')
+    console.error("🔍 Erreur lors du chargement des paramètres:", error);
+    toast.error("Erreur lors du chargement des paramètres");
   }
-}
+};
 
 const loadTemplates = async () => {
   try {
-    console.log('🔍 Chargement des modèles légaux...')
-    const data = await store.getLegalTemplates()
-    templates.value = data
-    console.log('🔍 Modèles chargés:', data)
-    toast.success('Modèles chargés')
+    console.log("🔍 Chargement des modèles légaux...");
+    const data = await store.getLegalTemplates();
+    templates.value = data;
+    console.log("🔍 Modèles chargés:", data);
+    toast.success("Modèles chargés");
   } catch (error) {
-    console.error('🔍 Erreur lors du chargement des modèles:', error)
-    toast.error('Erreur lors du chargement des modèles')
+    console.error("🔍 Erreur lors du chargement des modèles:", error);
+    toast.error("Erreur lors du chargement des modèles");
   }
-}
+};
 
 const applyTemplate = () => {
-  if (!selectedTemplate.value) return
+  if (!selectedTemplate.value) return;
 
-  const template = templates.value[selectedTemplate.value]
+  const template = templates.value[selectedTemplate.value];
   if (template) {
-    Object.assign(form.value, template)
-    toast.success('Modèle appliqué')
+    Object.assign(form.value, template);
+    toast.success("Modèle appliqué");
   }
-}
+};
 
 const handleSubmit = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    await store.updateSettings(form.value)
-    toast.success('Mentions légales sauvegardées')
+    await store.updateSettings(form.value);
+    toast.success("Mentions légales sauvegardées");
   } catch (error) {
-    toast.error('Erreur lors de la sauvegarde')
+    toast.error("Erreur lors de la sauvegarde");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const resetForm = () => {
-  form.value = { ...store.settings }
-}
+  form.value = { ...store.settings };
+};
 
 const previewMentions = () => {
-  showPreview.value = true
-}
+  showPreview.value = true;
+};
 
 const viewPublicPages = () => {
   // Ouvrir les pages publiques dans de nouveaux onglets
-  window.open('/mentions-legales', '_blank')
-  window.open('/cgv', '_blank')
-  window.open('/politique-confidentialite', '_blank')
-}
+  window.open("/mentions-legales", "_blank");
+  window.open("/cgv", "_blank");
+  window.open("/politique-confidentialite", "_blank");
+};
 
 // Lifecycle
 onMounted(() => {
-  console.log('🔍 LegalMentionsEditor monté')
-  console.log('🔍 Store settings:', store.settings)
-  console.log('🔍 Store settings keys:', Object.keys(store.settings))
+  console.log("🔍 LegalMentionsEditor monté");
+  console.log("🔍 Store settings:", store.settings);
+  console.log("🔍 Store settings keys:", Object.keys(store.settings));
 
   // Ne charger les paramètres que s'ils ne sont pas déjà chargés
   if (Object.keys(store.settings).length === 0) {
-    console.log('🔍 Chargement des paramètres car store vide')
-    loadSettings()
+    console.log("🔍 Chargement des paramètres car store vide");
+    loadSettings();
   } else {
-    console.log('🔍 Utilisation des paramètres existants')
-    form.value = { ...store.settings }
+    console.log("🔍 Utilisation des paramètres existants");
+    form.value = { ...store.settings };
   }
   // Ne pas charger les templates automatiquement
-})
+});
 
 // Watchers
 watch(
   () => store.settings,
   (newSettings) => {
     if (newSettings && Object.keys(newSettings).length > 0) {
-      form.value = { ...newSettings }
+      form.value = { ...newSettings };
     }
   },
-  { deep: true }
-)
+  { deep: true },
+);
 </script>

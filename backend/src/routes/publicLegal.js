@@ -1,63 +1,63 @@
-const express = require('express')
-const router = express.Router()
-const companySettingsService = require('../services/companySettingsService')
-const { authenticateToken } = require('../middleware/auth')
+const express = require("express");
+const router = express.Router();
+const companySettingsService = require("../services/companySettingsService");
+const { authenticateToken } = require("../middleware/auth");
 
 // GET /api/public/legal/current - Récupérer les paramètres de l'utilisateur connecté
-router.get('/current', authenticateToken, async (req, res) => {
+router.get("/current", authenticateToken, async (req, res) => {
   try {
     const settings = await companySettingsService.getSettings(
       req.user.userId,
-      false
-    )
+      false,
+    );
 
     if (!settings) {
       return res.status(404).json({
-        error: 'Paramètres non trouvés',
+        error: "Paramètres non trouvés",
         message: "Aucun paramètre d'entreprise configuré",
-      })
+      });
     }
 
     res.json({
       success: true,
       data: settings,
-    })
+    });
   } catch (error) {
-    console.error('Erreur lors de la récupération des paramètres:', error)
+    console.error("Erreur lors de la récupération des paramètres:", error);
     res.status(500).json({
-      error: 'Erreur lors de la récupération des paramètres',
-    })
+      error: "Erreur lors de la récupération des paramètres",
+    });
   }
-})
+});
 
 // GET /api/public/legal/mentions - Mentions légales publiques
-router.get('/mentions', async (req, res) => {
+router.get("/mentions", async (req, res) => {
   try {
     // Récupérer les paramètres de l'entreprise par ID ou par domaine
-    const companyId = req.query.company_id || req.query.domain
+    const companyId = req.query.company_id || req.query.domain;
 
     if (!companyId) {
       return res.status(400).json({
         error: "ID de l'entreprise ou domaine requis",
-      })
+      });
     }
 
     // Vérifier si c'est un UUID valide, sinon utiliser un ID par défaut
     const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const validCompanyId = uuidRegex.test(companyId)
       ? companyId
-      : '8f843e79-7460-4f3e-874b-28ff8bab3316'
+      : "8f843e79-7460-4f3e-874b-28ff8bab3316";
 
     const settings = await companySettingsService.getSettings(
       validCompanyId,
-      false
-    )
+      false,
+    );
 
     if (!settings) {
       return res.status(404).json({
-        error: 'Entreprise non trouvée',
-      })
+        error: "Entreprise non trouvée",
+      });
     }
 
     // Retourner seulement les informations publiques nécessaires
@@ -95,47 +95,50 @@ router.get('/mentions', async (req, res) => {
       is_b2c: settings.is_b2c,
       withdrawal_applicable: settings.withdrawal_applicable,
       withdrawal_text: settings.withdrawal_text,
-    }
+    };
 
     res.json({
       success: true,
       data: publicData,
-    })
+    });
   } catch (error) {
-    console.error('Erreur lors de la récupération des mentions légales:', error)
+    console.error(
+      "Erreur lors de la récupération des mentions légales:",
+      error,
+    );
     res.status(500).json({
-      error: 'Erreur lors de la récupération des mentions légales',
-    })
+      error: "Erreur lors de la récupération des mentions légales",
+    });
   }
-})
+});
 
 // GET /api/public/legal/cgv - CGV publiques
-router.get('/cgv', async (req, res) => {
+router.get("/cgv", async (req, res) => {
   try {
-    const companyId = req.query.company_id || req.query.domain
+    const companyId = req.query.company_id || req.query.domain;
 
     if (!companyId) {
       return res.status(400).json({
         error: "ID de l'entreprise ou domaine requis",
-      })
+      });
     }
 
     // Vérifier si c'est un UUID valide, sinon utiliser un ID par défaut
     const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const validCompanyId = uuidRegex.test(companyId)
       ? companyId
-      : '8f843e79-7460-4f3e-874b-28ff8bab3316'
+      : "8f843e79-7460-4f3e-874b-28ff8bab3316";
 
     const settings = await companySettingsService.getSettings(
       validCompanyId,
-      false
-    )
+      false,
+    );
 
     if (!settings) {
       return res.status(404).json({
-        error: 'Entreprise non trouvée',
-      })
+        error: "Entreprise non trouvée",
+      });
     }
 
     const cgvData = {
@@ -150,47 +153,47 @@ router.get('/cgv', async (req, res) => {
       withdrawal_applicable: settings.withdrawal_applicable,
       withdrawal_text: settings.withdrawal_text,
       cgv_url: settings.cgv_url,
-    }
+    };
 
     res.json({
       success: true,
       data: cgvData,
-    })
+    });
   } catch (error) {
-    console.error('Erreur lors de la récupération des CGV:', error)
+    console.error("Erreur lors de la récupération des CGV:", error);
     res.status(500).json({
-      error: 'Erreur lors de la récupération des CGV',
-    })
+      error: "Erreur lors de la récupération des CGV",
+    });
   }
-})
+});
 
 // GET /api/public/legal/privacy - Politique de confidentialité publique
-router.get('/privacy', async (req, res) => {
+router.get("/privacy", async (req, res) => {
   try {
-    const companyId = req.query.company_id || req.query.domain
+    const companyId = req.query.company_id || req.query.domain;
 
     if (!companyId) {
       return res.status(400).json({
         error: "ID de l'entreprise ou domaine requis",
-      })
+      });
     }
 
     // Vérifier si c'est un UUID valide, sinon utiliser un ID par défaut
     const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const validCompanyId = uuidRegex.test(companyId)
       ? companyId
-      : '8f843e79-7460-4f3e-874b-28ff8bab3316'
+      : "8f843e79-7460-4f3e-874b-28ff8bab3316";
 
     const settings = await companySettingsService.getSettings(
       validCompanyId,
-      false
-    )
+      false,
+    );
 
     if (!settings) {
       return res.status(404).json({
-        error: 'Entreprise non trouvée',
-      })
+        error: "Entreprise non trouvée",
+      });
     }
 
     const privacyData = {
@@ -207,22 +210,22 @@ router.get('/privacy', async (req, res) => {
       postal_code: settings.postal_code,
       city: settings.city,
       country: settings.country,
-    }
+    };
 
     res.json({
       success: true,
       data: privacyData,
-    })
+    });
   } catch (error) {
     console.error(
-      'Erreur lors de la récupération de la politique de confidentialité:',
-      error
-    )
+      "Erreur lors de la récupération de la politique de confidentialité:",
+      error,
+    );
     res.status(500).json({
       error:
-        'Erreur lors de la récupération de la politique de confidentialité',
-    })
+        "Erreur lors de la récupération de la politique de confidentialité",
+    });
   }
-})
+});
 
-module.exports = router
+module.exports = router;

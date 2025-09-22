@@ -1,4 +1,4 @@
-const { query } = require('../config/database')
+const { query } = require("../config/database");
 
 class InsuranceService {
   /**
@@ -9,25 +9,25 @@ class InsuranceService {
    */
   async getInsurances(userId, type = null) {
     try {
-      let whereClause = 'WHERE user_id = $1'
-      let params = [userId]
+      let whereClause = "WHERE user_id = $1";
+      let params = [userId];
 
       if (type) {
-        whereClause += ' AND certificate_type = $2'
-        params.push(type)
+        whereClause += " AND certificate_type = $2";
+        params.push(type);
       }
 
       const result = await query(
         `SELECT * FROM insurance_certificates 
                  ${whereClause}
                  ORDER BY end_date DESC, created_at DESC`,
-        params
-      )
+        params,
+      );
 
-      return result.rows
+      return result.rows;
     } catch (error) {
-      console.error('Erreur lors de la récupération des assurances:', error)
-      throw new Error('Échec de la récupération des assurances')
+      console.error("Erreur lors de la récupération des assurances:", error);
+      throw new Error("Échec de la récupération des assurances");
     }
   }
 
@@ -40,18 +40,18 @@ class InsuranceService {
   async getInsuranceById(insuranceId, userId) {
     try {
       const result = await query(
-        'SELECT * FROM insurance_certificates WHERE id = $1 AND user_id = $2',
-        [insuranceId, userId]
-      )
+        "SELECT * FROM insurance_certificates WHERE id = $1 AND user_id = $2",
+        [insuranceId, userId],
+      );
 
       if (result.rows.length === 0) {
-        throw new Error('Assurance non trouvée')
+        throw new Error("Assurance non trouvée");
       }
 
-      return result.rows[0]
+      return result.rows[0];
     } catch (error) {
-      console.error("Erreur lors de la récupération de l'assurance:", error)
-      throw error
+      console.error("Erreur lors de la récupération de l'assurance:", error);
+      throw error;
     }
   }
 
@@ -74,7 +74,7 @@ class InsuranceService {
         deductible,
         notes,
         documentUrl,
-      } = insuranceData
+      } = insuranceData;
 
       const result = await query(
         `INSERT INTO insurance_certificates 
@@ -95,13 +95,13 @@ class InsuranceService {
           deductible,
           notes,
           documentUrl,
-        ]
-      )
+        ],
+      );
 
-      return result.rows[0]
+      return result.rows[0];
     } catch (error) {
-      console.error("Erreur lors de la création de l'assurance:", error)
-      throw new Error("Échec de la création de l'assurance")
+      console.error("Erreur lors de la création de l'assurance:", error);
+      throw new Error("Échec de la création de l'assurance");
     }
   }
 
@@ -114,42 +114,42 @@ class InsuranceService {
    */
   async updateInsurance(insuranceId, userId, updateData) {
     try {
-      const fields = []
-      const values = []
-      let paramCount = 1
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
 
       // Construire dynamiquement la requête UPDATE
       Object.keys(updateData).forEach((key) => {
         if (updateData[key] !== undefined) {
-          fields.push(`${key} = $${paramCount}`)
-          values.push(updateData[key])
-          paramCount++
+          fields.push(`${key} = $${paramCount}`);
+          values.push(updateData[key]);
+          paramCount++;
         }
-      })
+      });
 
       if (fields.length === 0) {
-        throw new Error('Aucune donnée à mettre à jour')
+        throw new Error("Aucune donnée à mettre à jour");
       }
 
-      fields.push(`updated_at = CURRENT_TIMESTAMP`)
-      values.push(insuranceId, userId)
+      fields.push(`updated_at = CURRENT_TIMESTAMP`);
+      values.push(insuranceId, userId);
 
       const result = await query(
         `UPDATE insurance_certificates 
-                 SET ${fields.join(', ')}
+                 SET ${fields.join(", ")}
                  WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
                  RETURNING *`,
-        values
-      )
+        values,
+      );
 
       if (result.rows.length === 0) {
-        throw new Error('Assurance non trouvée')
+        throw new Error("Assurance non trouvée");
       }
 
-      return result.rows[0]
+      return result.rows[0];
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'assurance:", error)
-      throw error
+      console.error("Erreur lors de la mise à jour de l'assurance:", error);
+      throw error;
     }
   }
 
@@ -162,14 +162,14 @@ class InsuranceService {
   async deleteInsurance(insuranceId, userId) {
     try {
       const result = await query(
-        'DELETE FROM insurance_certificates WHERE id = $1 AND user_id = $2',
-        [insuranceId, userId]
-      )
+        "DELETE FROM insurance_certificates WHERE id = $1 AND user_id = $2",
+        [insuranceId, userId],
+      );
 
-      return result.rowCount > 0
+      return result.rowCount > 0;
     } catch (error) {
-      console.error("Erreur lors de la suppression de l'assurance:", error)
-      throw new Error("Échec de la suppression de l'assurance")
+      console.error("Erreur lors de la suppression de l'assurance:", error);
+      throw new Error("Échec de la suppression de l'assurance");
     }
   }
 
@@ -187,16 +187,16 @@ class InsuranceService {
                  AND is_active = true 
                  AND end_date <= CURRENT_DATE + INTERVAL '${days} days'
                  ORDER BY end_date ASC`,
-        [userId]
-      )
+        [userId],
+      );
 
-      return result.rows
+      return result.rows;
     } catch (error) {
       console.error(
-        'Erreur lors de la récupération des assurances expirantes:',
-        error
-      )
-      throw new Error('Échec de la récupération des assurances expirantes')
+        "Erreur lors de la récupération des assurances expirantes:",
+        error,
+      );
+      throw new Error("Échec de la récupération des assurances expirantes");
     }
   }
 
@@ -218,15 +218,15 @@ class InsuranceService {
                  FROM insurance_certificates 
                  WHERE user_id = $1
                  GROUP BY certificate_type`,
-        [userId]
-      )
+        [userId],
+      );
 
       const compliance = {
         isCompliant: true,
         warnings: [],
         errors: [],
         summary: {},
-      }
+      };
 
       result.rows.forEach((row) => {
         compliance.summary[row.certificate_type] = {
@@ -235,36 +235,36 @@ class InsuranceService {
           valid: parseInt(row.valid_count),
           expired: parseInt(row.expired_count),
           expiringSoon: parseInt(row.expiring_soon_count),
-        }
+        };
 
         // Vérifier les obligations légales
-        if (row.certificate_type === 'decennale' && row.active_count == 0) {
-          compliance.isCompliant = false
-          compliance.errors.push('Assurance décennale obligatoire manquante')
+        if (row.certificate_type === "decennale" && row.active_count == 0) {
+          compliance.isCompliant = false;
+          compliance.errors.push("Assurance décennale obligatoire manquante");
         }
 
-        if (row.certificate_type === 'rc_pro' && row.active_count == 0) {
-          compliance.isCompliant = false
-          compliance.errors.push('Assurance RC Pro obligatoire manquante')
+        if (row.certificate_type === "rc_pro" && row.active_count == 0) {
+          compliance.isCompliant = false;
+          compliance.errors.push("Assurance RC Pro obligatoire manquante");
         }
 
         if (row.expired_count > 0) {
           compliance.warnings.push(
-            `${row.certificate_type}: ${row.expired_count} assurance(s) expirée(s)`
-          )
+            `${row.certificate_type}: ${row.expired_count} assurance(s) expirée(s)`,
+          );
         }
 
         if (row.expiring_soon_count > 0) {
           compliance.warnings.push(
-            `${row.certificate_type}: ${row.expiring_soon_count} assurance(s) expirant bientôt`
-          )
+            `${row.certificate_type}: ${row.expiring_soon_count} assurance(s) expirant bientôt`,
+          );
         }
-      })
+      });
 
-      return compliance
+      return compliance;
     } catch (error) {
-      console.error('Erreur lors de la vérification de conformité:', error)
-      throw new Error('Échec de la vérification de conformité')
+      console.error("Erreur lors de la vérification de conformité:", error);
+      throw new Error("Échec de la vérification de conformité");
     }
   }
 
@@ -288,8 +288,8 @@ class InsuranceService {
                  WHERE ic.user_id = $1
                  AND ic.created_at BETWEEN $2 AND $3
                  ORDER BY ic.created_at DESC`,
-        [userId, startDate, endDate]
-      )
+        [userId, startDate, endDate],
+      );
 
       const summary = {
         totalInsurances: result.rows.length,
@@ -297,38 +297,38 @@ class InsuranceService {
         totalCoverage: 0,
         expiringSoon: 0,
         expired: 0,
-      }
+      };
 
       result.rows.forEach((insurance) => {
-        const type = insurance.certificate_type
+        const type = insurance.certificate_type;
         if (!summary.byType[type]) {
-          summary.byType[type] = 0
+          summary.byType[type] = 0;
         }
-        summary.byType[type]++
+        summary.byType[type]++;
 
         if (insurance.coverage_amount) {
-          summary.totalCoverage += parseFloat(insurance.coverage_amount)
+          summary.totalCoverage += parseFloat(insurance.coverage_amount);
         }
 
         if (insurance.end_date <= new Date()) {
-          summary.expired++
+          summary.expired++;
         } else if (
           insurance.end_date <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         ) {
-          summary.expiringSoon++
+          summary.expiringSoon++;
         }
-      })
+      });
 
       return {
         period: { startDate, endDate },
         insurances: result.rows,
         summary,
-      }
+      };
     } catch (error) {
-      console.error('Erreur lors de la génération du rapport:', error)
-      throw new Error("Échec de la génération du rapport d'assurances")
+      console.error("Erreur lors de la génération du rapport:", error);
+      throw new Error("Échec de la génération du rapport d'assurances");
     }
   }
 }
 
-module.exports = new InsuranceService()
+module.exports = new InsuranceService();

@@ -253,7 +253,7 @@
                   ></path>
                 </svg>
               </span>
-              {{ isLoading ? 'Création du compte...' : 'Créer mon compte' }}
+              {{ isLoading ? "Création du compte..." : "Créer mon compte" }}
             </button>
           </div>
         </form>
@@ -263,52 +263,52 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useToast } from 'vue-toastification'
+import { ref, reactive } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { useToast } from "vue-toastification";
 
-const router = useRouter()
-const authStore = useAuthStore()
-const toast = useToast()
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
 
-const isLoading = ref(false)
+const isLoading = ref(false);
 
 const form = reactive({
-  firstName: '',
-  lastName: '',
-  email: '',
-  companyName: '',
-  phone: '',
-  password: '',
-  confirmPassword: '',
-  address: '',
+  firstName: "",
+  lastName: "",
+  email: "",
+  companyName: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+  address: "",
   acceptTerms: false,
-})
+});
 
 const handleRegister = async () => {
   // Validation
   if (!form.firstName || !form.lastName || !form.email || !form.password) {
-    toast.error('Veuillez remplir tous les champs obligatoires')
-    return
+    toast.error("Veuillez remplir tous les champs obligatoires");
+    return;
   }
 
   if (form.password !== form.confirmPassword) {
-    toast.error('Les mots de passe ne correspondent pas')
-    return
+    toast.error("Les mots de passe ne correspondent pas");
+    return;
   }
 
   if (form.password.length < 8) {
-    toast.error('Le mot de passe doit contenir au moins 8 caractères')
-    return
+    toast.error("Le mot de passe doit contenir au moins 8 caractères");
+    return;
   }
 
   if (!form.acceptTerms) {
-    toast.error("Veuillez accepter les conditions d'utilisation")
-    return
+    toast.error("Veuillez accepter les conditions d'utilisation");
+    return;
   }
 
-  isLoading.value = true
+  isLoading.value = true;
 
   try {
     const result = await authStore.register({
@@ -319,16 +319,16 @@ const handleRegister = async () => {
       companyName: form.companyName || undefined,
       phone: form.phone || undefined,
       address: form.address || undefined,
-    })
+    });
 
     if (result.success) {
-      toast.success('Compte créé avec succès !')
-      router.push('/dashboard')
+      toast.success("Compte créé avec succès !");
+      router.push("/dashboard");
     }
   } catch (error) {
-    console.error("Erreur d'inscription:", error)
+    console.error("Erreur d'inscription:", error);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 </script>

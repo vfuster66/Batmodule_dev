@@ -240,117 +240,117 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useCompanySettingsStore } from '../stores/companySettings'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onMounted } from "vue";
+import { useCompanySettingsStore } from "../stores/companySettings";
+import { useToast } from "vue-toastification";
 
-const store = useCompanySettingsStore()
-const toast = useToast()
+const store = useCompanySettingsStore();
+const toast = useToast();
 
-const loading = ref(false)
-const report = ref(null)
+const loading = ref(false);
+const report = ref(null);
 
 // Getters
-const complianceScore = computed(() => store.complianceScore)
-const isCompliant = computed(() => store.isCompliant)
-const recommendations = computed(() => store.recommendations)
+const complianceScore = computed(() => store.complianceScore);
+const isCompliant = computed(() => store.isCompliant);
+const recommendations = computed(() => store.recommendations);
 
 // Classes CSS pour le score
 const scoreColor = computed(() => {
-  if (complianceScore.value >= 80) return 'text-green-500'
-  if (complianceScore.value >= 60) return 'text-yellow-500'
-  return 'text-red-500'
-})
+  if (complianceScore.value >= 80) return "text-green-500";
+  if (complianceScore.value >= 60) return "text-yellow-500";
+  return "text-red-500";
+});
 
 const scoreTextColor = computed(() => {
-  if (complianceScore.value >= 80) return 'text-green-600'
-  if (complianceScore.value >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-})
+  if (complianceScore.value >= 80) return "text-green-600";
+  if (complianceScore.value >= 60) return "text-yellow-600";
+  return "text-red-600";
+});
 
 const scoreLabel = computed(() => {
-  if (complianceScore.value >= 80) return 'Excellent'
-  if (complianceScore.value >= 60) return 'Bon'
-  return 'À améliorer'
-})
+  if (complianceScore.value >= 80) return "Excellent";
+  if (complianceScore.value >= 60) return "Bon";
+  return "À améliorer";
+});
 
 const scoreDescription = computed(() => {
   if (complianceScore.value >= 80)
-    return 'Votre configuration est conforme aux exigences légales'
-  if (complianceScore.value >= 60) return 'Quelques améliorations recommandées'
-  return 'Configuration incomplète, action requise'
-})
+    return "Votre configuration est conforme aux exigences légales";
+  if (complianceScore.value >= 60) return "Quelques améliorations recommandées";
+  return "Configuration incomplète, action requise";
+});
 
 // Champs obligatoires
 const requiredFields = computed(() => [
   {
-    key: 'company_name',
+    key: "company_name",
     label: "Nom de l'entreprise",
     completed: !!store.settings.company_name,
   },
-  { key: 'siret', label: 'SIRET', completed: !!store.settings.siret },
+  { key: "siret", label: "SIRET", completed: !!store.settings.siret },
   {
-    key: 'forme_juridique',
-    label: 'Forme juridique',
+    key: "forme_juridique",
+    label: "Forme juridique",
     completed: !!store.settings.forme_juridique,
   },
   {
-    key: 'address_line1',
-    label: 'Adresse',
+    key: "address_line1",
+    label: "Adresse",
     completed: !!store.settings.address_line1,
   },
   {
-    key: 'postal_code',
-    label: 'Code postal',
+    key: "postal_code",
+    label: "Code postal",
     completed: !!store.settings.postal_code,
   },
-  { key: 'city', label: 'Ville', completed: !!store.settings.city },
-  { key: 'phone', label: 'Téléphone', completed: !!store.settings.phone },
-  { key: 'email', label: 'Email', completed: !!store.settings.email },
-])
+  { key: "city", label: "Ville", completed: !!store.settings.city },
+  { key: "phone", label: "Téléphone", completed: !!store.settings.phone },
+  { key: "email", label: "Email", completed: !!store.settings.email },
+]);
 
 // Champs légaux
 const legalFields = computed(() => [
   {
-    key: 'rcs_number',
-    label: 'Numéro RCS',
+    key: "rcs_number",
+    label: "Numéro RCS",
     completed: !!store.settings.rcs_number,
   },
   {
-    key: 'tribunal_commercial',
-    label: 'Tribunal de commerce',
+    key: "tribunal_commercial",
+    label: "Tribunal de commerce",
     completed: !!store.settings.tribunal_commercial,
   },
   {
-    key: 'tva_intracommunautaire',
-    label: 'TVA intracommunautaire',
+    key: "tva_intracommunautaire",
+    label: "TVA intracommunautaire",
     completed: !!store.settings.tva_intracommunautaire,
   },
-  { key: 'ape_code', label: 'Code APE', completed: !!store.settings.ape_code },
+  { key: "ape_code", label: "Code APE", completed: !!store.settings.ape_code },
   {
-    key: 'insurance_company',
+    key: "insurance_company",
     label: "Compagnie d'assurance",
     completed: !!store.settings.insurance_company,
   },
   {
-    key: 'insurance_policy_number',
-    label: 'Numéro de police',
+    key: "insurance_policy_number",
+    label: "Numéro de police",
     completed: !!store.settings.insurance_policy_number,
   },
-])
+]);
 
 // Méthodes
 const refreshReport = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    await store.validateSettings()
-    toast.success('Rapport actualisé')
+    await store.validateSettings();
+    toast.success("Rapport actualisé");
   } catch (error) {
-    toast.error("Erreur lors de l'actualisation")
+    toast.error("Erreur lors de l'actualisation");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const exportReport = () => {
   const data = {
@@ -360,32 +360,32 @@ const exportReport = () => {
     legalFields: legalFields.value,
     recommendations: recommendations.value,
     timestamp: new Date().toISOString(),
-  }
+  };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: 'application/json',
-  })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `rapport-conformite-${new Date().toISOString().split('T')[0]}.json`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `rapport-conformite-${new Date().toISOString().split("T")[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 
-  toast.success('Rapport exporté')
-}
+  toast.success("Rapport exporté");
+};
 
 const printReport = () => {
-  window.print()
-}
+  window.print();
+};
 
 onMounted(async () => {
   try {
-    await store.validateSettings()
+    await store.validateSettings();
   } catch (error) {
-    console.error('Erreur lors du chargement du rapport:', error)
+    console.error("Erreur lors du chargement du rapport:", error);
   }
-})
+});
 </script>

@@ -34,44 +34,44 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
-import Sidebar from './Sidebar.vue'
-import Navbar from './Navbar.vue'
+import { ref, computed } from "vue";
+import { useRoute } from "vue-router";
+import Sidebar from "./Sidebar.vue";
+import Navbar from "./Navbar.vue";
 
 // Props
 defineProps({
   pageTitle: {
     type: String,
-    default: 'BatModule',
+    default: "BatModule",
   },
   notificationCount: {
     type: Number,
     default: 0,
   },
-})
+});
 
-const route = useRoute()
-const sidebarOpen = ref(false)
+const route = useRoute();
+const sidebarOpen = ref(false);
 
 // Titre de la page basé sur la route
 const pageTitle = computed(() => {
   const titles = {
-    '/dashboard': 'Tableau de bord',
-    '/clients': 'Clients',
-    '/services': 'Services',
-    '/quotes': 'Devis',
-    '/invoices': 'Factures',
-    '/settings': 'Paramètres',
-    '/profile': 'Mon Profil',
-    '/legal': 'Mentions légales',
-    '/company': 'Entreprise',
-    '/analytics': 'Statistiques',
-  }
-  return titles[route.path] || 'BatModule'
-})
+    "/dashboard": "Tableau de bord",
+    "/clients": "Clients",
+    "/services": "Services",
+    "/quotes": "Devis",
+    "/invoices": "Factures",
+    "/settings": "Paramètres",
+    "/profile": "Mon Profil",
+    "/legal": "Mentions légales",
+    "/company": "Entreprise",
+    "/analytics": "Statistiques",
+  };
+  return titles[route.path] || "BatModule";
+});
 
 const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value
-}
+  sidebarOpen.value = !sidebarOpen.value;
+};
 </script>

@@ -1,5 +1,5 @@
-const { query, transaction } = require('../config/database')
-const calculationService = require('./calculationService')
+const { query, transaction } = require("../config/database");
+const calculationService = require("./calculationService");
 
 class AdvanceInvoiceService {
   /**
@@ -29,42 +29,42 @@ class AdvanceInvoiceService {
       dueDate,
       notes,
       purchaseOrderNumber,
-    } = params
+    } = params;
 
     return await transaction(async (client) => {
       // Générer le numéro de facture d'acompte
-      const year = new Date().getFullYear()
+      const year = new Date().getFullYear();
       const settingsRes = await client.query(
-        'SELECT invoice_prefix, invoice_counter FROM company_settings WHERE user_id = $1 FOR UPDATE',
-        [userId]
-      )
+        "SELECT invoice_prefix, invoice_counter FROM company_settings WHERE user_id = $1 FOR UPDATE",
+        [userId],
+      );
 
-      const prefix = settingsRes.rows[0]?.invoice_prefix || 'FAC'
-      let counter = settingsRes.rows[0]?.invoice_counter ?? 0
+      const prefix = settingsRes.rows[0]?.invoice_prefix || "FAC";
+      let counter = settingsRes.rows[0]?.invoice_counter ?? 0;
 
       // Reset annuel si nécessaire
       const currentYearCountRes = await client.query(
-        'SELECT COUNT(*) AS cnt FROM invoices WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2',
-        [userId, year]
-      )
-      const hasAnyThisYear = parseInt(currentYearCountRes.rows[0].cnt, 10) > 0
+        "SELECT COUNT(*) AS cnt FROM invoices WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2",
+        [userId, year],
+      );
+      const hasAnyThisYear = parseInt(currentYearCountRes.rows[0].cnt, 10) > 0;
       if (!hasAnyThisYear) {
-        counter = 0
+        counter = 0;
       }
-      counter += 1
+      counter += 1;
 
       // Mettre à jour le compteur
       await client.query(
-        'UPDATE company_settings SET invoice_counter = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2',
-        [counter, userId]
-      )
+        "UPDATE company_settings SET invoice_counter = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
+        [counter, userId],
+      );
 
-      const invoiceNumber = `${prefix}-AC-${year}-${String(counter).padStart(4, '0')}`
+      const invoiceNumber = `${prefix}-AC-${year}-${String(counter).padStart(4, "0")}`;
 
       // Calculer les totaux pour l'acompte
-      const vatRate = 20.0 // Taux par défaut, peut être paramétrable
-      const advanceAmountHt = advanceAmount / (1 + vatRate / 100)
-      const vatAmount = advanceAmount - advanceAmountHt
+      const vatRate = 20.0; // Taux par défaut, peut être paramétrable
+      const advanceAmountHt = advanceAmount / (1 + vatRate / 100);
+      const vatAmount = advanceAmount - advanceAmountHt;
 
       // Créer la facture d'acompte
       const invoiceResult = await client.query(
@@ -89,10 +89,10 @@ class AdvanceInvoiceService {
           notes,
           advanceAmount,
           purchaseOrderNumber,
-        ]
-      )
+        ],
+      );
 
-      const invoice = invoiceResult.rows[0]
+      const invoice = invoiceResult.rows[0];
 
       // Créer une ligne de facture pour l'acompte
       await client.query(
@@ -110,11 +110,11 @@ class AdvanceInvoiceService {
           advanceAmountHt,
           advanceAmount,
           0,
-        ]
-      )
+        ],
+      );
 
-      return invoice
-    })
+      return invoice;
+    });
   }
 
   /**
@@ -144,62 +144,62 @@ class AdvanceInvoiceService {
       dueDate,
       notes,
       purchaseOrderNumber,
-    } = params
+    } = params;
 
     return await transaction(async (client) => {
       // Récupérer la facture d'acompte pour calculer le solde
       const advanceInvoiceRes = await client.query(
-        'SELECT total_ttc, advance_amount FROM invoices WHERE id = $1 AND user_id = $2',
-        [parentInvoiceId, userId]
-      )
+        "SELECT total_ttc, advance_amount FROM invoices WHERE id = $1 AND user_id = $2",
+        [parentInvoiceId, userId],
+      );
 
       if (advanceInvoiceRes.rows.length === 0) {
-        throw new Error("Facture d'acompte non trouvée")
+        throw new Error("Facture d'acompte non trouvée");
       }
 
-      const advanceInvoice = advanceInvoiceRes.rows[0]
+      const advanceInvoice = advanceInvoiceRes.rows[0];
       const advanceAmount =
-        advanceInvoice.advance_amount || advanceInvoice.total_ttc
+        advanceInvoice.advance_amount || advanceInvoice.total_ttc;
 
       // Calculer les totaux du projet complet
-      const calculations = calculationService.calculateTotals(items)
-      const totalProjectAmount = calculations.totalTtc
-      const remainingAmount = totalProjectAmount - advanceAmount
+      const calculations = calculationService.calculateTotals(items);
+      const totalProjectAmount = calculations.totalTtc;
+      const remainingAmount = totalProjectAmount - advanceAmount;
 
       if (remainingAmount <= 0) {
         throw new Error(
-          "Le montant de l'acompte est supérieur ou égal au montant total du projet"
-        )
+          "Le montant de l'acompte est supérieur ou égal au montant total du projet",
+        );
       }
 
       // Générer le numéro de facture de solde
-      const year = new Date().getFullYear()
+      const year = new Date().getFullYear();
       const settingsRes = await client.query(
-        'SELECT invoice_prefix, invoice_counter FROM company_settings WHERE user_id = $1 FOR UPDATE',
-        [userId]
-      )
+        "SELECT invoice_prefix, invoice_counter FROM company_settings WHERE user_id = $1 FOR UPDATE",
+        [userId],
+      );
 
-      const prefix = settingsRes.rows[0]?.invoice_prefix || 'FAC'
-      let counter = settingsRes.rows[0]?.invoice_counter ?? 0
+      const prefix = settingsRes.rows[0]?.invoice_prefix || "FAC";
+      let counter = settingsRes.rows[0]?.invoice_counter ?? 0;
 
       // Reset annuel si nécessaire
       const currentYearCountRes = await client.query(
-        'SELECT COUNT(*) AS cnt FROM invoices WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2',
-        [userId, year]
-      )
-      const hasAnyThisYear = parseInt(currentYearCountRes.rows[0].cnt, 10) > 0
+        "SELECT COUNT(*) AS cnt FROM invoices WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2",
+        [userId, year],
+      );
+      const hasAnyThisYear = parseInt(currentYearCountRes.rows[0].cnt, 10) > 0;
       if (!hasAnyThisYear) {
-        counter = 0
+        counter = 0;
       }
-      counter += 1
+      counter += 1;
 
       // Mettre à jour le compteur
       await client.query(
-        'UPDATE company_settings SET invoice_counter = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2',
-        [counter, userId]
-      )
+        "UPDATE company_settings SET invoice_counter = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
+        [counter, userId],
+      );
 
-      const invoiceNumber = `${prefix}-SOL-${year}-${String(counter).padStart(4, '0')}`
+      const invoiceNumber = `${prefix}-SOL-${year}-${String(counter).padStart(4, "0")}`;
 
       // Créer la facture de solde
       const invoiceResult = await client.query(
@@ -225,15 +225,15 @@ class AdvanceInvoiceService {
           parentInvoiceId,
           advanceAmount,
           purchaseOrderNumber,
-        ]
-      )
+        ],
+      );
 
-      const invoice = invoiceResult.rows[0]
+      const invoice = invoiceResult.rows[0];
 
       // Créer les lignes de la facture de solde
-      const invoiceItems = []
+      const invoiceItems = [];
       for (let i = 0; i < calculations.items.length; i++) {
-        const item = calculations.items[i]
+        const item = calculations.items[i];
         const itemResult = await client.query(
           `INSERT INTO invoice_items (
                         invoice_id, service_id, description, quantity, unit_price_ht, 
@@ -253,13 +253,13 @@ class AdvanceInvoiceService {
             item.totalTtc,
             item.sortOrder || i,
             item.sectionId || null,
-          ]
-        )
-        invoiceItems.push(itemResult.rows[0])
+          ],
+        );
+        invoiceItems.push(itemResult.rows[0]);
       }
 
-      return { invoice, items: invoiceItems }
-    })
+      return { invoice, items: invoiceItems };
+    });
   }
 
   /**
@@ -273,18 +273,18 @@ class AdvanceInvoiceService {
       `SELECT * FROM invoices 
              WHERE user_id = $1 AND (id = $2 OR parent_invoice_id = $2)
              ORDER BY created_at ASC`,
-      [userId, parentInvoiceId]
-    )
+      [userId, parentInvoiceId],
+    );
 
-    const invoices = result.rows
-    const advanceInvoice = invoices.find((i) => i.invoice_type === 'advance')
-    const finalInvoice = invoices.find((i) => i.invoice_type === 'final')
+    const invoices = result.rows;
+    const advanceInvoice = invoices.find((i) => i.invoice_type === "advance");
+    const finalInvoice = invoices.find((i) => i.invoice_type === "final");
 
     return {
       advance: advanceInvoice,
       final: finalInvoice,
       all: invoices,
-    }
+    };
   }
 
   /**
@@ -296,30 +296,30 @@ class AdvanceInvoiceService {
   async getPaymentStatus(userId, parentInvoiceId) {
     const relatedInvoices = await this.getRelatedInvoices(
       userId,
-      parentInvoiceId
-    )
+      parentInvoiceId,
+    );
 
     if (!relatedInvoices.advance) {
-      return { error: "Aucune facture d'acompte trouvée" }
+      return { error: "Aucune facture d'acompte trouvée" };
     }
 
     const totalAmount =
       relatedInvoices.advance.total_ttc +
-      (relatedInvoices.final?.total_ttc || 0)
+      (relatedInvoices.final?.total_ttc || 0);
     const paidAmount =
       relatedInvoices.advance.paid_amount +
-      (relatedInvoices.final?.paid_amount || 0)
-    const remainingAmount = totalAmount - paidAmount
+      (relatedInvoices.final?.paid_amount || 0);
+    const remainingAmount = totalAmount - paidAmount;
 
     return {
       totalAmount,
       paidAmount,
       remainingAmount,
-      advancePaid: relatedInvoices.advance.status === 'paid',
-      finalPaid: relatedInvoices.final?.status === 'paid',
+      advancePaid: relatedInvoices.advance.status === "paid",
+      finalPaid: relatedInvoices.final?.status === "paid",
       fullyPaid: remainingAmount <= 0,
-    }
+    };
   }
 }
 
-module.exports = new AdvanceInvoiceService()
+module.exports = new AdvanceInvoiceService();

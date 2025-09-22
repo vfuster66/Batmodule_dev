@@ -254,122 +254,122 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useToast } from 'vue-toastification'
-import Layout from '../components/Layout.vue'
-import { useAuthStore } from '../stores/auth'
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
+import Layout from "../components/Layout.vue";
+import { useAuthStore } from "../stores/auth";
 
-const router = useRouter()
-const toast = useToast()
-const authStore = useAuthStore()
+const router = useRouter();
+const toast = useToast();
+const authStore = useAuthStore();
 
-const loading = ref(false)
+const loading = ref(false);
 const formData = ref({
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  avatar: '',
-})
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  avatar: "",
+});
 
 const passwordForm = ref({
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: '',
-})
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+});
 
 const loadUserData = async () => {
   try {
     // Charger les données utilisateur depuis le store
-    const user = authStore.user
+    const user = authStore.user;
     if (user) {
       formData.value = {
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        avatar: user.avatar || '',
-      }
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        avatar: user.avatar || "",
+      };
     }
   } catch (error) {
-    console.error('Erreur lors du chargement des données utilisateur:', error)
-    toast.error('Erreur lors du chargement des données')
+    console.error("Erreur lors du chargement des données utilisateur:", error);
+    toast.error("Erreur lors du chargement des données");
   }
-}
+};
 
 const saveProfile = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const { success, user } = await authStore.updateProfile(formData.value)
+    const { success, user } = await authStore.updateProfile(formData.value);
     if (success) {
-      toast.success('Profil mis à jour avec succès')
+      toast.success("Profil mis à jour avec succès");
     } else {
-      toast.error('Erreur lors de la mise à jour du profil')
+      toast.error("Erreur lors de la mise à jour du profil");
     }
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du profil:', error)
-    toast.error('Erreur lors de la mise à jour du profil')
+    console.error("Erreur lors de la mise à jour du profil:", error);
+    toast.error("Erreur lors de la mise à jour du profil");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const changePassword = async () => {
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    toast.error('Les mots de passe ne correspondent pas')
-    return
+    toast.error("Les mots de passe ne correspondent pas");
+    return;
   }
 
   if (passwordForm.value.newPassword.length < 6) {
-    toast.error('Le mot de passe doit contenir au moins 6 caractères')
-    return
+    toast.error("Le mot de passe doit contenir au moins 6 caractères");
+    return;
   }
 
-  loading.value = true
+  loading.value = true;
   try {
     // TODO: Implémenter l'API pour changer le mot de passe
     // await authStore.changePassword(passwordForm.value)
-    toast.success('Mot de passe modifié avec succès')
+    toast.success("Mot de passe modifié avec succès");
     passwordForm.value = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    }
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    };
   } catch (error) {
-    console.error('Erreur lors du changement de mot de passe:', error)
-    toast.error('Erreur lors du changement de mot de passe')
+    console.error("Erreur lors du changement de mot de passe:", error);
+    toast.error("Erreur lors du changement de mot de passe");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const handleAvatarChange = (event) => {
-  const file = event.target.files[0]
+  const file = event.target.files[0];
   if (file) {
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Le fichier est trop volumineux (max 2MB)')
-      return
+      toast.error("Le fichier est trop volumineux (max 2MB)");
+      return;
     }
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
-      formData.value.avatar = e.target.result
-    }
-    reader.readAsDataURL(file)
+      formData.value.avatar = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
-}
+};
 
 const resetForm = () => {
-  loadUserData()
+  loadUserData();
   passwordForm.value = {
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  }
-}
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  };
+};
 
 onMounted(() => {
-  loadUserData()
-})
+  loadUserData();
+});
 </script>

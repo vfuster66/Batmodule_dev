@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            Devis {{ quote?.quoteNumber || '' }}
+            Devis {{ quote?.quoteNumber || "" }}
           </h1>
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Détails du devis et lignes
@@ -132,13 +132,13 @@
                   {{ quote.client?.postalCode }} {{ quote.client?.city }}
                 </template>
                 <template v-else>
-                  {{ quote.siteAddress?.addressLine1 || '—' }}
+                  {{ quote.siteAddress?.addressLine1 || "—" }}
                   <template v-if="quote.siteAddress?.addressLine2"
                     ><br />{{ quote.siteAddress.addressLine2 }}</template
                   >
                   <br />
-                  {{ quote.siteAddress?.postalCode || '' }}
-                  {{ quote.siteAddress?.city || '' }}
+                  {{ quote.siteAddress?.postalCode || "" }}
+                  {{ quote.siteAddress?.city || "" }}
                 </template>
               </div>
             </div>
@@ -223,7 +223,7 @@
                 <tbody>
                   <tr
                     v-for="it in quote.items.filter(
-                      (i) => i.sectionId === sec.id
+                      (i) => i.sectionId === sec.id,
                     )"
                     :key="it.id"
                     class="border-t border-gray-200 dark:border-gray-700"
@@ -362,73 +362,73 @@
 </template>
 
 <script setup>
-import { onMounted, computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import Layout from '@/components/Layout.vue'
-import { useQuotesStore } from '@/stores/quotes'
+import { onMounted, computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import Layout from "@/components/Layout.vue";
+import { useQuotesStore } from "@/stores/quotes";
 
-const route = useRoute()
-const router = useRouter()
-const quotesStore = useQuotesStore()
+const route = useRoute();
+const router = useRouter();
+const quotesStore = useQuotesStore();
 
-const id = computed(() => route.params.id)
-const loading = computed(() => quotesStore.loading)
-const quote = computed(() => quotesStore.currentQuote)
+const id = computed(() => route.params.id);
+const loading = computed(() => quotesStore.loading);
+const quote = computed(() => quotesStore.currentQuote);
 
-const openSendModal = ref(false)
-const sendForm = ref({ to: '', subject: '', message: '' })
+const openSendModal = ref(false);
+const sendForm = ref({ to: "", subject: "", message: "" });
 const defaultSubject = computed(() =>
-  `Votre devis ${quote.value?.quoteNumber || ''}`.trim()
-)
-const isValidEmail = (e) => /[^@\s]+@[^@\s]+\.[^@\s]+/.test(e || '')
+  `Votre devis ${quote.value?.quoteNumber || ""}`.trim(),
+);
+const isValidEmail = (e) => /[^@\s]+@[^@\s]+\.[^@\s]+/.test(e || "");
 
 const formatCurrency = (amount) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
-    Number(amount || 0)
-  )
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
+    Number(amount || 0),
+  );
 const formatDate = (d) => {
-  if (!d) return '—'
-  const dt = new Date(d)
-  if (isNaN(dt.getTime())) return '—'
-  return dt.toLocaleDateString('fr-FR')
-}
+  if (!d) return "—";
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString("fr-FR");
+};
 
 onMounted(async () => {
   try {
-    await quotesStore.fetchQuote(id.value)
+    await quotesStore.fetchQuote(id.value);
   } catch (_) {
     /* handled by store */
   }
-})
+});
 
 const changeStatus = async (evt) => {
-  const newStatus = evt?.target?.value
-  if (!newStatus) return
+  const newStatus = evt?.target?.value;
+  if (!newStatus) return;
   try {
-    await quotesStore.updateStatus(id.value, newStatus)
+    await quotesStore.updateStatus(id.value, newStatus);
   } catch (_) {}
-}
+};
 
 const downloadPdf = async () => {
   try {
-    const num = quote.value?.quoteNumber || id.value
-    await quotesStore.downloadPdf(id.value, `devis-${num}.pdf`)
+    const num = quote.value?.quoteNumber || id.value;
+    await quotesStore.downloadPdf(id.value, `devis-${num}.pdf`);
   } catch (_) {}
-}
+};
 
 const editQuote = () => {
-  router.push(`/quotes/${id.value}/edit`)
-}
+  router.push(`/quotes/${id.value}/edit`);
+};
 
 const sendEmail = async () => {
   try {
     const payload = {
       to: sendForm.value.to,
       subject: sendForm.value.subject || defaultSubject.value,
-      message: sendForm.value.message || '',
-    }
-    const resp = await quotesStore.sendByEmail(id.value, payload)
-    openSendModal.value = false
+      message: sendForm.value.message || "",
+    };
+    const resp = await quotesStore.sendByEmail(id.value, payload);
+    openSendModal.value = false;
   } catch (_) {}
-}
+};
 </script>

@@ -1,7 +1,7 @@
-const { query } = require('../config/database')
-const fs = require('fs')
-const path = require('path')
-const csv = require('csv-writer')
+const { query } = require("../config/database");
+const fs = require("fs");
+const path = require("path");
+const csv = require("csv-writer");
 
 class AccountingExportService {
   /**
@@ -15,45 +15,45 @@ class AccountingExportService {
     try {
       // Récupérer les paramètres de l'entreprise
       const companyResult = await query(
-        'SELECT * FROM company_settings WHERE user_id = $1',
-        [userId]
-      )
+        "SELECT * FROM company_settings WHERE user_id = $1",
+        [userId],
+      );
 
       if (companyResult.rows.length === 0) {
-        throw new Error("Paramètres de l'entreprise non trouvés")
+        throw new Error("Paramètres de l'entreprise non trouvés");
       }
 
-      const company = companyResult.rows[0]
+      const company = companyResult.rows[0];
 
       // Récupérer les écritures comptables
       const entries = await this.getAccountingEntries(
         userId,
         startDate,
-        endDate
-      )
+        endDate,
+      );
 
       // Générer le fichier FEC
       const fecContent = this.generateFECContent(
         company,
         entries,
         startDate,
-        endDate
-      )
+        endDate,
+      );
 
       // Sauvegarder le fichier
-      const filename = `FEC_${company.siret || 'UNKNOWN'}_${this.formatDateForFilename(startDate)}_${this.formatDateForFilename(endDate)}.txt`
+      const filename = `FEC_${company.siret || "UNKNOWN"}_${this.formatDateForFilename(startDate)}_${this.formatDateForFilename(endDate)}.txt`;
       const filepath = path.join(
-        process.env.EXPORT_DIR || './exports',
-        filename
-      )
+        process.env.EXPORT_DIR || "./exports",
+        filename,
+      );
 
       // Créer le dossier s'il n'existe pas
-      const exportDir = path.dirname(filepath)
+      const exportDir = path.dirname(filepath);
       if (!fs.existsSync(exportDir)) {
-        fs.mkdirSync(exportDir, { recursive: true })
+        fs.mkdirSync(exportDir, { recursive: true });
       }
 
-      fs.writeFileSync(filepath, fecContent, 'utf8')
+      fs.writeFileSync(filepath, fecContent, "utf8");
 
       return {
         success: true,
@@ -61,10 +61,10 @@ class AccountingExportService {
         filepath,
         entryCount: entries.length,
         period: { startDate, endDate },
-      }
+      };
     } catch (error) {
-      console.error("Erreur lors de la génération de l'export FEC:", error)
-      throw new Error("Échec de la génération de l'export FEC")
+      console.error("Erreur lors de la génération de l'export FEC:", error);
+      throw new Error("Échec de la génération de l'export FEC");
     }
   }
 
@@ -76,7 +76,7 @@ class AccountingExportService {
    * @returns {Array} - Écritures comptables
    */
   async getAccountingEntries(userId, startDate, endDate) {
-    const entries = []
+    const entries = [];
 
     // Récupérer les factures
     const invoicesResult = await query(
@@ -106,36 +106,36 @@ class AccountingExportService {
              AND i.invoice_date BETWEEN $2 AND $3
              AND i.status != 'cancelled'
              ORDER BY i.invoice_date, i.invoice_number`,
-      [userId, startDate, endDate]
-    )
+      [userId, startDate, endDate],
+    );
 
     // Ajouter les écritures de vente
     for (const invoice of invoicesResult.rows) {
-      entries.push(invoice)
+      entries.push(invoice);
 
       // Écriture de TVA collectée
       if (invoice.debit > 0) {
-        const vatAmount = invoice.debit * 0.2 // TVA 20% par défaut
+        const vatAmount = invoice.debit * 0.2; // TVA 20% par défaut
         entries.push({
           ...invoice,
-          compte_num: '44571',
-          compte_lib: 'TVA collectée',
-          sens: 'C',
+          compte_num: "44571",
+          compte_lib: "TVA collectée",
+          sens: "C",
           debit: 0,
           credit: vatAmount,
-          ecriture_lib: 'TVA collectée - ' + invoice.ecriture_lib,
-        })
+          ecriture_lib: "TVA collectée - " + invoice.ecriture_lib,
+        });
 
         // Écriture de produit
         entries.push({
           ...invoice,
-          compte_num: '701',
-          compte_lib: 'Ventes de produits finis',
-          sens: 'C',
+          compte_num: "701",
+          compte_lib: "Ventes de produits finis",
+          sens: "C",
           debit: 0,
           credit: invoice.debit - vatAmount,
-          ecriture_lib: 'Produit - ' + invoice.ecriture_lib,
-        })
+          ecriture_lib: "Produit - " + invoice.ecriture_lib,
+        });
       }
     }
 
@@ -176,26 +176,26 @@ class AccountingExportService {
              WHERE i.user_id = $1 
              AND p.payment_date BETWEEN $2 AND $3
              ORDER BY p.payment_date, p.reference`,
-      [userId, startDate, endDate]
-    )
+      [userId, startDate, endDate],
+    );
 
     // Ajouter les écritures de paiement
     for (const payment of paymentsResult.rows) {
-      entries.push(payment)
+      entries.push(payment);
 
       // Écriture de règlement client
       entries.push({
         ...payment,
-        compte_num: '411',
-        compte_lib: 'Clients',
-        sens: 'C',
+        compte_num: "411",
+        compte_lib: "Clients",
+        sens: "C",
         debit: 0,
         credit: payment.debit,
-        ecriture_lib: 'Règlement - ' + payment.ecriture_lib,
-      })
+        ecriture_lib: "Règlement - " + payment.ecriture_lib,
+      });
     }
 
-    return entries
+    return entries;
   }
 
   /**
@@ -207,51 +207,51 @@ class AccountingExportService {
    * @returns {string} - Contenu FEC
    */
   generateFECContent(company, entries, startDate, endDate) {
-    const lines = []
+    const lines = [];
 
     // En-tête FEC
-    lines.push('#FEC')
-    lines.push(`#SIRET:${company.siret || ''}`)
-    lines.push(`#SIREN:${company.siret ? company.siret.substring(0, 9) : ''}`)
+    lines.push("#FEC");
+    lines.push(`#SIRET:${company.siret || ""}`);
+    lines.push(`#SIREN:${company.siret ? company.siret.substring(0, 9) : ""}`);
     lines.push(
-      `#PERIODE:${this.formatDateForFEC(startDate)}:${this.formatDateForFEC(endDate)}`
-    )
-    lines.push(`#DATE_EXPORT:${this.formatDateForFEC(new Date())}`)
-    lines.push(`#SOFTWARE:BatModule v1.0`)
-    lines.push(`#VERSION:1.0`)
+      `#PERIODE:${this.formatDateForFEC(startDate)}:${this.formatDateForFEC(endDate)}`,
+    );
+    lines.push(`#DATE_EXPORT:${this.formatDateForFEC(new Date())}`);
+    lines.push(`#SOFTWARE:BatModule v1.0`);
+    lines.push(`#VERSION:1.0`);
 
     // Ligne d'en-tête des colonnes
     lines.push(
-      'JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise'
-    )
+      "JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise",
+    );
 
     // Écritures comptables
     for (const entry of entries) {
       const line = [
-        entry.journal_code || '',
-        entry.journal_lib || '',
-        entry.piece_num || '',
+        entry.journal_code || "",
+        entry.journal_lib || "",
+        entry.piece_num || "",
         this.formatDateForFEC(entry.piece_date),
-        entry.compte_num || '',
-        entry.compte_lib || '',
-        '', // CompAuxNum
-        '', // CompAuxLib
-        entry.piece_num || '',
+        entry.compte_num || "",
+        entry.compte_lib || "",
+        "", // CompAuxNum
+        "", // CompAuxLib
+        entry.piece_num || "",
         this.formatDateForFEC(entry.piece_date),
-        entry.ecriture_lib || '',
+        entry.ecriture_lib || "",
         this.formatAmount(entry.debit),
         this.formatAmount(entry.credit),
-        entry.ecriture_let || '',
+        entry.ecriture_let || "",
         this.formatDateForFEC(entry.date_let),
         this.formatDateForFEC(entry.valid_date),
         this.formatAmount(entry.debit || entry.credit),
-        entry.currency_code || 'EUR',
-      ].join('|')
+        entry.currency_code || "EUR",
+      ].join("|");
 
-      lines.push(line)
+      lines.push(line);
     }
 
-    return lines.join('\n')
+    return lines.join("\n");
   }
 
   /**
@@ -281,30 +281,30 @@ class AccountingExportService {
                  WHERE i.user_id = $1 
                  AND i.invoice_date BETWEEN $2 AND $3
                  ORDER BY i.invoice_date DESC`,
-        [userId, startDate, endDate]
-      )
+        [userId, startDate, endDate],
+      );
 
-      const filename = `ventes_${this.formatDateForFilename(startDate)}_${this.formatDateForFilename(endDate)}.csv`
+      const filename = `ventes_${this.formatDateForFilename(startDate)}_${this.formatDateForFilename(endDate)}.csv`;
       const filepath = path.join(
-        process.env.EXPORT_DIR || './exports',
-        filename
-      )
+        process.env.EXPORT_DIR || "./exports",
+        filename,
+      );
 
       const csvWriter = csv.createObjectCsvWriter({
         path: filepath,
         header: [
-          { id: 'invoice_number', title: 'N° Facture' },
-          { id: 'invoice_date', title: 'Date Facture' },
-          { id: 'client_name', title: 'Client' },
-          { id: 'subtotal', title: 'HT' },
-          { id: 'vat_amount', title: 'TVA' },
-          { id: 'total_amount', title: 'TTC' },
-          { id: 'status', title: 'Statut' },
-          { id: 'payment_status', title: 'Paiement' },
+          { id: "invoice_number", title: "N° Facture" },
+          { id: "invoice_date", title: "Date Facture" },
+          { id: "client_name", title: "Client" },
+          { id: "subtotal", title: "HT" },
+          { id: "vat_amount", title: "TVA" },
+          { id: "total_amount", title: "TTC" },
+          { id: "status", title: "Statut" },
+          { id: "payment_status", title: "Paiement" },
         ],
-      })
+      });
 
-      await csvWriter.writeRecords(result.rows)
+      await csvWriter.writeRecords(result.rows);
 
       return {
         success: true,
@@ -312,10 +312,10 @@ class AccountingExportService {
         filepath,
         recordCount: result.rows.length,
         period: { startDate, endDate },
-      }
+      };
     } catch (error) {
-      console.error("Erreur lors de la génération de l'export CSV:", error)
-      throw new Error("Échec de la génération de l'export CSV")
+      console.error("Erreur lors de la génération de l'export CSV:", error);
+      throw new Error("Échec de la génération de l'export CSV");
     }
   }
 
@@ -325,13 +325,13 @@ class AccountingExportService {
    * @returns {string} - Date formatée
    */
   formatDateForFEC(date) {
-    if (!date) return ''
-    const d = new Date(date)
+    if (!date) return "";
+    const d = new Date(date);
     return (
       d.getFullYear().toString() +
-      (d.getMonth() + 1).toString().padStart(2, '0') +
-      d.getDate().toString().padStart(2, '0')
-    )
+      (d.getMonth() + 1).toString().padStart(2, "0") +
+      d.getDate().toString().padStart(2, "0")
+    );
   }
 
   /**
@@ -340,13 +340,13 @@ class AccountingExportService {
    * @returns {string} - Date formatée
    */
   formatDateForFilename(date) {
-    if (!date) return ''
-    const d = new Date(date)
+    if (!date) return "";
+    const d = new Date(date);
     return (
       d.getFullYear().toString() +
-      (d.getMonth() + 1).toString().padStart(2, '0') +
-      d.getDate().toString().padStart(2, '0')
-    )
+      (d.getMonth() + 1).toString().padStart(2, "0") +
+      d.getDate().toString().padStart(2, "0")
+    );
   }
 
   /**
@@ -355,9 +355,9 @@ class AccountingExportService {
    * @returns {string} - Montant formaté
    */
   formatAmount(amount) {
-    if (!amount || amount === 0) return '0.00'
-    return parseFloat(amount).toFixed(2).replace('.', ',')
+    if (!amount || amount === 0) return "0.00";
+    return parseFloat(amount).toFixed(2).replace(".", ",");
   }
 }
 
-module.exports = new AccountingExportService()
+module.exports = new AccountingExportService();

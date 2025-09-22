@@ -162,7 +162,7 @@
                 <td
                   class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300"
                 >
-                  {{ quote.clientCompany || quote.clientName || '—' }}
+                  {{ quote.clientCompany || quote.clientName || "—" }}
                 </td>
                 <td
                   class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300"
@@ -554,25 +554,25 @@
             <div>
               <div class="text-gray-500 dark:text-gray-400">Entreprise</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.companyName || '—' }}
+                {{ selectedClient.companyName || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">Email</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.email || '—' }}
+                {{ selectedClient.email || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">Téléphone</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.phone || '—' }}
+                {{ selectedClient.phone || "—" }}
               </div>
             </div>
             <div class="md:col-span-2">
               <div class="text-gray-500 dark:text-gray-400">Adresse</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.addressLine1 || '—'
+                {{ selectedClient.addressLine1 || "—"
                 }}<span v-if="selectedClient.addressLine2"
                   >, {{ selectedClient.addressLine2 }}</span
                 >
@@ -588,25 +588,25 @@
             <div>
               <div class="text-gray-500 dark:text-gray-400">SIRET</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.siret || '—' }}
+                {{ selectedClient.siret || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">TVA</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.vatNumber || '—' }}
+                {{ selectedClient.vatNumber || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">RCS</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.rcsNumber || '—' }}
+                {{ selectedClient.rcsNumber || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">Code APE</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.apeCode || '—' }}
+                {{ selectedClient.apeCode || "—" }}
               </div>
             </div>
           </div>
@@ -657,10 +657,26 @@
                 class="flex-1 px-3 py-1 rounded-md border dark:bg-gray-700 dark:border-gray-600"
               >
                 <option value="">— Ajouter depuis le catalogue —</option>
-                <option v-for="s in services" :key="s.id" :value="s.id">
-                  {{ s.name }} ({{ s.unit }}) —
-                  {{ formatCurrency(s.price_ht) }} HT
-                </option>
+                <template
+                  v-for="category in servicesByCategory"
+                  :key="category.name"
+                >
+                  <option
+                    disabled
+                    class="font-semibold text-gray-900 bg-gray-100"
+                  >
+                    ▶ {{ category.name.toUpperCase() }}
+                  </option>
+                  <option
+                    v-for="s in category.services"
+                    :key="s.id"
+                    :value="s.id"
+                    class="pl-4"
+                  >
+                    {{ s.name }} ({{ s.unit }}) —
+                    {{ formatCurrency(s.price_ht) }} HT
+                  </option>
+                </template>
               </select>
               <button
                 @click="addFromCatalogToSection(0)"
@@ -719,7 +735,9 @@
                 class="col-span-1 px-2 py-1 rounded-md border dark:bg-gray-700 dark:border-gray-600 text-right"
               />
               <input
-                v-model.number="it.unitPriceHt"
+                :value="formatPriceInput(it.unitPriceHt)"
+                @input="updatePriceHt(it, $event.target.value)"
+                @blur="formatPriceOnBlur(it)"
                 type="number"
                 min="0"
                 step="0.01"
@@ -784,7 +802,7 @@
               >Sélectionner un client</label
             >
             <button @click="toggleCreateClient" class="text-sm text-blue-600">
-              {{ showCreateClient ? 'Annuler la création' : 'Nouveau client' }}
+              {{ showCreateClient ? "Annuler la création" : "Nouveau client" }}
             </button>
           </div>
           <div
@@ -826,25 +844,25 @@
             <div>
               <div class="text-gray-500 dark:text-gray-400">Entreprise</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.companyName || '—' }}
+                {{ selectedClient.companyName || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">Email</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.email || '—' }}
+                {{ selectedClient.email || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">Téléphone</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.phone || '—' }}
+                {{ selectedClient.phone || "—" }}
               </div>
             </div>
             <div class="md:col-span-2">
               <div class="text-gray-500 dark:text-gray-400">Adresse</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.addressLine1 || '—'
+                {{ selectedClient.addressLine1 || "—"
                 }}<span v-if="selectedClient.addressLine2"
                   >, {{ selectedClient.addressLine2 }}</span
                 >
@@ -860,25 +878,25 @@
             <div>
               <div class="text-gray-500 dark:text-gray-400">SIRET</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.siret || '—' }}
+                {{ selectedClient.siret || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">TVA</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.vatNumber || '—' }}
+                {{ selectedClient.vatNumber || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">RCS</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.rcsNumber || '—' }}
+                {{ selectedClient.rcsNumber || "—" }}
               </div>
             </div>
             <div>
               <div class="text-gray-500 dark:text-gray-400">Code APE</div>
               <div class="text-gray-900 dark:text-white">
-                {{ selectedClient.apeCode || '—' }}
+                {{ selectedClient.apeCode || "—" }}
               </div>
             </div>
           </div>
@@ -925,7 +943,7 @@
                 "
                 class="px-3 py-2 rounded-md bg-blue-600 text-white"
               >
-                {{ clientsStore.loading ? 'Création…' : 'Créer le client' }}
+                {{ clientsStore.loading ? "Création…" : "Créer le client" }}
               </button>
             </div>
           </div>
@@ -1083,10 +1101,26 @@
                 class="flex-1 px-3 py-1 rounded-md border dark:bg-gray-700 dark:border-gray-600"
               >
                 <option value="">— Ajouter depuis le catalogue —</option>
-                <option v-for="s in services" :key="s.id" :value="s.id">
-                  {{ s.name }} ({{ s.unit }}) —
-                  {{ formatCurrency(s.price_ht) }} HT
-                </option>
+                <template
+                  v-for="category in servicesByCategory"
+                  :key="category.name"
+                >
+                  <option
+                    disabled
+                    class="font-semibold text-gray-900 bg-gray-100"
+                  >
+                    ▶ {{ category.name.toUpperCase() }}
+                  </option>
+                  <option
+                    v-for="s in category.services"
+                    :key="s.id"
+                    :value="s.id"
+                    class="pl-4"
+                  >
+                    {{ s.name }} ({{ s.unit }}) —
+                    {{ formatCurrency(s.price_ht) }} HT
+                  </option>
+                </template>
               </select>
               <button
                 @click="addFromCatalogToSection(sidx)"
@@ -1139,7 +1173,9 @@
                 class="col-span-1 px-2 py-1 rounded-md border dark:bg-gray-700 dark:border-gray-600 text-right"
               />
               <input
-                v-model.number="it.unitPriceHt"
+                :value="formatPriceInput(it.unitPriceHt)"
+                @input="updatePriceHt(it, $event.target.value)"
+                @blur="formatPriceOnBlur(it)"
                 type="number"
                 min="0"
                 step="0.01"
@@ -1183,8 +1219,8 @@
                 >
                   {{
                     it._saving
-                      ? 'Enregistrement…'
-                      : 'Enregistrer dans le catalogue'
+                      ? "Enregistrement…"
+                      : "Enregistrer dans le catalogue"
                   }}
                 </button>
                 <button
@@ -1243,7 +1279,7 @@
               <div>
                 <div class="text-gray-500 dark:text-gray-400">Validité</div>
                 <div class="text-gray-900 dark:text-white">
-                  {{ form.validUntil ? formatDate(form.validUntil) : '—' }}
+                  {{ form.validUntil ? formatDate(form.validUntil) : "—" }}
                 </div>
               </div>
             </div>
@@ -1299,7 +1335,7 @@
                         formatCurrency(
                           Number(it.unitPriceHt || 0) *
                             (1 - Number(it.discountPercent || 0) / 100) *
-                            (1 + Number(it.surchargePercent || 0) / 100)
+                            (1 + Number(it.surchargePercent || 0) / 100),
                         )
                       }}
                     </td>
@@ -1312,7 +1348,7 @@
                           Number(it.quantity || 0) *
                             Number(it.unitPriceHt || 0) *
                             (1 - Number(it.discountPercent || 0) / 100) *
-                            (1 + Number(it.surchargePercent || 0) / 100)
+                            (1 + Number(it.surchargePercent || 0) / 100),
                         )
                       }}
                     </td>
@@ -1414,231 +1450,283 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import Layout from '@/components/Layout.vue'
-import { useQuotesStore } from '@/stores/quotes'
-import { useInvoicesStore } from '@/stores/invoices'
-import { useClientsStore } from '@/stores/clients'
-import { useCompanyStore } from '@/stores/company'
-import api from '@/utils/api'
-import { useToast } from 'vue-toastification'
+import { ref, onMounted, watch, computed } from "vue";
+import { useRouter } from "vue-router";
+import Layout from "@/components/Layout.vue";
+import { useQuotesStore } from "@/stores/quotes";
+import { useInvoicesStore } from "@/stores/invoices";
+import { useClientsStore } from "@/stores/clients";
+import { useCompanyStore } from "@/stores/company";
+import api from "@/utils/api";
+import { useToast } from "vue-toastification";
 
-const router = useRouter()
-const quotesStore = useQuotesStore()
-const invoicesStore = useInvoicesStore()
-const clientsStore = useClientsStore()
-const companyStore = useCompanyStore()
-const toast = useToast()
+const router = useRouter();
+const quotesStore = useQuotesStore();
+const invoicesStore = useInvoicesStore();
+const clientsStore = useClientsStore();
+const companyStore = useCompanyStore();
+const toast = useToast();
 // Par défaut: flux en étapes (Client → Détails → Sections)
-const simpleMode = ref(false)
+const simpleMode = ref(false);
 
 // Acompte
-const showAdvanceModal = ref(false)
-const selectedQuote = ref(null)
+const showAdvanceModal = ref(false);
+const selectedQuote = ref(null);
 const advanceForm = ref({
-  clientId: '',
-  quoteId: '',
-  title: '',
+  clientId: "",
+  quoteId: "",
+  title: "",
   advanceAmount: 0,
   totalAmount: 0,
-  dueDate: '',
-  notes: '',
-  purchaseOrderNumber: '',
-})
+  dueDate: "",
+  notes: "",
+  purchaseOrderNumber: "",
+});
 
-const searchTerm = ref('')
-const statusFilter = ref('')
-const services = ref([])
-const selectedServiceIdPerSection = ref({})
+const searchTerm = ref("");
+const statusFilter = ref("");
+const services = ref([]);
+const servicesByCategory = computed(() => {
+  const grouped = new Map();
+
+  services.value.forEach((service) => {
+    const categoryName = service.category_name || "Sans catégorie";
+    if (!grouped.has(categoryName)) {
+      grouped.set(categoryName, []);
+    }
+    grouped.get(categoryName).push(service);
+  });
+
+  const categoryOrder = [
+    "Préparation des supports",
+    "Peinture intérieure",
+    "Revêtements muraux",
+    "Peinture extérieure",
+    "Revêtements sols",
+    "Travaux complémentaires",
+    "Sans catégorie",
+  ];
+
+  const ordered = [];
+
+  categoryOrder.forEach((name) => {
+    if (grouped.has(name)) {
+      const servicesForCategory = grouped.get(name);
+      ordered.push({
+        name,
+        services: [...servicesForCategory].sort((a, b) =>
+          (a.name || "").localeCompare(b.name || "", "fr"),
+        ),
+      });
+      grouped.delete(name);
+    }
+  });
+
+  Array.from(grouped.keys())
+    .sort((a, b) => a.localeCompare(b, "fr"))
+    .forEach((name) => {
+      const servicesForCategory = grouped.get(name);
+      ordered.push({
+        name,
+        services: [...servicesForCategory].sort((a, b) =>
+          (a.name || "").localeCompare(b.name || "", "fr"),
+        ),
+      });
+    });
+
+  return ordered;
+});
+const selectedServiceIdPerSection = ref({});
 
 const handleSearch = () => {
-  quotesStore.fetchQuotes({ search: searchTerm.value, page: 1 }).catch(() => {})
-}
+  quotesStore
+    .fetchQuotes({ search: searchTerm.value, page: 1 })
+    .catch(() => {});
+};
 
 const handleStatusFilter = () => {
   quotesStore
     .fetchQuotes({ status: statusFilter.value, page: 1 })
-    .catch(() => {})
-}
+    .catch(() => {});
+};
 
-const showCreateModal = ref(false)
+const showCreateModal = ref(false);
 const form = ref({
-  clientId: '',
-  title: '',
-  description: '',
-  validUntil: '',
+  clientId: "",
+  title: "",
+  description: "",
+  validUntil: "",
   depositPercent: 30,
   depositAmount: 0,
   sections: [defaultSection()],
   siteSameAsBilling: true,
-  siteAddressLine1: '',
-  siteAddressLine2: '',
-  sitePostalCode: '',
-  siteCity: '',
-  siteCountry: '',
-})
+  siteAddressLine1: "",
+  siteAddressLine2: "",
+  sitePostalCode: "",
+  siteCity: "",
+  siteCountry: "",
+});
 // Initialiser selectedServiceIdPerSection pour la première section
-selectedServiceIdPerSection.value[0] = ''
-const currentStep = ref(1)
-const showCreateClient = ref(false)
+selectedServiceIdPerSection.value[0] = "";
+const currentStep = ref(1);
+const showCreateClient = ref(false);
 const newClient = ref({
-  firstName: '',
-  lastName: '',
-  companyName: '',
-  email: '',
-})
+  firstName: "",
+  lastName: "",
+  companyName: "",
+  email: "",
+});
 
 function defaultItem() {
   return {
-    description: '',
-    unit: 'm²',
+    description: "",
+    unit: "m²",
     quantity: 1,
     unitPriceHt: 0,
     vatRate: 20,
     discountPercent: 0,
     surchargePercent: 0,
-  }
+  };
 }
 function defaultSection() {
   // Pas de ligne par défaut; titre par défaut pour compat backend
-  return { title: 'Section 1', description: '', items: [] }
+  return { title: "Section 1", description: "", items: [] };
 }
 
 const openCreateModal = () => {
   if (!form.value.validUntil) {
-    form.value.validUntil = defaultValidityDate()
+    form.value.validUntil = defaultValidityDate();
   }
-  showCreateModal.value = true
-}
+  showCreateModal.value = true;
+};
 const closeCreateModal = () => {
-  showCreateModal.value = false
-  currentStep.value = 1
-  showCreateClient.value = false
-}
+  showCreateModal.value = false;
+  currentStep.value = 1;
+  showCreateClient.value = false;
+};
 const nextStep = () => {
-  if (currentStep.value < 4) currentStep.value++
-}
+  if (currentStep.value < 4) currentStep.value++;
+};
 const prevStep = () => {
-  if (currentStep.value > 1) currentStep.value--
-}
+  if (currentStep.value > 1) currentStep.value--;
+};
 const goPreview = () => {
-  currentStep.value = 4
-}
+  currentStep.value = 4;
+};
 const toggleCreateClient = () => {
-  showCreateClient.value = !showCreateClient.value
-}
+  showCreateClient.value = !showCreateClient.value;
+};
 
 const canGoNext = (step) => {
   if (step === 1)
     return (
       !!form.value.clientId ||
       (newClient.value.firstName && newClient.value.lastName)
-    )
-  if (step === 2) return !!form.value.clientId && !!form.value.title
+    );
+  if (step === 2) return !!form.value.clientId && !!form.value.title;
   if (step === 3)
     return (
       form.value.sections.length > 0 &&
       !form.value.sections.some((s) => !s.title || s.items.length === 0)
-    )
-  return true
-}
+    );
+  return true;
+};
 
 const stepClass = (step) => {
   return step <= currentStep.value
-    ? 'px-1.5 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100'
-    : 'px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-}
+    ? "px-1.5 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100"
+    : "px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300";
+};
 
 const createClient = async () => {
-  if (!newClient.value.firstName || !newClient.value.lastName) return
+  if (!newClient.value.firstName || !newClient.value.lastName) return;
   try {
     // N'envoyer que les champs non vides
     const payload = {
       firstName: newClient.value.firstName.trim(),
       lastName: newClient.value.lastName.trim(),
-    }
+    };
     if (newClient.value.companyName && newClient.value.companyName.trim())
-      payload.companyName = newClient.value.companyName.trim()
+      payload.companyName = newClient.value.companyName.trim();
     if (newClient.value.email && newClient.value.email.trim())
-      payload.email = newClient.value.email.trim()
+      payload.email = newClient.value.email.trim();
 
-    const created = await clientsStore.createClient(payload)
-    await clientsStore.fetchClients({ limit: 100 })
-    form.value.clientId = created.id
-    showCreateClient.value = false
+    const created = await clientsStore.createClient(payload);
+    await clientsStore.fetchClients({ limit: 100 });
+    form.value.clientId = created.id;
+    showCreateClient.value = false;
   } catch (_) {
     /* toast handled in store */
   }
-}
+};
 const addSection = () => {
-  const newSectionIndex = form.value.sections.length
-  form.value.sections.push(defaultSection())
+  const newSectionIndex = form.value.sections.length;
+  form.value.sections.push(defaultSection());
   // Initialiser selectedServiceIdPerSection pour la nouvelle section
-  selectedServiceIdPerSection.value[newSectionIndex] = ''
-}
+  selectedServiceIdPerSection.value[newSectionIndex] = "";
+};
 const removeSection = (sidx) => {
-  form.value.sections.splice(sidx, 1)
-}
+  form.value.sections.splice(sidx, 1);
+};
 const addItemToSection = (sidx) => {
-  form.value.sections[sidx].items.push(defaultItem())
-}
+  form.value.sections[sidx].items.push(defaultItem());
+};
 const removeItem = (sidx, idx) => {
-  form.value.sections[sidx].items.splice(idx, 1)
-}
+  form.value.sections[sidx].items.splice(idx, 1);
+};
 const saveQuote = async () => {
   // Validation côté client avant envoi
-  const errors = []
-  if (!form.value.clientId) errors.push('Client requis')
+  const errors = [];
+  if (!form.value.clientId) errors.push("Client requis");
   if (!form.value.title || form.value.title.trim().length < 2)
-    errors.push('Titre requis (min. 2 caractères)')
+    errors.push("Titre requis (min. 2 caractères)");
   if (!Array.isArray(form.value.sections) || form.value.sections.length === 0)
-    errors.push('Au moins une section est requise')
+    errors.push("Au moins une section est requise");
   else {
     form.value.sections.forEach((sec, si) => {
       if (!sec.title || sec.title.trim().length < 2)
-        errors.push(`Section ${si + 1}: titre requis`)
+        errors.push(`Section ${si + 1}: titre requis`);
       if (!Array.isArray(sec.items) || sec.items.length === 0)
-        errors.push(`Section ${si + 1}: au moins une ligne`)
+        errors.push(`Section ${si + 1}: au moins une ligne`);
       else {
         sec.items.forEach((it, ii) => {
           if (!it.description || it.description.trim().length < 2)
             errors.push(
-              `Section ${si + 1}, ligne ${ii + 1}: description requise`
-            )
+              `Section ${si + 1}, ligne ${ii + 1}: description requise`,
+            );
           if (!(Number(it.quantity) > 0))
-            errors.push(`Section ${si + 1}, ligne ${ii + 1}: quantité > 0`)
+            errors.push(`Section ${si + 1}, ligne ${ii + 1}: quantité > 0`);
           if (Number(it.unitPriceHt) < 0)
             errors.push(
-              `Section ${si + 1}, ligne ${ii + 1}: PU HT doit être ≥ 0`
-            )
+              `Section ${si + 1}, ligne ${ii + 1}: PU HT doit être ≥ 0`,
+            );
           if (Number(it.vatRate) < 0 || Number(it.vatRate) > 100)
             errors.push(
-              `Section ${si + 1}, ligne ${ii + 1}: TVA % entre 0 et 100`
-            )
+              `Section ${si + 1}, ligne ${ii + 1}: TVA % entre 0 et 100`,
+            );
           if (
             it.discountPercent !== undefined &&
             (Number(it.discountPercent) < 0 || Number(it.discountPercent) > 100)
           )
             errors.push(
-              `Section ${si + 1}, ligne ${ii + 1}: Remise % entre 0 et 100`
-            )
+              `Section ${si + 1}, ligne ${ii + 1}: Remise % entre 0 et 100`,
+            );
           if (
             it.surchargePercent !== undefined &&
             (Number(it.surchargePercent) < 0 ||
               Number(it.surchargePercent) > 100)
           )
             errors.push(
-              `Section ${si + 1}, ligne ${ii + 1}: Maj. % entre 0 et 100`
-            )
-        })
+              `Section ${si + 1}, ligne ${ii + 1}: Maj. % entre 0 et 100`,
+            );
+        });
       }
-    })
+    });
   }
 
   if (errors.length) {
-    errors.forEach((e) => toast.error(e))
-    return
+    errors.forEach((e) => toast.error(e));
+    return;
   }
 
   try {
@@ -1647,120 +1735,122 @@ const saveQuote = async () => {
       title: sec.title,
       description: sec.description,
       items: (sec.items || []).map((it) => {
-        const out = { ...it }
+        const out = { ...it };
         if (
           out.surchargePercent !== undefined &&
           out.markupPercent === undefined
         ) {
-          out.markupPercent = Number(out.surchargePercent)
+          out.markupPercent = Number(out.surchargePercent);
         }
-        delete out.surchargePercent
-        return out
+        delete out.surchargePercent;
+        return out;
       }),
-    }))
+    }));
 
     const created = await quotesStore.createQuote({
       clientId: form.value.clientId,
       title: form.value.title.trim(),
-      description: form.value.description || '',
+      description: form.value.description || "",
       validUntil: form.value.validUntil || null,
       depositPercent: form.value.depositPercent || 0,
       depositAmount: form.value.depositAmount || 0,
       siteSameAsBilling: !!form.value.siteSameAsBilling,
-      siteAddressLine1: form.value.siteAddressLine1 || '',
-      siteAddressLine2: form.value.siteAddressLine2 || '',
-      sitePostalCode: form.value.sitePostalCode || '',
-      siteCity: form.value.siteCity || '',
-      siteCountry: form.value.siteCountry || '',
+      siteAddressLine1: form.value.siteAddressLine1 || "",
+      siteAddressLine2: form.value.siteAddressLine2 || "",
+      sitePostalCode: form.value.sitePostalCode || "",
+      siteCity: form.value.siteCity || "",
+      siteCountry: form.value.siteCountry || "",
       sections: transformedSections,
-    })
-    await quotesStore.fetchQuotes()
-    closeCreateModal()
-    toast.success('Devis créé avec succès')
-    if (created?.id) router.push(`/quotes/${created.id}`)
+    });
+    await quotesStore.fetchQuotes();
+    closeCreateModal();
+    toast.success("Devis créé avec succès");
+    if (created?.id) router.push(`/quotes/${created.id}`);
   } catch (error) {
     // Les toasts d'erreur détaillés sont gérés par l'intercepteur API
   }
-}
+};
 
 const addFromCatalogToSection = (sidx) => {
-  console.log('addFromCatalogToSection called with sidx:', sidx)
+  console.log("addFromCatalogToSection called with sidx:", sidx);
   console.log(
-    'selectedServiceIdPerSection.value:',
-    selectedServiceIdPerSection.value
-  )
-  const selectedId = selectedServiceIdPerSection.value[sidx]
-  console.log('selectedId:', selectedId)
-  console.log('services.value:', services.value)
-  const s = services.value.find((x) => x.id === selectedId)
-  console.log('found service:', s)
+    "selectedServiceIdPerSection.value:",
+    selectedServiceIdPerSection.value,
+  );
+  const selectedId = selectedServiceIdPerSection.value[sidx];
+  console.log("selectedId:", selectedId);
+  console.log("services.value:", services.value);
+  const s = services.value.find((x) => x.id === selectedId);
+  console.log("found service:", s);
   if (!s) {
-    console.log('No service found, returning')
-    return
+    console.log("No service found, returning");
+    return;
   }
   const newItem = {
     description:
       s.description && s.description.trim()
         ? `${s.name} — ${s.description.trim()}`
         : s.name,
-    unit: s.unit || 'unité',
+    unit: s.unit || "unité",
     quantity: 1,
-    unitPriceHt: Number(s.priceHt ?? 0),
-    vatRate: Number(s.vatRate ?? 20),
+    unitPriceHt: Number(s.price_ht ?? 0),
+    vatRate: Number(s.vat_rate ?? 20),
     discountPercent: 0,
     surchargePercent: 0,
-  }
-  form.value.sections[sidx].items.push(newItem)
-  selectedServiceIdPerSection.value[sidx] = ''
+  };
+
+  console.log("📦 Nouvel item créé avec prix:", newItem.unitPriceHt);
+  form.value.sections[sidx].items.push(newItem);
+  selectedServiceIdPerSection.value[sidx] = "";
   // Item added
-}
+};
 
 const lineTotalTtc = (it) => {
-  const qty = Number(it.quantity || 0)
-  const pu = Number(it.unitPriceHt || 0)
-  const vat = Number(it.vatRate || 0) / 100
-  const discount = Number(it.discountPercent || 0) / 100
-  const surcharge = Number(it.surchargePercent || 0) / 100
-  const puNet = pu * (1 - discount) * (1 + surcharge)
-  const ht = qty * puNet
-  const ttc = ht * (1 + vat)
-  return ttc
-}
+  const qty = Number(it.quantity || 0);
+  const pu = Number(it.unitPriceHt || 0);
+  const vat = Number(it.vatRate || 0) / 100;
+  const discount = Number(it.discountPercent || 0) / 100;
+  const surcharge = Number(it.surchargePercent || 0) / 100;
+  const puNet = pu * (1 - discount) * (1 + surcharge);
+  const ht = qty * puNet;
+  const ttc = ht * (1 + vat);
+  return ttc;
+};
 
 const computeTotals = () => {
-  const allItems = form.value.sections.flatMap((s) => s.items)
+  const allItems = form.value.sections.flatMap((s) => s.items);
   const subtotalHt = allItems.reduce((sum, it) => {
-    const qty = Number(it.quantity || 0)
-    const pu = Number(it.unitPriceHt || 0)
-    const discount = Number(it.discountPercent || 0) / 100
-    const surcharge = Number(it.surchargePercent || 0) / 100
-    const puNet = pu * (1 - discount) * (1 + surcharge)
-    return sum + qty * puNet
-  }, 0)
+    const qty = Number(it.quantity || 0);
+    const pu = Number(it.unitPriceHt || 0);
+    const discount = Number(it.discountPercent || 0) / 100;
+    const surcharge = Number(it.surchargePercent || 0) / 100;
+    const puNet = pu * (1 - discount) * (1 + surcharge);
+    return sum + qty * puNet;
+  }, 0);
   const totalVat = allItems.reduce((sum, it) => {
-    const qty = Number(it.quantity || 0)
-    const pu = Number(it.unitPriceHt || 0)
-    const vat = Number(it.vatRate || 0) / 100
-    const discount = Number(it.discountPercent || 0) / 100
-    const surcharge = Number(it.surchargePercent || 0) / 100
-    const puNet = pu * (1 - discount) * (1 + surcharge)
-    return sum + qty * puNet * vat
-  }, 0)
-  const totalTtc = subtotalHt + totalVat
-  return { subtotalHt, totalVat, totalTtc }
-}
+    const qty = Number(it.quantity || 0);
+    const pu = Number(it.unitPriceHt || 0);
+    const vat = Number(it.vatRate || 0) / 100;
+    const discount = Number(it.discountPercent || 0) / 100;
+    const surcharge = Number(it.surchargePercent || 0) / 100;
+    const puNet = pu * (1 - discount) * (1 + surcharge);
+    return sum + qty * puNet * vat;
+  }, 0);
+  const totalTtc = subtotalHt + totalVat;
+  return { subtotalHt, totalVat, totalTtc };
+};
 
 const previewClientName = computed(() => {
-  const id = form.value.clientId
-  const c = clientsStore.clients.find((x) => x.id === id)
-  if (!c) return '—'
-  return `${c.firstName} ${c.lastName}${c.companyName ? ' — ' + c.companyName : ''}`
-})
+  const id = form.value.clientId;
+  const c = clientsStore.clients.find((x) => x.id === id);
+  if (!c) return "—";
+  return `${c.firstName} ${c.lastName}${c.companyName ? " — " + c.companyName : ""}`;
+});
 
 const selectedClient = computed(() => {
-  const id = form.value.clientId
-  const c = clientsStore.clients.find((x) => x.id === id)
-  if (!c) return null
+  const id = form.value.clientId;
+  const c = clientsStore.clients.find((x) => x.id === id);
+  if (!c) return null;
   // Normaliser clés pour affichage
   return {
     ...c,
@@ -1773,134 +1863,134 @@ const selectedClient = computed(() => {
     apeCode: c.apeCode || c.ape_code,
     capitalSocial: c.capitalSocial || c.capital_social,
     isCompany: c.isCompany ?? c.is_company,
-  }
-})
+  };
+});
 
-const totals = ref({ subtotalHt: 0, totalVat: 0, totalTtc: 0 })
+const totals = ref({ subtotalHt: 0, totalVat: 0, totalTtc: 0 });
 
 watch(
   () => form.value.sections,
   () => {
-    totals.value = computeTotals()
+    totals.value = computeTotals();
   },
-  { deep: true }
-)
+  { deep: true },
+);
 
 function defaultValidityDate() {
-  const days = Number(companyStore.settings?.payment_terms || 30)
-  const d = new Date()
-  d.setDate(d.getDate() + (isNaN(days) ? 30 : days))
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const days = Number(companyStore.settings?.payment_terms || 30);
+  const d = new Date();
+  d.setDate(d.getDate() + (isNaN(days) ? 30 : days));
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 onMounted(async () => {
   try {
-    await quotesStore.fetchQuotes()
+    await quotesStore.fetchQuotes();
   } catch (_) {}
   try {
-    await companyStore.fetchSettings()
+    await companyStore.fetchSettings();
   } catch (_) {}
   try {
-    await clientsStore.fetchClients({ limit: 100 })
+    await clientsStore.fetchClients({ limit: 100 });
   } catch (_) {}
   try {
-    const { data } = await api.get('/services')
-    services.value = data.services || []
+    const { data } = await api.get("/services");
+    services.value = data.services || [];
   } catch (_) {}
-})
+});
 
 const viewQuote = (id) => {
-  router.push(`/quotes/${id}`)
-}
+  router.push(`/quotes/${id}`);
+};
 
 const editQuote = (id) => {
-  router.push(`/quotes/${id}/edit`)
-}
+  router.push(`/quotes/${id}/edit`);
+};
 
 const deleteQuote = async (id, quoteNumber) => {
   try {
     const confirmed = confirm(
-      `Êtes-vous sûr de vouloir supprimer le devis ${quoteNumber} ?`
-    )
-    if (!confirmed) return
+      `Êtes-vous sûr de vouloir supprimer le devis ${quoteNumber} ?`,
+    );
+    if (!confirmed) return;
 
-    await quotesStore.deleteQuote(id)
-    await quotesStore.fetchQuotes()
-    toast.success('Devis supprimé avec succès')
+    await quotesStore.deleteQuote(id);
+    await quotesStore.fetchQuotes();
+    toast.success("Devis supprimé avec succès");
   } catch (error) {
-    console.error('Erreur suppression devis:', error)
-    toast.error('Erreur lors de la suppression du devis')
+    console.error("Erreur suppression devis:", error);
+    toast.error("Erreur lors de la suppression du devis");
   }
-}
+};
 
 const downloadPdf = async (id, number) => {
   try {
-    await quotesStore.downloadPdf(id, `devis-${number || id}.pdf`)
+    await quotesStore.downloadPdf(id, `devis-${number || id}.pdf`);
   } catch (error) {
-    console.error('Erreur téléchargement PDF:', error)
+    console.error("Erreur téléchargement PDF:", error);
   }
-}
+};
 
 const sendQuoteByEmail = async (quote) => {
   try {
     // Vérifier que le client a un email
-    const clientEmail = quote.clientEmail
+    const clientEmail = quote.clientEmail;
     if (!clientEmail) {
-      toast.error('Aucun email trouvé pour ce client')
-      return
+      toast.error("Aucun email trouvé pour ce client");
+      return;
     }
 
     // Demander confirmation
     const confirmed = confirm(
-      `Envoyer le devis ${quote.quoteNumber} par email à ${clientEmail} ?`
-    )
-    if (!confirmed) return
+      `Envoyer le devis ${quote.quoteNumber} par email à ${clientEmail} ?`,
+    );
+    if (!confirmed) return;
 
     // Appeler l'API pour envoyer l'email
     await quotesStore.sendByEmail(quote.id, {
       to: clientEmail,
-      subject: `Devis ${quote.quoteNumber} - ${quote.clientCompany || quote.clientName || 'Client'}`,
+      subject: `Devis ${quote.quoteNumber} - ${quote.clientCompany || quote.clientName || "Client"}`,
       message: `Bonjour,\n\nVeuillez trouver ci-joint le devis ${quote.quoteNumber}.\n\nCordialement,\nL'équipe`,
-    })
+    });
   } catch (error) {
-    console.error('Erreur envoi email:', error)
+    console.error("Erreur envoi email:", error);
     // L'erreur est déjà gérée par le store avec un toast
   }
-}
+};
 
 const onChangeStatus = async (quote, evt) => {
-  const newStatus = evt?.target?.value
-  if (!newStatus || newStatus === quote.status) return
+  const newStatus = evt?.target?.value;
+  if (!newStatus || newStatus === quote.status) return;
   try {
-    await quotesStore.updateStatus(quote.id, newStatus)
+    await quotesStore.updateStatus(quote.id, newStatus);
   } catch (e) {
     // revert UI select by refetching list if error
     try {
-      await quotesStore.fetchQuotes()
+      await quotesStore.fetchQuotes();
     } catch (_) {}
   }
-}
+};
 
 const convertToInvoice = async (quoteId) => {
   try {
-    const invoice = await invoicesStore.createFromQuote(quoteId)
+    const invoice = await invoicesStore.createFromQuote(quoteId);
     // Recharger la liste des devis pour mettre à jour le statut
-    await quotesStore.fetchQuotes()
+    await quotesStore.fetchQuotes();
     // Optionnel : rediriger vers la facture créée
-    router.push(`/invoices/${invoice.id}`)
+    router.push(`/invoices/${invoice.id}`);
   } catch (error) {
-    console.error('Erreur conversion devis → facture:', error)
+    console.error("Erreur conversion devis → facture:", error);
   }
-}
+};
 
 function openAdvanceModal(quote) {
-  selectedQuote.value = quote
-  const today = new Date()
-  const due = new Date(today)
-  due.setDate(today.getDate() + 30)
+  selectedQuote.value = quote;
+  const today = new Date();
+  const due = new Date(today);
+  due.setDate(today.getDate() + 30);
   advanceForm.value = {
     clientId: quote.clientId,
     quoteId: quote.id,
@@ -1909,122 +1999,136 @@ function openAdvanceModal(quote) {
     totalAmount: Number(quote.totalTtc || 0),
     dueDate: due.toISOString().slice(0, 10),
     notes: `Acompte pour le devis ${quote.quoteNumber}`,
-    purchaseOrderNumber: '',
-  }
-  showAdvanceModal.value = true
+    purchaseOrderNumber: "",
+  };
+  showAdvanceModal.value = true;
 }
 function closeAdvanceModal() {
-  showAdvanceModal.value = false
+  showAdvanceModal.value = false;
 }
 const canSubmitAdvance = computed(() => {
-  const f = advanceForm.value
+  const f = advanceForm.value;
   return (
     !!f.clientId &&
     !!f.title &&
     f.advanceAmount > 0 &&
     f.totalAmount > 0 &&
     !!f.dueDate
-  )
-})
+  );
+});
 async function submitAdvance() {
   try {
     const created = await invoicesStore.createAdvanceInvoice({
       ...advanceForm.value,
-    })
-    closeAdvanceModal()
-    await quotesStore.fetchQuotes()
-    if (created?.id) router.push(`/invoices/${created.id}`)
+    });
+    closeAdvanceModal();
+    await quotesStore.fetchQuotes();
+    if (created?.id) router.push(`/invoices/${created.id}`);
   } catch (_) {}
 }
 
 const saveItemToCatalog = async (it) => {
   if (!it.description || it.description.trim().length < 2) {
-    toast.error('Veuillez saisir une description (min. 2 caractères)')
-    return
+    toast.error("Veuillez saisir une description (min. 2 caractères)");
+    return;
   }
-  it._saving = true
+  it._saving = true;
   try {
     const payload = {
       name: it.description.trim(),
       description: it.description.trim(),
-      unit: it.unit || 'unité',
+      unit: it.unit || "unité",
       price_ht: Number(it.unitPriceHt || 0),
       price_ttc:
         Number(it.unitPriceHt || 0) * (1 + Number(it.vatRate || 0) / 100),
       vat_rate: Number(it.vatRate || 0),
       is_active: true,
-    }
-    const { data } = await api.post('/services', payload)
+    };
+    const { data } = await api.post("/services", payload);
     // Ajouter au catalogue local si renvoyé
     if (data?.service) {
-      services.value.unshift(data.service)
+      services.value.unshift(data.service);
     }
-    toast.success('Service enregistré dans le catalogue')
+    toast.success("Service enregistré dans le catalogue");
   } catch (e) {
-    console.error('Erreur enregistrement service:', e)
-    toast.error('Impossible d’enregistrer le service')
+    console.error("Erreur enregistrement service:", e);
+    toast.error("Impossible d’enregistrer le service");
   } finally {
-    it._saving = false
+    it._saving = false;
   }
-}
+};
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount || 0)
-}
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount || 0);
+};
 
 const getStatusBadgeClass = (status) => {
   const classes = {
-    draft: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+    draft: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+    sent: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
     accepted:
-      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-    rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+      "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
     converted:
-      'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
-  }
+      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+  };
   return (
     classes[status] ||
-    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-  )
-}
+    "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+  );
+};
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('fr-FR')
-}
+  return new Date(date).toLocaleDateString("fr-FR");
+};
 
 const getStatusLabel = (status) => {
   const labels = {
-    draft: 'Brouillon',
-    sent: 'Envoyé',
-    accepted: 'Accepté',
-    rejected: 'Refusé',
-    converted: 'Facturé',
-  }
-  return labels[status] || status
-}
+    draft: "Brouillon",
+    sent: "Envoyé",
+    accepted: "Accepté",
+    rejected: "Refusé",
+    converted: "Facturé",
+  };
+  return labels[status] || status;
+};
 
 const getStatusClass = (status) => {
   const classes = {
-    draft: 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200',
-    sent: 'bg-blue-100 text-blue-800 dark:bg-blue-600 dark:text-blue-200',
+    draft: "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200",
+    sent: "bg-blue-100 text-blue-800 dark:bg-blue-600 dark:text-blue-200",
     accepted:
-      'bg-green-100 text-green-800 dark:bg-green-600 dark:text-green-200',
-    rejected: 'bg-red-100 text-red-800 dark:bg-red-600 dark:text-red-200',
+      "bg-green-100 text-green-800 dark:bg-green-600 dark:text-green-200",
+    rejected: "bg-red-100 text-red-800 dark:bg-red-600 dark:text-red-200",
     converted:
-      'bg-purple-100 text-purple-800 dark:bg-purple-600 dark:text-purple-200',
-  }
+      "bg-purple-100 text-purple-800 dark:bg-purple-600 dark:text-purple-200",
+  };
   return (
     classes[status] ||
-    'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
-  )
-}
+    "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200"
+  );
+};
+
+// Fonctions pour formater les prix avec 2 décimales
+const formatPriceInput = (value) => {
+  if (value === null || value === undefined || value === "") return "";
+  return parseFloat(value || 0).toFixed(2);
+};
+
+const updatePriceHt = (item, value) => {
+  item.unitPriceHt = parseFloat(value) || 0;
+};
+
+const formatPriceOnBlur = (item) => {
+  item.unitPriceHt = parseFloat(item.unitPriceHt || 0);
+};
 
 onMounted(async () => {
   try {
-    await quotesStore.fetchQuotes()
+    await quotesStore.fetchQuotes();
   } catch (_) {}
-})
+});
 </script>

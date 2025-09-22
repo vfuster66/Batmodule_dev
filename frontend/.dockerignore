@@ -1,0 +1,50 @@
+# Node modules (sera réinstallé dans le container)
+node_modules
+npm-debug.log
+package-lock.json
+
+# Git et documentation
+.git
+.gitignore
+README.md
+*.md
+
+# Environnements et config locale
+.env
+.env.*
+
+# Build et cache
+dist
+build
+.cache
+.tmp
+tmp
+.nuxt
+.output
+
+# IDE et éditeurs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+__tests__
+*.test.js
+*.spec.js
+coverage
+.nyc_output
+
+# Backend (pas besoin dans le frontend)
+../backend
+../database
+../monitoring

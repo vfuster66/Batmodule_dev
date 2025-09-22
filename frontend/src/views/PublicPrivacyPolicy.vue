@@ -13,7 +13,7 @@
             </p>
           </div>
           <div class="text-sm text-gray-500">
-            Dernière mise à jour : {{ new Date().toLocaleDateString('fr-FR') }}
+            Dernière mise à jour : {{ new Date().toLocaleDateString("fr-FR") }}
           </div>
         </div>
       </div>

@@ -100,7 +100,7 @@
             v-if="unreadCount > 0"
             class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
           >
-            {{ unreadCount > 9 ? '9+' : unreadCount }}
+            {{ unreadCount > 9 ? "9+" : unreadCount }}
           </span>
         </button>
 
@@ -249,84 +249,84 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { useToast } from "vue-toastification";
 
 // Définir les événements
-defineEmits(['toggle-sidebar'])
+defineEmits(["toggle-sidebar"]);
 
 // Props
 defineProps({
   pageTitle: {
     type: String,
-    default: 'BatModule',
+    default: "BatModule",
   },
   notificationCount: {
     type: Number,
     default: 0,
   },
-})
+});
 
-const router = useRouter()
-const authStore = useAuthStore()
-const toast = useToast()
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
 
-const isDark = ref(false)
-const showUserMenu = ref(false)
-const unreadCount = ref(0)
+const isDark = ref(false);
+const showUserMenu = ref(false);
+const unreadCount = ref(0);
 
 const userInitials = computed(() => {
-  if (!authStore.user) return 'U'
-  const firstName = authStore.user.firstName || ''
-  const lastName = authStore.user.lastName || ''
-  return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
-})
+  if (!authStore.user) return "U";
+  const firstName = authStore.user.firstName || "";
+  const lastName = authStore.user.lastName || "";
+  return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+});
 
 const toggleTheme = () => {
-  isDark.value = !isDark.value
+  isDark.value = !isDark.value;
   if (isDark.value) {
-    document.documentElement.classList.add('dark')
-    localStorage.setItem('theme', 'dark')
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
   } else {
-    document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', 'light')
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("theme", "light");
   }
-}
+};
 
 const handleLogout = async () => {
   try {
-    await authStore.logout()
-    toast.success('Déconnexion réussie')
-    router.push('/login')
+    await authStore.logout();
+    toast.success("Déconnexion réussie");
+    router.push("/login");
   } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error)
+    console.error("Erreur lors de la déconnexion:", error);
   }
-}
+};
 
 onMounted(() => {
   // Récupérer le thème sauvegardé
-  const savedTheme = localStorage.getItem('theme')
+  const savedTheme = localStorage.getItem("theme");
   if (
-    savedTheme === 'dark' ||
-    (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    savedTheme === "dark" ||
+    (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)
   ) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
+    isDark.value = true;
+    document.documentElement.classList.add("dark");
   }
-})
+});
 
 onMounted(async () => {
   try {
     const { data } = await (
-      await import('@/utils/api')
-    ).default.get('/notifications')
+      await import("@/utils/api")
+    ).default.get("/notifications");
     unreadCount.value = (data.notifications || []).filter(
-      (n) => !n.is_read
-    ).length
+      (n) => !n.is_read,
+    ).length;
   } catch (e) {
     // silencieux
   }
-})
+});
 </script>

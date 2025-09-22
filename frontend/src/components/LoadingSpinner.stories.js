@@ -1,34 +1,34 @@
-import LoadingSpinner from './LoadingSpinner.vue'
+import LoadingSpinner from "./LoadingSpinner.vue";
 
 export default {
-  title: 'Components/LoadingSpinner',
+  title: "Components/LoadingSpinner",
   component: LoadingSpinner,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     size: {
-      control: { type: 'select' },
-      options: ['sm', 'md', 'lg'],
+      control: { type: "select" },
+      options: ["sm", "md", "lg"],
     },
   },
-}
+};
 
 export const Default = {
   args: {
-    size: 'md',
+    size: "md",
   },
-}
+};
 
 export const Small = {
   args: {
-    size: 'sm',
+    size: "sm",
   },
-}
+};
 
 export const Large = {
   args: {
-    size: 'lg',
+    size: "lg",
   },
-}
+};

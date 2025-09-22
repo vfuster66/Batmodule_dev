@@ -3,14 +3,20 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Installation minimale pour PDFKit (beaucoup plus rapide que Puppeteer)
+RUN apk add --no-cache \
+    fontconfig \
+    ttf-dejavu \
+    && rm -rf /var/cache/apk/*
+
+# Copier seulement les fichiers de dépendances d'abord (pour le cache Docker)
 COPY package*.json ./
 
-# Installer les dépendances
+# Installer les dépendances (dev inclus pour le développement)
 RUN npm ci
 
-# Copier le code source
-COPY . .
+# Copier seulement le code source nécessaire
+COPY src ./src
 
 # Exposer le port
 EXPOSE 3000
