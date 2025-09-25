@@ -1,23 +1,23 @@
-const PDFDocument = require("pdfkit");
-const sharp = require("sharp");
+const PDFDocument = require('pdfkit')
+const sharp = require('sharp')
 
 class SimplePDFService {
   constructor() {
     // Configuration des couleurs et styles
     this.colors = {
-      primary: "#2563eb", // Bleu professionnel
-      secondary: "#64748b", // Gris moderne
-      accent: "#059669", // Vert pour les totaux
-      danger: "#dc2626", // Rouge pour les alertes
-      light: "#f8fafc", // Gris très clair
-      dark: "#1e293b", // Gris très foncé
-    };
+      primary: '#2563eb', // Bleu professionnel
+      secondary: '#64748b', // Gris moderne
+      accent: '#059669', // Vert pour les totaux
+      danger: '#dc2626', // Rouge pour les alertes
+      light: '#f8fafc', // Gris très clair
+      dark: '#1e293b', // Gris très foncé
+    }
 
     this.fonts = {
-      regular: "Helvetica",
-      bold: "Helvetica-Bold",
-      italic: "Helvetica-Oblique",
-    };
+      regular: 'Helvetica',
+      bold: 'Helvetica-Bold',
+      italic: 'Helvetica-Oblique',
+    }
 
     // Configuration de la page
     this.pageConfig = {
@@ -25,38 +25,38 @@ class SimplePDFService {
       headerHeight: 130,
       footerHeight: 105, // Encore augmenté pour plus de sécurité
       contentAreaHeight: null, // Calculé dynamiquement
-    };
+    }
   }
 
   async generateQuotePDF(quote, companySettings) {
     return new Promise((resolve, reject) => {
-      (async () => {
+      ;(async () => {
         try {
           // Format A4 avec marges professionnelles
           const doc = new PDFDocument({
-            size: "A4",
+            size: 'A4',
             margin: this.pageConfig.margin,
             bufferPages: true,
             autoFirstPage: true,
-          });
+          })
 
           // Calculer la zone de contenu disponible
           this.pageConfig.contentAreaHeight =
             doc.page.height -
             this.pageConfig.margin * 2 -
             this.pageConfig.headerHeight -
-            this.pageConfig.footerHeight;
+            this.pageConfig.footerHeight
 
-          const chunks = [];
+          const chunks = []
 
           // Collecter les données du PDF
-          doc.on("data", (chunk) => chunks.push(chunk));
-          doc.on("end", () => resolve(Buffer.concat(chunks)));
-          doc.on("error", reject);
+          doc.on('data', (chunk) => chunks.push(chunk))
+          doc.on('end', () => resolve(Buffer.concat(chunks)))
+          doc.on('error', reject)
 
           // Configuration des couleurs personnalisées
           const primaryColor =
-            companySettings?.primary_color || this.colors.primary;
+            companySettings?.primary_color || this.colors.primary
 
           // Stocker les données communes pour toutes les pages
           this.commonData = {
@@ -64,10 +64,10 @@ class SimplePDFService {
             companySettings,
             primaryColor,
             doc,
-          };
+          }
 
           // Position de départ du contenu (après l'en-tête)
-          doc.y = this.getContentStartY();
+          doc.y = this.getContentStartY()
 
           // Structure du document
           this.addCompanyAndClientInfo(
@@ -75,55 +75,55 @@ class SimplePDFService {
             quote,
             companySettings,
             false,
-            primaryColor,
-          ); // false = devis
-          this.addQuoteDetails(doc, quote);
-          this.addItemsTable(doc, quote, primaryColor);
-          this.addTotalsSection(doc, quote, primaryColor);
+            primaryColor
+          ) // false = devis
+          this.addQuoteDetails(doc, quote)
+          this.addItemsTable(doc, quote, primaryColor)
+          this.addTotalsSection(doc, quote, primaryColor)
 
           // Ajouter les conditions sur la même page si possible, sinon nouvelle page
-          const requiredHeightForConditions = 350;
+          const requiredHeightForConditions = 350
           if (this.needsNewPage(requiredHeightForConditions)) {
-            this.addNewPage();
+            this.addNewPage()
           } else {
             // Ajouter de l'espace avant les conditions si on reste sur la même page
-            doc.y += 40;
+            doc.y += 40
           }
 
           await this.addConditionsAndSignature(
             doc,
             quote,
             companySettings,
-            primaryColor,
-          );
+            primaryColor
+          )
 
           // Appliquer les en-têtes et pieds de page sur toutes les pages
-          await this.applyHeadersAndFooters();
+          await this.applyHeadersAndFooters()
 
           // Finaliser le document
-          doc.end();
+          doc.end()
         } catch (error) {
-          reject(error);
+          reject(error)
         }
-      })();
-    });
+      })()
+    })
   }
 
   addNewPage() {
-    const { doc } = this.commonData;
-    doc.addPage();
+    const { doc } = this.commonData
+    doc.addPage()
     // Positionner le curseur après l'en-tête
-    doc.y = this.getContentStartY();
+    doc.y = this.getContentStartY()
   }
 
   hasContentOnCurrentPage() {
-    const { doc } = this.commonData;
-    return doc.y > this.getContentStartY() + 50; // Si on a écrit plus de 50px de contenu
+    const { doc } = this.commonData
+    return doc.y > this.getContentStartY() + 50 // Si on a écrit plus de 50px de contenu
   }
 
   getContentStartY() {
     // Le contenu commence juste après la ligne de séparation du header
-    return 150; // Ligne de séparation à y=125 + 5px d'espacement
+    return 150 // Ligne de séparation à y=125 + 5px d'espacement
   }
 
   getContentEndY() {
@@ -131,14 +131,14 @@ class SimplePDFService {
       this.commonData.doc.page.height -
       this.pageConfig.margin -
       this.pageConfig.footerHeight
-    );
+    )
   }
 
   needsNewPage(requiredHeight) {
-    const { doc } = this.commonData;
+    const { doc } = this.commonData
     // Marge de sécurité réduite pour optimiser l'utilisation de l'espace
-    const safetyMargin = 5;
-    return doc.y + requiredHeight + safetyMargin > this.getContentEndY();
+    const safetyMargin = 5
+    return doc.y + requiredHeight + safetyMargin > this.getContentEndY()
   }
 
   async addHeaderContent(
@@ -146,16 +146,16 @@ class SimplePDFService {
     document,
     companySettings,
     primaryColor,
-    _pageNumber,
+    _pageNumber
   ) {
     // Sauvegarder la position actuelle
-    const currentY = doc.y;
+    const currentY = doc.y
 
     // Aller à la position de l'en-tête
-    doc.y = 0;
+    doc.y = 0
 
     // Bande de couleur en haut
-    doc.rect(0, 0, doc.page.width, 8).fillColor(primaryColor).fill();
+    doc.rect(0, 0, doc.page.width, 8).fillColor(primaryColor).fill()
 
     // Zone d'en-tête avec fond léger
     doc
@@ -163,68 +163,68 @@ class SimplePDFService {
         this.pageConfig.margin,
         20,
         doc.page.width - this.pageConfig.margin * 2,
-        100,
+        100
       )
       .fillColor(this.colors.light)
       .fill()
-      .strokeColor("#e2e8f0")
-      .stroke();
+      .strokeColor('#e2e8f0')
+      .stroke()
 
     // let logoWidth = 0; // Non utilisé
-    let companyInfoX = 60;
-    let companyInfoTop = 35;
+    let companyInfoX = 60
+    let companyInfoTop = 35
 
     // Gestion du logo
     if (companySettings?.logo_base64) {
       try {
         // Nettoyer le base64 et détecter le format
-        let logoData = companySettings.logo_base64;
-        let imageType = "PNG";
+        let logoData = companySettings.logo_base64
+        let imageType = 'PNG'
 
         // Détection du format
-        if (logoData.startsWith("data:")) {
-          const matches = logoData.match(/^data:image\/([^;]+);base64,(.+)$/);
+        if (logoData.startsWith('data:')) {
+          const matches = logoData.match(/^data:image\/([^;]+);base64,(.+)$/)
           if (matches) {
-            imageType = matches[1].toUpperCase();
-            logoData = matches[2];
-            if (imageType.includes("SVG")) {
-              imageType = "SVG";
+            imageType = matches[1].toUpperCase()
+            logoData = matches[2]
+            if (imageType.includes('SVG')) {
+              imageType = 'SVG'
             }
           }
-        } else if (logoData.startsWith("iVBORw0KGgo")) {
-          imageType = "PNG";
-        } else if (logoData.startsWith("/9j/")) {
-          imageType = "JPEG";
-        } else if (logoData.startsWith("R0lGOD")) {
-          imageType = "GIF";
-        } else if (logoData.startsWith("UklGR")) {
-          imageType = "WEBP";
+        } else if (logoData.startsWith('iVBORw0KGgo')) {
+          imageType = 'PNG'
+        } else if (logoData.startsWith('/9j/')) {
+          imageType = 'JPEG'
+        } else if (logoData.startsWith('R0lGOD')) {
+          imageType = 'GIF'
+        } else if (logoData.startsWith('UklGR')) {
+          imageType = 'WEBP'
         }
 
-        const logoBuffer = Buffer.from(logoData, "base64");
+        const logoBuffer = Buffer.from(logoData, 'base64')
 
         if (
-          imageType === "PNG" ||
-          imageType === "JPEG" ||
-          imageType === "JPG"
+          imageType === 'PNG' ||
+          imageType === 'JPEG' ||
+          imageType === 'JPG'
         ) {
           try {
             doc.image(logoBuffer, 48, 25, {
               width: 90,
               height: 90,
               fit: [90, 90],
-            });
+            })
             // const logoWidth = 98; // Non utilisé
-            companyInfoX = 156;
-            companyInfoTop = 28;
+            companyInfoX = 156
+            companyInfoTop = 28
           } catch (logoError) {
-            console.error("Erreur lors de l'affichage du logo:", logoError);
+            console.error("Erreur lors de l'affichage du logo:", logoError)
           }
-        } else if (imageType === "SVG") {
+        } else if (imageType === 'SVG') {
           try {
             const pngBuffer = await sharp(logoBuffer)
               .resize(384, 384, {
-                fit: "contain",
+                fit: 'contain',
                 background: { r: 255, g: 255, b: 255, alpha: 0 },
                 kernel: sharp.kernel.lanczos3,
               })
@@ -233,29 +233,29 @@ class SimplePDFService {
                 compressionLevel: 6,
                 adaptiveFiltering: true,
               })
-              .toBuffer();
+              .toBuffer()
 
             doc.image(pngBuffer, 48, 25, {
               width: 90,
               height: 90,
-            });
+            })
             // const logoWidth = 98; // Non utilisé
-            companyInfoX = 156;
-            companyInfoTop = 28;
+            companyInfoX = 156
+            companyInfoTop = 28
           } catch (conversionError) {
-            console.error("Erreur lors de la conversion SVG:", conversionError);
+            console.error('Erreur lors de la conversion SVG:', conversionError)
             doc
               .font(this.fonts.bold)
               .fontSize(10)
               .fillColor(this.colors.secondary)
-              .text("[LOGO]", 48, 50);
+              .text('[LOGO]', 48, 50)
             // logoWidth = 72; // Non utilisé
-            companyInfoX = 128;
-            companyInfoTop = 36;
+            companyInfoX = 128
+            companyInfoTop = 36
           }
         }
       } catch (error) {
-        console.error("Erreur lors du chargement du logo:", error);
+        console.error('Erreur lors du chargement du logo:', error)
       }
     }
 
@@ -265,14 +265,14 @@ class SimplePDFService {
       .fontSize(12)
       .fillColor(primaryColor)
       .text(
-        companySettings?.company_name || "ENTREPRISE",
+        companySettings?.company_name || 'ENTREPRISE',
         companyInfoX,
         companyInfoTop + 10,
         {
           width: 250,
           height: 20,
-        },
-      );
+        }
+      )
 
     // Sous-titre métier
     if (companySettings?.business_type || companySettings?.description) {
@@ -283,76 +283,76 @@ class SimplePDFService {
         .text(
           companySettings?.business_type ||
             companySettings?.description ||
-            "Artisan du bâtiment",
+            'Artisan du bâtiment',
           companyInfoX,
           companyInfoTop + 25,
           {
             width: 250,
-          },
-        );
+          }
+        )
     }
 
     // Adresse entreprise
     const address = [
       companySettings?.address_line1,
       companySettings?.address_line2,
-      `${companySettings?.postal_code || ""} ${companySettings?.city || ""}`.trim(),
-      companySettings?.phone ? `Tél: ${companySettings.phone}` : "",
-      companySettings?.email ? `Email: ${companySettings.email}` : "",
-    ].filter(Boolean);
+      `${companySettings?.postal_code || ''} ${companySettings?.city || ''}`.trim(),
+      companySettings?.phone ? `Tél: ${companySettings.phone}` : '',
+      companySettings?.email ? `Email: ${companySettings.email}` : '',
+    ].filter(Boolean)
 
     if (address.length > 0) {
       doc
         .font(this.fonts.regular)
         .fontSize(9)
         .fillColor(this.colors.dark)
-        .text(address.join("\n"), companyInfoX, companyInfoTop + 40, {
+        .text(address.join('\n'), companyInfoX, companyInfoTop + 40, {
           width: 250,
-        });
+        })
     }
 
     // Détecter le type de document
-    const isInvoice = document.invoiceNumber !== undefined;
-    const documentType = isInvoice ? "FACTURE" : "DEVIS";
+    const isInvoice = document.invoiceNumber !== undefined
+    const documentType = isInvoice ? 'FACTURE' : 'DEVIS'
     const documentNumber = isInvoice
       ? document.invoiceNumber
-      : document.quoteNumber;
-    const documentLabel = isInvoice ? "Facturé le" : "Établi le";
+      : document.quoteNumber
+    const documentLabel = isInvoice ? 'Facturé le' : 'Établi le'
 
     // Bloc document à droite
-    doc.rect(400, 30, 140, 85).fillColor(primaryColor).fill();
+    doc.rect(400, 30, 140, 85).fillColor(primaryColor).fill()
 
     doc
       .font(this.fonts.bold)
       .fontSize(16)
-      .fillColor("white")
-      .text(documentType, 400, 45, { align: "center", width: 140 });
+      .fillColor('white')
+      .text(documentType, 400, 45, { align: 'center', width: 140 })
 
-    doc.fontSize(13).text(`N° ${documentNumber || ""}`, 400, 65, {
-      align: "center",
+    doc.fontSize(13).text(`N° ${documentNumber || ''}`, 400, 65, {
+      align: 'center',
       width: 140,
-    });
+    })
 
     // Date
     const date = document.createdAt
-      ? new Date(document.createdAt).toLocaleDateString("fr-FR")
-      : "";
+      ? new Date(document.createdAt).toLocaleDateString('fr-FR')
+      : ''
     doc.fontSize(9).text(`${documentLabel} ${date}`, 400, 85, {
-      align: "center",
+      align: 'center',
       width: 140,
-    });
+    })
 
     // Ligne de séparation
     doc
       .moveTo(this.pageConfig.margin, 125)
       .lineTo(doc.page.width - this.pageConfig.margin, 125)
-      .strokeColor("#e2e8f0")
+      .strokeColor('#e2e8f0')
       .lineWidth(1)
-      .stroke();
+      .stroke()
 
     // Restaurer la position si elle était définie
     if (currentY > 0) {
-      doc.y = currentY;
+      doc.y = currentY
     }
   }
 
@@ -361,36 +361,36 @@ class SimplePDFService {
     document,
     companySettings,
     isInvoice = false,
-    primaryColor,
+    primaryColor
   ) {
     // Vérifier s'il faut une nouvelle page
     if (this.needsNewPage(150)) {
-      this.addNewPage();
+      this.addNewPage()
     }
 
     // Titre de section adapté au type de document
     const sectionTitle = isInvoice
-      ? "INFORMATIONS CLIENT ET FACTURATION"
-      : "INFORMATIONS CLIENT";
+      ? 'INFORMATIONS CLIENT ET FACTURATION'
+      : 'INFORMATIONS CLIENT'
     doc
       .font(this.fonts.bold)
       .fontSize(14)
       .fillColor(this.colors.dark)
-      .text(sectionTitle, this.pageConfig.margin, doc.y);
+      .text(sectionTitle, this.pageConfig.margin, doc.y)
 
-    doc.y += 25;
+    doc.y += 25
 
     // Deux colonnes pour les adresses
-    const leftX = this.pageConfig.margin;
-    const rightX = 305;
-    const startY = doc.y;
+    const leftX = this.pageConfig.margin
+    const rightX = 305
+    const startY = doc.y
 
     // Adresse de facturation
     this.addAddressBlock(
       doc,
-      "ADRESSE DE FACTURATION",
+      'ADRESSE DE FACTURATION',
       {
-        name: `${document.client?.firstName || ""} ${document.client?.lastName || ""}`.trim(),
+        name: `${document.client?.firstName || ''} ${document.client?.lastName || ''}`.trim(),
         company: document.client?.companyName,
         address1: document.client?.addressLine1,
         address2: document.client?.addressLine2,
@@ -401,41 +401,41 @@ class SimplePDFService {
       },
       leftX,
       startY,
-      primaryColor,
-    );
+      primaryColor
+    )
 
     // Adresse de chantier (pour les devis) ou informations de facturation (pour les factures)
     if (isInvoice) {
       // Pour les factures, afficher les informations de facturation
       const invoiceInfo = {
-        name: `Facture N° ${document.invoiceNumber || ""}`,
-        company: `Échéance: ${document.dueDate ? new Date(document.dueDate).toLocaleDateString("fr-FR") : "-"}`,
+        name: `Facture N° ${document.invoiceNumber || ''}`,
+        company: `Échéance: ${document.dueDate ? new Date(document.dueDate).toLocaleDateString('fr-FR') : '-'}`,
         address1: document.purchaseOrderNumber
           ? `Commande: ${document.purchaseOrderNumber}`
-          : "",
+          : '',
         address2: document.paymentTerms
           ? `Conditions: ${document.paymentTerms}`
-          : "",
-        postalCode: "",
-        city: "",
-        email: "",
-        phone: "",
-      };
+          : '',
+        postalCode: '',
+        city: '',
+        email: '',
+        phone: '',
+      }
       this.addAddressBlock(
         doc,
-        "INFORMATIONS FACTURATION",
+        'INFORMATIONS FACTURATION',
         invoiceInfo,
         rightX,
         startY,
-        primaryColor,
-      );
+        primaryColor
+      )
     } else {
       // Pour les devis, afficher l'adresse de chantier
       const siteInfo =
         document.siteAddress &&
         (document.siteAddress.addressLine1 || document.siteAddress.addressLine2)
           ? {
-              name: `${document.client?.firstName || ""} ${document.client?.lastName || ""}`.trim(),
+              name: `${document.client?.firstName || ''} ${document.client?.lastName || ''}`.trim(),
               company: document.client?.companyName,
               address1: document.siteAddress.addressLine1,
               address2: document.siteAddress.addressLine2,
@@ -443,71 +443,71 @@ class SimplePDFService {
               city: document.siteAddress.city,
             }
           : {
-              name: `${document.client?.firstName || ""} ${document.client?.lastName || ""}`.trim(),
+              name: `${document.client?.firstName || ''} ${document.client?.lastName || ''}`.trim(),
               company: document.client?.companyName,
               address1: document.client?.addressLine1,
               address2: document.client?.addressLine2,
               postalCode: document.client?.postalCode,
               city: document.client?.city,
-            };
+            }
 
       this.addAddressBlock(
         doc,
-        "ADRESSE DE CHANTIER",
+        'ADRESSE DE CHANTIER',
         siteInfo,
         rightX,
         startY,
-        primaryColor,
-      );
+        primaryColor
+      )
     }
 
-    doc.y = startY + 120;
+    doc.y = startY + 120
   }
 
   addAddressBlock(doc, title, info, x, y, primaryColor) {
-    const blockWidth = 250;
+    const blockWidth = 250
 
     // Titre du bloc
-    doc.rect(x, y, blockWidth, 25).fillColor(primaryColor).fill();
+    doc.rect(x, y, blockWidth, 25).fillColor(primaryColor).fill()
 
     doc
       .font(this.fonts.bold)
       .fontSize(10)
-      .fillColor("white")
-      .text(title, x + 10, y + 8, { width: blockWidth - 20 });
+      .fillColor('white')
+      .text(title, x + 10, y + 8, { width: blockWidth - 20 })
 
     // Contenu du bloc
     doc
       .rect(x, y + 25, blockWidth, 90)
       .fillColor(this.colors.light)
       .fill()
-      .strokeColor("#e2e8f0")
-      .stroke();
+      .strokeColor('#e2e8f0')
+      .stroke()
 
     const addressLines = [
       info.name,
       info.company,
       info.address1,
       info.address2,
-      `${info.postalCode || ""} ${info.city || ""}`.trim(),
+      `${info.postalCode || ''} ${info.city || ''}`.trim(),
       info.email,
       info.phone,
-    ].filter(Boolean);
+    ].filter(Boolean)
 
     doc
       .font(this.fonts.regular)
       .fontSize(9)
       .fillColor(this.colors.dark)
-      .text(addressLines.join("\n"), x + 10, y + 35, {
+      .text(addressLines.join('\n'), x + 10, y + 35, {
         width: blockWidth - 20,
         lineGap: 2,
-      });
+      })
   }
 
   addQuoteDetails(doc, quote) {
     // Vérifier s'il faut une nouvelle page
     if (this.needsNewPage(100)) {
-      this.addNewPage();
+      this.addNewPage()
     }
 
     // Objet du devis si présent
@@ -516,27 +516,27 @@ class SimplePDFService {
         .font(this.fonts.bold)
         .fontSize(12)
         .fillColor(this.colors.dark)
-        .text("OBJET DU DEVIS", this.pageConfig.margin, doc.y);
+        .text('OBJET DU DEVIS', this.pageConfig.margin, doc.y)
 
       doc
         .rect(
           this.pageConfig.margin,
           doc.y + 15,
           doc.page.width - this.pageConfig.margin * 2,
-          30,
+          30
         )
         .fillColor(this.colors.light)
         .fill()
-        .strokeColor("#e2e8f0")
-        .stroke();
+        .strokeColor('#e2e8f0')
+        .stroke()
 
       doc
         .font(this.fonts.regular)
         .fontSize(11)
         .fillColor(this.colors.dark)
-        .text(quote.title, this.pageConfig.margin + 10, doc.y + 25);
+        .text(quote.title, this.pageConfig.margin + 10, doc.y + 25)
 
-      doc.y += 60;
+      doc.y += 60
     }
 
     // Description si présente
@@ -547,9 +547,9 @@ class SimplePDFService {
         .fillColor(this.colors.secondary)
         .text(quote.description, this.pageConfig.margin, doc.y, {
           width: doc.page.width - this.pageConfig.margin * 2,
-        });
+        })
 
-      doc.y += 30;
+      doc.y += 30
     }
 
     // Délai d'exécution prévu
@@ -558,47 +558,46 @@ class SimplePDFService {
         .font(this.fonts.bold)
         .fontSize(12)
         .fillColor(this.colors.dark)
-        .text("DÉLAI D'EXÉCUTION PRÉVU", this.pageConfig.margin, doc.y);
+        .text("DÉLAI D'EXÉCUTION PRÉVU", this.pageConfig.margin, doc.y)
 
       doc
         .rect(
           this.pageConfig.margin,
           doc.y + 15,
           doc.page.width - this.pageConfig.margin * 2,
-          30,
+          30
         )
         .fillColor(this.colors.light)
         .fill()
-        .strokeColor("#e2e8f0")
-        .stroke();
+        .strokeColor('#e2e8f0')
+        .stroke()
 
-      let executionText = "";
+      let executionText = ''
       if (quote.estimatedDuration) {
-        executionText = `Durée estimée : ${quote.estimatedDuration}`;
+        executionText = `Durée estimée : ${quote.estimatedDuration}`
       }
       if (quote.deliveryDate) {
         const deliveryDate = new Date(quote.deliveryDate).toLocaleDateString(
-          "fr-FR",
-        );
+          'fr-FR'
+        )
         executionText +=
-          (executionText ? " - " : "") +
-          `Livraison prévue le : ${deliveryDate}`;
+          (executionText ? ' - ' : '') + `Livraison prévue le : ${deliveryDate}`
       }
 
       doc
         .font(this.fonts.regular)
         .fontSize(11)
         .fillColor(this.colors.dark)
-        .text(executionText, this.pageConfig.margin + 10, doc.y + 25);
+        .text(executionText, this.pageConfig.margin + 10, doc.y + 25)
 
-      doc.y += 60;
+      doc.y += 60
     }
   }
 
   addInvoiceDetails(doc, invoice) {
     // Vérifier s'il faut une nouvelle page
     if (this.needsNewPage(100)) {
-      this.addNewPage();
+      this.addNewPage()
     }
 
     // Informations de facturation
@@ -606,51 +605,51 @@ class SimplePDFService {
       .font(this.fonts.bold)
       .fontSize(12)
       .fillColor(this.colors.dark)
-      .text("INFORMATIONS DE FACTURATION", this.pageConfig.margin, doc.y);
+      .text('INFORMATIONS DE FACTURATION', this.pageConfig.margin, doc.y)
 
-    doc.y += 20;
+    doc.y += 20
 
     // Encadré informations facture
-    const infoY = doc.y;
-    const infoWidth = doc.page.width - this.pageConfig.margin * 2;
+    const infoY = doc.y
+    const infoWidth = doc.page.width - this.pageConfig.margin * 2
 
     doc
       .rect(this.pageConfig.margin, infoY, infoWidth, 80)
       .fillColor(this.colors.light)
       .fill()
-      .strokeColor("#cbd5e1")
-      .stroke();
+      .strokeColor('#cbd5e1')
+      .stroke()
 
     // Informations spécifiques aux factures
     const formatDate = (date) => {
-      if (!date) return "-";
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return "-";
-      return d.toLocaleDateString("fr-FR");
-    };
+      if (!date) return '-'
+      const d = new Date(date)
+      if (isNaN(d.getTime())) return '-'
+      return d.toLocaleDateString('fr-FR')
+    }
 
     const invoiceInfo = [
-      `• Numéro de facture : ${invoice.invoiceNumber || ""}`,
+      `• Numéro de facture : ${invoice.invoiceNumber || ''}`,
       `• Date d'émission : ${formatDate(invoice.createdAt)}`,
       `• Date d'échéance : ${formatDate(invoice.dueDate)}`,
       invoice.purchaseOrderNumber
         ? `• Numéro de commande : ${invoice.purchaseOrderNumber}`
-        : "",
+        : '',
       invoice.paymentTerms
         ? `• Conditions de paiement : ${invoice.paymentTerms}`
-        : "",
-    ].filter(Boolean);
+        : '',
+    ].filter(Boolean)
 
     doc
       .font(this.fonts.regular)
       .fontSize(10)
       .fillColor(this.colors.dark)
-      .text(invoiceInfo.join("\n"), this.pageConfig.margin + 10, infoY + 10, {
+      .text(invoiceInfo.join('\n'), this.pageConfig.margin + 10, infoY + 10, {
         width: infoWidth - 20,
         lineGap: 3,
-      });
+      })
 
-    doc.y = infoY + 90;
+    doc.y = infoY + 90
 
     // Objet de la facture si présent
     if (invoice.title) {
@@ -658,22 +657,22 @@ class SimplePDFService {
         .font(this.fonts.bold)
         .fontSize(12)
         .fillColor(this.colors.dark)
-        .text("OBJET DE LA FACTURE", this.pageConfig.margin, doc.y);
+        .text('OBJET DE LA FACTURE', this.pageConfig.margin, doc.y)
 
       doc
         .rect(this.pageConfig.margin, doc.y + 15, infoWidth, 30)
         .fillColor(this.colors.light)
         .fill()
-        .strokeColor("#cbd5e1")
-        .stroke();
+        .strokeColor('#cbd5e1')
+        .stroke()
 
       doc
         .font(this.fonts.regular)
         .fontSize(11)
         .fillColor(this.colors.dark)
-        .text(invoice.title, this.pageConfig.margin + 10, doc.y + 25);
+        .text(invoice.title, this.pageConfig.margin + 10, doc.y + 25)
 
-      doc.y += 60;
+      doc.y += 60
     }
 
     // Notes si présentes
@@ -682,14 +681,14 @@ class SimplePDFService {
         .font(this.fonts.bold)
         .fontSize(12)
         .fillColor(this.colors.dark)
-        .text("NOTES", this.pageConfig.margin, doc.y);
+        .text('NOTES', this.pageConfig.margin, doc.y)
 
       doc
         .rect(this.pageConfig.margin, doc.y + 15, infoWidth, 40)
-        .fillColor("#f8fafc")
+        .fillColor('#f8fafc')
         .fill()
-        .strokeColor("#cbd5e1")
-        .stroke();
+        .strokeColor('#cbd5e1')
+        .stroke()
 
       doc
         .font(this.fonts.regular)
@@ -697,16 +696,16 @@ class SimplePDFService {
         .fillColor(this.colors.secondary)
         .text(invoice.notes, this.pageConfig.margin + 10, doc.y + 25, {
           width: infoWidth - 20,
-        });
+        })
 
-      doc.y += 70;
+      doc.y += 70
     }
   }
 
   addItemsTable(doc, quote, primaryColor) {
     // Vérifier s'il faut une nouvelle page
     if (this.needsNewPage(100)) {
-      this.addNewPage();
+      this.addNewPage()
     }
 
     // Titre de section
@@ -714,108 +713,108 @@ class SimplePDFService {
       .font(this.fonts.bold)
       .fontSize(12)
       .fillColor(this.colors.dark)
-      .text("DÉTAIL DES PRESTATIONS", this.pageConfig.margin, doc.y);
+      .text('DÉTAIL DES PRESTATIONS', this.pageConfig.margin, doc.y)
 
-    doc.y += 15;
+    doc.y += 15
 
     // Configuration du tableau
-    const tableStartX = this.pageConfig.margin;
-    const tableWidth = doc.page.width - this.pageConfig.margin * 2;
+    const tableStartX = this.pageConfig.margin
+    const tableWidth = doc.page.width - this.pageConfig.margin * 2
 
     const columns = [
       {
-        title: "DÉSIGNATION",
+        title: 'DÉSIGNATION',
         width: Math.round(tableWidth * 0.35),
-        align: "left",
+        align: 'left',
       },
       {
-        title: "QUANTITÉ",
+        title: 'QUANTITÉ',
         width: Math.round(tableWidth * 0.11),
-        align: "center",
+        align: 'center',
       },
-      { title: "UNITÉ", width: Math.round(tableWidth * 0.1), align: "center" },
-      { title: "PU HT", width: Math.round(tableWidth * 0.1), align: "right" },
-      { title: "TVA", width: Math.round(tableWidth * 0.09), align: "center" },
+      { title: 'UNITÉ', width: Math.round(tableWidth * 0.1), align: 'center' },
+      { title: 'PU HT', width: Math.round(tableWidth * 0.1), align: 'right' },
+      { title: 'TVA', width: Math.round(tableWidth * 0.09), align: 'center' },
       {
-        title: "TOTAL HT",
+        title: 'TOTAL HT',
         width: Math.round(tableWidth * 0.14),
-        align: "right",
+        align: 'right',
       },
       {
-        title: "TOTAL TTC",
+        title: 'TOTAL TTC',
         width: Math.round(tableWidth * 0.14),
-        align: "right",
+        align: 'right',
       },
-    ];
+    ]
 
     // Ajuster les largeurs pour qu'elles correspondent exactement à la largeur totale
-    let totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
+    let totalWidth = columns.reduce((sum, col) => sum + col.width, 0)
     if (totalWidth !== tableWidth) {
-      columns[0].width += tableWidth - totalWidth;
+      columns[0].width += tableWidth - totalWidth
     }
 
-    let currentX = tableStartX;
+    let currentX = tableStartX
     columns.forEach((col) => {
-      col.x = currentX;
-      currentX += col.width;
-    });
+      col.x = currentX
+      currentX += col.width
+    })
 
     // Fonction pour dessiner l'en-tête du tableau
     const drawTableHeader = (y) => {
-      doc.rect(tableStartX, y, tableWidth, 25).fillColor(primaryColor).fill();
+      doc.rect(tableStartX, y, tableWidth, 25).fillColor(primaryColor).fill()
 
-      doc.font(this.fonts.bold).fontSize(9).fillColor("white");
+      doc.font(this.fonts.bold).fontSize(9).fillColor('white')
 
       columns.forEach((col) => {
         doc.text(col.title, col.x + 5, y + 8, {
           width: col.width - 10,
           align: col.align,
-        });
-      });
+        })
+      })
 
-      return y + 25;
-    };
+      return y + 25
+    }
 
     // Dessiner l'en-tête initial
-    let currentY = drawTableHeader(doc.y);
-    doc.y = currentY;
+    let currentY = drawTableHeader(doc.y)
+    doc.y = currentY
 
     // Rendu des sections et items
     if (Array.isArray(quote.sections) && quote.sections.length) {
       quote.sections.forEach((section, sectionIndex) => {
         // Vérifier si on a besoin d'une nouvelle page pour la section
         if (this.needsNewPage(50)) {
-          this.addNewPage();
-          currentY = drawTableHeader(doc.y);
-          doc.y = currentY;
+          this.addNewPage()
+          currentY = drawTableHeader(doc.y)
+          doc.y = currentY
         }
 
         // En-tête de section
         doc
           .rect(tableStartX, doc.y, tableWidth, 25)
-          .fillColor("#f1f5f9")
+          .fillColor('#f1f5f9')
           .fill()
-          .strokeColor("#cbd5e1")
-          .stroke();
+          .strokeColor('#cbd5e1')
+          .stroke()
 
         doc
           .font(this.fonts.bold)
           .fontSize(11)
           .fillColor(primaryColor)
           .text(
-            `${sectionIndex + 1}. ${section.title || "Section"}`,
+            `${sectionIndex + 1}. ${section.title || 'Section'}`,
             tableStartX + 10,
-            doc.y + 8,
-          );
+            doc.y + 8
+          )
 
-        doc.y += 15;
+        doc.y += 15
 
         // Description de section si présente
         if (section.description) {
           if (this.needsNewPage(25)) {
-            this.addNewPage();
-            currentY = drawTableHeader(doc.y);
-            doc.y = currentY;
+            this.addNewPage()
+            currentY = drawTableHeader(doc.y)
+            doc.y = currentY
           }
 
           doc
@@ -824,22 +823,22 @@ class SimplePDFService {
             .fillColor(this.colors.secondary)
             .text(section.description, tableStartX + 10, doc.y + 5, {
               width: tableWidth - 20,
-            });
-          doc.y += 15;
+            })
+          doc.y += 15
         }
 
         // Items de la section
         const sectionItems = (quote.items || []).filter(
-          (item) => item.sectionId === section.id,
-        );
+          (item) => item.sectionId === section.id
+        )
 
         sectionItems.forEach((item, itemIndex) => {
-          const rowHeight = this.calculateRowHeight(doc, item, columns);
+          const rowHeight = this.calculateRowHeight(doc, item, columns)
 
           if (this.needsNewPage(rowHeight)) {
-            this.addNewPage();
-            currentY = drawTableHeader(doc.y);
-            doc.y = currentY;
+            this.addNewPage()
+            currentY = drawTableHeader(doc.y)
+            doc.y = currentY
           }
 
           doc.y = this.addTableRow(
@@ -849,19 +848,19 @@ class SimplePDFService {
             columns,
             itemIndex % 2 === 0,
             tableStartX,
-            tableWidth,
-          );
-        });
-      });
+            tableWidth
+          )
+        })
+      })
     } else {
       // Fallback: items sans sections
-      (quote.items || []).forEach((item, itemIndex) => {
-        const rowHeight = this.calculateRowHeight(doc, item, columns);
+      ;(quote.items || []).forEach((item, itemIndex) => {
+        const rowHeight = this.calculateRowHeight(doc, item, columns)
 
         if (this.needsNewPage(rowHeight)) {
-          this.addNewPage();
-          currentY = drawTableHeader(doc.y);
-          doc.y = currentY;
+          this.addNewPage()
+          currentY = drawTableHeader(doc.y)
+          doc.y = currentY
         }
 
         doc.y = this.addTableRow(
@@ -871,96 +870,96 @@ class SimplePDFService {
           columns,
           itemIndex % 2 === 0,
           tableStartX,
-          tableWidth,
-        );
-      });
+          tableWidth
+        )
+      })
     }
 
-    doc.y += 20;
+    doc.y += 20
   }
 
   calculateRowHeight(doc, item, columns) {
-    doc.font(this.fonts.regular).fontSize(9);
+    doc.font(this.fonts.regular).fontSize(9)
 
     // Calculer la hauteur en fonction du contenu de la description
-    const description = item.description || "";
-    const descriptionWidth = columns[0].width - 10; // Largeur de la colonne description
+    const description = item.description || ''
+    const descriptionWidth = columns[0].width - 10 // Largeur de la colonne description
 
     const textHeight = doc.heightOfString(description, {
       width: descriptionWidth,
-      align: "left",
-    });
+      align: 'left',
+    })
 
-    return Math.max(20, textHeight + 12);
+    return Math.max(20, textHeight + 12)
   }
 
   addTableRow(doc, item, y, columns, isEven, tableStartX, tableWidth) {
-    const totalHt = item.totalHt || 0;
-    const vatRate = item.vatRate || 0;
-    const totalTtc = totalHt * (1 + vatRate / 100);
+    const totalHt = item.totalHt || 0
+    const vatRate = item.vatRate || 0
+    const totalTtc = totalHt * (1 + vatRate / 100)
 
     const rowData = [
-      item.description || "",
-      (item.quantity || 0).toLocaleString("fr-FR"),
-      item.unit || "U",
+      item.description || '',
+      (item.quantity || 0).toLocaleString('fr-FR'),
+      item.unit || 'U',
       this.formatCurrency(item.unitPriceHt || 0),
-      `${vatRate.toString().replace(".00", "").replace(".0", "")}%`,
+      `${vatRate.toString().replace('.00', '').replace('.0', '')}%`,
       this.formatCurrency(totalHt),
       this.formatCurrency(totalTtc),
-    ];
+    ]
 
-    const rowHeight = this.calculateRowHeight(doc, item, columns);
+    const rowHeight = this.calculateRowHeight(doc, item, columns)
 
     // Fond alterné
     doc
       .rect(tableStartX, y, tableWidth, rowHeight)
-      .fillColor(isEven ? "#f8fafc" : "white")
+      .fillColor(isEven ? '#f8fafc' : 'white')
       .fill()
-      .strokeColor("#e2e8f0")
+      .strokeColor('#e2e8f0')
       .lineWidth(0.5)
-      .stroke();
+      .stroke()
 
-    doc.font(this.fonts.regular).fontSize(9).fillColor(this.colors.dark);
+    doc.font(this.fonts.regular).fontSize(9).fillColor(this.colors.dark)
 
     columns.forEach((col, i) => {
       doc.text(rowData[i], col.x + 5, y + 8, {
         width: col.width - 10,
         align: col.align,
-      });
-    });
+      })
+    })
 
-    return y + rowHeight;
+    return y + rowHeight
   }
 
   addTotalsSection(doc, quote, primaryColor) {
-    const requiredHeight = 200;
+    const requiredHeight = 200
     if (this.needsNewPage(requiredHeight)) {
-      this.addNewPage();
+      this.addNewPage()
     }
 
-    doc.moveDown(2);
+    doc.moveDown(2)
 
-    const blockX = doc.page.width - this.pageConfig.margin - 220;
-    const blockWidth = 220;
-    const headerHeight = 28;
-    const rowHeight = 24;
-    const startY = doc.y;
+    const blockX = doc.page.width - this.pageConfig.margin - 220
+    const blockWidth = 220
+    const headerHeight = 28
+    const rowHeight = 24
+    const startY = doc.y
 
-    const vatBreakdown = this.calculateVATBreakdown(quote.items || []);
+    const vatBreakdown = this.calculateVATBreakdown(quote.items || [])
     const computedVatTotal = vatBreakdown.reduce(
       (sum, entry) => sum + entry.amount,
-      0,
-    );
-    const explicitVatTotal = Number(quote.totalVat ?? 0);
-    const hasComputedVat = vatBreakdown.length > 0;
+      0
+    )
+    const explicitVatTotal = Number(quote.totalVat ?? 0)
+    const hasComputedVat = vatBreakdown.length > 0
 
     const totalsRows = [
       {
-        label: "Sous-total HT",
+        label: 'Sous-total HT',
         value: Number(quote.subtotalHt || 0),
-        tone: "regular",
+        tone: 'regular',
       },
-    ];
+    ]
 
     if (hasComputedVat) {
       vatBreakdown
@@ -968,114 +967,111 @@ class SimplePDFService {
         .forEach((entry) => {
           const rateLabel = Number.isInteger(entry.rate)
             ? entry.rate.toFixed(0)
-            : entry.rate.toFixed(2);
+            : entry.rate.toFixed(2)
           totalsRows.push({
             label: `TVA ${rateLabel}%`,
             value: entry.amount,
-            tone: "regular",
-          });
-        });
+            tone: 'regular',
+          })
+        })
     }
 
     const totalVatToDisplay =
-      explicitVatTotal > 0 ? explicitVatTotal : computedVatTotal;
+      explicitVatTotal > 0 ? explicitVatTotal : computedVatTotal
     if (!hasComputedVat && totalVatToDisplay > 0) {
       totalsRows.push({
-        label: "TVA",
+        label: 'TVA',
         value: totalVatToDisplay,
-        tone: "regular",
-      });
+        tone: 'regular',
+      })
     }
 
     totalsRows.push({
-      label: "Total TTC",
+      label: 'Total TTC',
       value: Number(quote.totalTtc || 0),
-      tone: "highlight",
-    });
+      tone: 'highlight',
+    })
 
     // Gestion des acomptes et factures acquittées
     if (Number(quote.depositAmount || 0) > 0) {
       totalsRows.push({
-        label: "Acompte déjà facturé",
+        label: 'Acompte déjà facturé',
         value: Number(quote.depositAmount),
-        tone: "muted",
-      });
+        tone: 'muted',
+      })
       const remainingAmount = Math.max(
         Number(quote.totalTtc || 0) - Number(quote.depositAmount),
-        0,
-      );
+        0
+      )
 
       if (remainingAmount === 0) {
         totalsRows.push({
-          label: "FACTURE ACQUITTÉE",
+          label: 'FACTURE ACQUITTÉE',
           value: 0,
-          tone: "acquitted",
-        });
+          tone: 'acquitted',
+        })
       } else {
         totalsRows.push({
-          label: "Reste à payer",
+          label: 'Reste à payer',
           value: remainingAmount,
-          tone: "highlight",
-        });
+          tone: 'highlight',
+        })
       }
     }
 
-    const dataHeight = rowHeight * totalsRows.length;
-    const blockHeight = headerHeight + dataHeight;
+    const dataHeight = rowHeight * totalsRows.length
+    const blockHeight = headerHeight + dataHeight
 
     // Bloc récapitulatif
     doc
       .rect(blockX, startY, blockWidth, blockHeight)
       .fillColor(this.colors.light)
-      .strokeColor("#cbd5e1")
+      .strokeColor('#cbd5e1')
       .lineWidth(1)
-      .stroke();
+      .stroke()
 
     doc
       .rect(blockX, startY, blockWidth, headerHeight)
       .fillColor(primaryColor)
-      .fill();
+      .fill()
 
     doc
       .font(this.fonts.bold)
       .fontSize(11)
-      .fillColor("white")
-      .text("Récapitulatif", blockX, startY + 8, {
+      .fillColor('white')
+      .text('Récapitulatif', blockX, startY + 8, {
         width: blockWidth,
-        align: "center",
-      });
+        align: 'center',
+      })
 
     // Lignes de totaux
     totalsRows.forEach((row, index) => {
-      const rowY = startY + headerHeight + index * rowHeight;
-      const isHighlight = row.tone === "highlight";
-      const isMuted = row.tone === "muted";
-      const isAcquitted = row.tone === "acquitted";
+      const rowY = startY + headerHeight + index * rowHeight
+      const isHighlight = row.tone === 'highlight'
+      const isMuted = row.tone === 'muted'
+      const isAcquitted = row.tone === 'acquitted'
 
-      let background = index % 2 === 0 ? "#f8fafc" : "#ffffff";
-      let textColor = this.colors.dark;
-      let font = this.fonts.regular;
-      let fontSize = 10;
+      let background = index % 2 === 0 ? '#f8fafc' : '#ffffff'
+      let textColor = this.colors.dark
+      let font = this.fonts.regular
+      let fontSize = 10
 
       if (isAcquitted) {
-        background = "#10b981"; // Vert pour facture acquittée
-        textColor = "white";
-        font = this.fonts.bold;
-        fontSize = 11;
+        background = '#10b981' // Vert pour facture acquittée
+        textColor = 'white'
+        font = this.fonts.bold
+        fontSize = 11
       } else if (isHighlight && !isMuted) {
-        background = primaryColor;
-        textColor = "white";
-        font = this.fonts.bold;
-        fontSize = 11;
+        background = primaryColor
+        textColor = 'white'
+        font = this.fonts.bold
+        fontSize = 11
       } else if (isMuted) {
-        background = "#f1f5f9";
-        textColor = this.colors.secondary;
+        background = '#f1f5f9'
+        textColor = this.colors.secondary
       }
 
-      doc
-        .rect(blockX, rowY, blockWidth, rowHeight)
-        .fillColor(background)
-        .fill();
+      doc.rect(blockX, rowY, blockWidth, rowHeight).fillColor(background).fill()
 
       doc
         .font(font)
@@ -1083,105 +1079,105 @@ class SimplePDFService {
         .fillColor(textColor)
         .text(row.label, blockX + 14, rowY + 6, {
           width: blockWidth - 28,
-          align: "left",
-        });
+          align: 'left',
+        })
 
       doc.text(this.formatCurrency(row.value), blockX + 14, rowY + 6, {
         width: blockWidth - 28,
-        align: "right",
-      });
-    });
+        align: 'right',
+      })
+    })
 
     // Informations de règlement à gauche
-    const infoLines = [];
+    const infoLines = []
     if (Number(quote.depositPercent || 0) > 0) {
       const percentLabel = Number(quote.depositPercent).toLocaleString(
-        "fr-FR",
+        'fr-FR',
         {
           maximumFractionDigits: 2,
           minimumFractionDigits: Number(quote.depositPercent) % 1 === 0 ? 0 : 2,
-        },
-      );
+        }
+      )
       const amount =
-        (Number(quote.totalTtc || 0) * Number(quote.depositPercent || 0)) / 100;
+        (Number(quote.totalTtc || 0) * Number(quote.depositPercent || 0)) / 100
       infoLines.push(
-        `Acompte demandé: ${percentLabel}% (${this.formatCurrency(amount)})`,
-      );
+        `Acompte demandé: ${percentLabel}% (${this.formatCurrency(amount)})`
+      )
     } else if (Number(quote.depositAmount || 0) > 0) {
       infoLines.push(
-        `Acompte demandé: ${this.formatCurrency(quote.depositAmount)}`,
-      );
+        `Acompte demandé: ${this.formatCurrency(quote.depositAmount)}`
+      )
     }
 
     if (quote.validUntil) {
       infoLines.push(
-        `Devis valable jusqu'au ${new Date(quote.validUntil).toLocaleDateString("fr-FR")}`,
-      );
+        `Devis valable jusqu'au ${new Date(quote.validUntil).toLocaleDateString('fr-FR')}`
+      )
     }
 
     if (infoLines.length) {
-      const infoWidth = blockX - this.pageConfig.margin - 20;
-      const infoHeight = infoLines.length * 18 + 26;
+      const infoWidth = blockX - this.pageConfig.margin - 20
+      const infoHeight = infoLines.length * 18 + 26
 
       doc
         .roundedRect(this.pageConfig.margin, startY, infoWidth, infoHeight, 6)
-        .fillColor("#f8fafc")
-        .strokeColor("#e2e8f0")
+        .fillColor('#f8fafc')
+        .strokeColor('#e2e8f0')
         .lineWidth(1)
-        .stroke();
+        .stroke()
 
       doc
         .font(this.fonts.bold)
         .fontSize(10)
         .fillColor(this.colors.dark)
         .text(
-          "Informations de règlement",
+          'Informations de règlement',
           this.pageConfig.margin + 15,
-          startY + 10,
-        );
+          startY + 10
+        )
 
       doc
         .font(this.fonts.regular)
         .fontSize(9)
         .fillColor(this.colors.secondary)
-        .text(infoLines.join("\n"), this.pageConfig.margin + 15, startY + 26, {
+        .text(infoLines.join('\n'), this.pageConfig.margin + 15, startY + 26, {
           width: infoWidth - 30,
           lineGap: 4,
-        });
+        })
     }
 
     doc.y =
       startY +
       Math.max(blockHeight, infoLines.length ? infoLines.length * 18 + 26 : 0) +
-      40;
+      40
   }
 
   calculateVATBreakdown(items) {
-    const vatMap = new Map();
+    const vatMap = new Map()
 
     items.forEach((item) => {
-      const rate = Number(item.vatRate || 20);
-      const vatAmount = (Number(item.totalHt || 0) * rate) / 100;
+      const rate = Number(item.vatRate || 20)
+      const vatAmount = (Number(item.totalHt || 0) * rate) / 100
 
       if (vatMap.has(rate)) {
-        vatMap.set(rate, vatMap.get(rate) + vatAmount);
+        vatMap.set(rate, vatMap.get(rate) + vatAmount)
       } else {
-        vatMap.set(rate, vatAmount);
+        vatMap.set(rate, vatAmount)
       }
-    });
+    })
 
     return Array.from(vatMap.entries())
       .map(([rate, amount]) => ({ rate, amount }))
-      .sort((a, b) => a.rate - b.rate);
+      .sort((a, b) => a.rate - b.rate)
   }
 
   async addConditionsAndSignature(doc, quote, companySettings, primaryColor) {
     // Vérifier si on a assez d'espace sur la page actuelle
-    const requiredHeight = 350; // Estimation pour tout le contenu conditions
-    const availableSpace = this.getContentEndY() - doc.y;
+    const requiredHeight = 350 // Estimation pour tout le contenu conditions
+    const availableSpace = this.getContentEndY() - doc.y
 
     if (availableSpace < requiredHeight) {
-      this.addNewPage();
+      this.addNewPage()
     }
 
     // const startY = doc.y; // Non utilisé
@@ -1192,21 +1188,21 @@ class SimplePDFService {
       .fontSize(16)
       .fillColor(primaryColor)
       .text(
-        "CONDITIONS GÉNÉRALES ET ACCEPTATION",
+        'CONDITIONS GÉNÉRALES ET ACCEPTATION',
         this.pageConfig.margin,
-        doc.y,
-      );
+        doc.y
+      )
 
-    doc.y += 20;
+    doc.y += 20
 
     // Section conditions - Version compacte
-    this.addPaymentConditions(doc, quote, companySettings, primaryColor);
+    this.addPaymentConditions(doc, quote, companySettings, primaryColor)
 
     // Section signature - Version compacte
-    await this.addSignatureSection(doc, primaryColor, companySettings);
+    await this.addSignatureSection(doc, primaryColor, companySettings)
 
     // Section informations importantes - Version compacte
-    this.addImportantNotices(doc, companySettings);
+    this.addImportantNotices(doc, companySettings)
   }
 
   addPaymentConditions(doc, quote, companySettings, _primaryColor) {
@@ -1215,66 +1211,66 @@ class SimplePDFService {
       .font(this.fonts.bold)
       .fontSize(12)
       .fillColor(this.colors.dark)
-      .text("CONDITIONS COMMERCIALES", this.pageConfig.margin, doc.y);
+      .text('CONDITIONS COMMERCIALES', this.pageConfig.margin, doc.y)
 
-    doc.y += 12; // Espacement optimisé
+    doc.y += 12 // Espacement optimisé
 
     // Encadré conditions - Version compacte
-    const conditionsY = doc.y;
-    const conditionsWidth = doc.page.width - this.pageConfig.margin * 2;
+    const conditionsY = doc.y
+    const conditionsWidth = doc.page.width - this.pageConfig.margin * 2
 
     doc
       .rect(this.pageConfig.margin, conditionsY, conditionsWidth, 110) // Réduit de 140 à 110
       .fillColor(this.colors.light)
       .fill()
-      .strokeColor("#cbd5e1")
-      .stroke();
+      .strokeColor('#cbd5e1')
+      .stroke()
 
     // Contenu des conditions - Version condensée
     const conditions = [
-      `• Validité : ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString("fr-FR") : "30 jours"}`,
+      `• Validité : ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('fr-FR') : '30 jours'}`,
       `• Acompte : ${quote.depositPercent || 30}% TTC à la commande`,
-      "• Solde : à la fin des travaux",
-      "• Paiement : Chèque, virement, espèces (< 1000€)",
-      companySettings?.iban ? `• IBAN : ${companySettings.iban}` : "",
-      companySettings?.bic ? `• BIC : ${companySettings.bic}` : "",
-      "• Rétractation : 14 jours (art. L221-18 Code consommation)",
-      "• Assurances : RC Pro et décennale souscrites",
-    ].filter(Boolean);
+      '• Solde : à la fin des travaux',
+      '• Paiement : Chèque, virement, espèces (< 1000€)',
+      companySettings?.iban ? `• IBAN : ${companySettings.iban}` : '',
+      companySettings?.bic ? `• BIC : ${companySettings.bic}` : '',
+      '• Rétractation : 14 jours (art. L221-18 Code consommation)',
+      '• Assurances : RC Pro et décennale souscrites',
+    ].filter(Boolean)
 
     doc
       .font(this.fonts.regular)
       .fontSize(9) // Réduit de 10 à 9
       .fillColor(this.colors.dark)
       .text(
-        conditions.join("\n"),
+        conditions.join('\n'),
         this.pageConfig.margin + 10,
         conditionsY + 10,
         {
           width: conditionsWidth - 20,
           lineGap: 2,
-        },
-      );
+        }
+      )
 
-    doc.y = conditionsY + 125; // Ajusté en conséquence
-    doc.y += 8; // Espacement avant la section signature
+    doc.y = conditionsY + 125 // Ajusté en conséquence
+    doc.y += 8 // Espacement avant la section signature
   }
 
   async addSignatureSection(doc, primaryColor, companySettings) {
     // Titre de section
-    doc.y += 18;
+    doc.y += 18
 
     doc
       .font(this.fonts.bold)
       .fontSize(12)
       .fillColor(this.colors.dark)
-      .text("BON POUR ACCORD", this.pageConfig.margin, doc.y);
+      .text('BON POUR ACCORD', this.pageConfig.margin, doc.y)
 
-    doc.y += 15; // Espacement optimisé
+    doc.y += 15 // Espacement optimisé
 
     // Encadré signature - Version compacte
-    const signatureY = doc.y;
-    const signatureWidth = doc.page.width - this.pageConfig.margin * 2;
+    const signatureY = doc.y
+    const signatureWidth = doc.page.width - this.pageConfig.margin * 2
 
     doc
       .rect(this.pageConfig.margin, signatureY, signatureWidth, 200) // Augmenté pour la nouvelle disposition
@@ -1282,48 +1278,48 @@ class SimplePDFService {
       .fill()
       .strokeColor(primaryColor)
       .lineWidth(2)
-      .stroke();
+      .stroke()
 
     // Zones de signature - Disposition gauche/droite
-    const leftX = this.pageConfig.margin + 15;
-    const rightX = doc.page.width - 250; // Aligné à droite
-    const startY = signatureY + 15;
+    const leftX = this.pageConfig.margin + 15
+    const rightX = doc.page.width - 250 // Aligné à droite
+    const startY = signatureY + 15
 
     // === COLONNE GAUCHE ===
-    let currentY = startY;
+    let currentY = startY
 
     // Client
     doc
       .font(this.fonts.bold)
       .fontSize(12)
       .fillColor(primaryColor)
-      .text("CLIENT", leftX, currentY);
-    currentY += 25;
+      .text('CLIENT', leftX, currentY)
+    currentY += 25
 
     // En acceptant ce devis, le client :
     doc
       .font(this.fonts.regular)
       .fontSize(8)
       .fillColor(this.colors.dark)
-      .text("En acceptant ce devis, le client :", leftX, currentY);
-    currentY += 20;
+      .text('En acceptant ce devis, le client :', leftX, currentY)
+    currentY += 20
 
     const acceptanceText = [
-      "• Accepte les conditions générales",
-      "• Reconnaît son droit de rétractation",
-      "• Autorise le début des travaux",
-    ];
+      '• Accepte les conditions générales',
+      '• Reconnaît son droit de rétractation',
+      '• Autorise le début des travaux',
+    ]
 
-    doc.fontSize(8).text(acceptanceText.join("\n"), leftX, currentY);
-    currentY += 45;
+    doc.fontSize(8).text(acceptanceText.join('\n'), leftX, currentY)
+    currentY += 45
 
     // Mention manuscrite obligatoire
     doc
       .font(this.fonts.bold)
       .fontSize(8)
       .fillColor(primaryColor)
-      .text("Mention manuscrite obligatoire :", leftX, currentY);
-    currentY += 10;
+      .text('Mention manuscrite obligatoire :', leftX, currentY)
+    currentY += 10
 
     doc
       .font(this.fonts.regular)
@@ -1332,9 +1328,9 @@ class SimplePDFService {
       .text(
         "« Devis reçu avant l'exécution des travaux, bon pour accord »",
         leftX,
-        currentY,
-      );
-    currentY += 25;
+        currentY
+      )
+    currentY += 25
 
     // Ligne de signature pour la mention manuscrite
     doc
@@ -1342,18 +1338,18 @@ class SimplePDFService {
       .lineTo(leftX + 250, currentY)
       .strokeColor(primaryColor)
       .lineWidth(1)
-      .stroke();
-    currentY += 25;
+      .stroke()
+    currentY += 25
 
     // Signature client
     doc
       .font(this.fonts.regular)
       .fontSize(8)
-      .text("Nom, date et signature :", leftX, currentY);
+      .text('Nom, date et signature :', leftX, currentY)
     doc
       .moveTo(leftX, currentY + 30)
       .lineTo(leftX + 160, currentY + 30)
-      .stroke();
+      .stroke()
 
     // === COLONNE DROITE ===
     // Entreprise
@@ -1361,54 +1357,52 @@ class SimplePDFService {
       .font(this.fonts.bold)
       .fontSize(12)
       .fillColor(primaryColor)
-      .text("ENTREPRISE", rightX, startY);
+      .text('ENTREPRISE', rightX, startY)
 
     // Gestion du cachet de l'entreprise
     if (companySettings?.stamp_base64) {
       // Vérifier si le fichier est trop volumineux (plus de 500KB)
       if (companySettings.stamp_base64.length > 500000) {
-        console.warn(
-          "⚠️ Cachet trop volumineux, utilisation du fallback texte",
-        );
+        console.warn('⚠️ Cachet trop volumineux, utilisation du fallback texte')
         // Utiliser le fallback texte au lieu de l'image, centré
-        const fallbackY = startY + 30;
+        const fallbackY = startY + 30
         doc
           .font(this.fonts.regular)
           .fontSize(8)
-          .text("Cachet et signature :", rightX + 50, fallbackY);
+          .text('Cachet et signature :', rightX + 50, fallbackY)
         doc
           .moveTo(rightX + 50, fallbackY + 40)
           .lineTo(rightX + 200, fallbackY + 40)
-          .stroke();
-        return; // Sortir de la fonction
+          .stroke()
+        return // Sortir de la fonction
       }
       try {
-        const stampData = companySettings.stamp_base64;
-        const match = stampData.match(/^data:image\/([^;]+);base64,(.+)$/);
+        const stampData = companySettings.stamp_base64
+        const match = stampData.match(/^data:image\/([^;]+);base64,(.+)$/)
 
         if (match) {
-          const imageType = match[1].toUpperCase();
-          const base64Data = match[2];
-          const stampBuffer = Buffer.from(base64Data, "base64");
+          const imageType = match[1].toUpperCase()
+          const base64Data = match[2]
+          const stampBuffer = Buffer.from(base64Data, 'base64')
 
           if (
-            imageType === "PNG" ||
-            imageType === "JPEG" ||
-            imageType === "JPG"
+            imageType === 'PNG' ||
+            imageType === 'JPEG' ||
+            imageType === 'JPG'
           ) {
             // Centrer le cachet sur la partie droite, plus gros et plus à gauche
-            const stampWidth = 220;
-            const stampHeight = 150;
-            const centerX = rightX + (250 - stampWidth) / 2 - 20; // Centrer et décaler vers la gauche
-            const centerY = startY + 30; // Position sous ENTREPRISE
+            const stampWidth = 220
+            const stampHeight = 150
+            const centerX = rightX + (250 - stampWidth) / 2 - 20 // Centrer et décaler vers la gauche
+            const centerY = startY + 30 // Position sous ENTREPRISE
 
             doc.image(stampBuffer, centerX, centerY, {
               width: stampWidth,
               height: stampHeight,
               fit: [stampWidth, stampHeight],
-            });
-          } else if (imageType === "SVG") {
-            const sharp = require("sharp");
+            })
+          } else if (imageType === 'SVG') {
+            const sharp = require('sharp')
 
             try {
               // Optimiser le SVG avant conversion
@@ -1417,105 +1411,105 @@ class SimplePDFService {
                 limitInputPixels: false, // Permettre les gros fichiers
               })
                 .resize(220, 150, {
-                  fit: "contain",
+                  fit: 'contain',
                   background: { r: 255, g: 255, b: 255, alpha: 0 },
                 })
                 .png({ quality: 80 }) // Réduire la qualité pour optimiser
-                .toBuffer();
+                .toBuffer()
 
               // Centrer le cachet sur la partie droite, plus gros et plus à gauche
-              const stampWidth = 220;
-              const stampHeight = 150;
-              const centerX = rightX + (250 - stampWidth) / 2 - 20; // Centrer et décaler vers la gauche
-              const centerY = startY + 30; // Position sous ENTREPRISE
+              const stampWidth = 220
+              const stampHeight = 150
+              const centerX = rightX + (250 - stampWidth) / 2 - 20 // Centrer et décaler vers la gauche
+              const centerY = startY + 30 // Position sous ENTREPRISE
 
               doc.image(pngBuffer, centerX, centerY, {
                 width: stampWidth,
                 height: stampHeight,
-              });
+              })
             } catch (sharpError) {
               console.error(
-                "❌ Erreur Sharp lors de la conversion SVG:",
-                sharpError.message,
-              );
-              throw sharpError;
+                '❌ Erreur Sharp lors de la conversion SVG:',
+                sharpError.message
+              )
+              throw sharpError
             }
           }
         }
       } catch (error) {
-        console.error("Erreur lors de l'affichage du cachet:", error);
+        console.error("Erreur lors de l'affichage du cachet:", error)
         // Fallback centré en cas d'erreur
-        const fallbackY = startY + 30;
+        const fallbackY = startY + 30
         doc
           .font(this.fonts.regular)
           .fontSize(8)
-          .text("Cachet et signature :", rightX + 50, fallbackY);
+          .text('Cachet et signature :', rightX + 50, fallbackY)
         doc
           .moveTo(rightX + 50, fallbackY + 40)
           .lineTo(rightX + 200, fallbackY + 40)
-          .stroke();
+          .stroke()
       }
     } else {
       // Pas de cachet - fallback centré
-      const fallbackY = startY + 30;
+      const fallbackY = startY + 30
       doc
         .font(this.fonts.regular)
         .fontSize(8)
-        .text("Cachet et signature :", rightX + 50, fallbackY);
+        .text('Cachet et signature :', rightX + 50, fallbackY)
       doc
         .moveTo(rightX + 50, fallbackY + 40)
         .lineTo(rightX + 200, fallbackY + 40)
-        .stroke();
+        .stroke()
     }
 
-    doc.y = signatureY + 200; // Ajusté pour la nouvelle hauteur de boîte
+    doc.y = signatureY + 200 // Ajusté pour la nouvelle hauteur de boîte
   }
 
   addImportantNotices(doc, _companySettings) {
-    doc.y += 25; // Espacement optimisé après les signatures
+    doc.y += 25 // Espacement optimisé après les signatures
 
     // Titre
     doc
       .font(this.fonts.bold)
       .fontSize(11)
       .fillColor(this.colors.danger)
-      .text("INFORMATIONS IMPORTANTES", this.pageConfig.margin, doc.y);
+      .text('INFORMATIONS IMPORTANTES', this.pageConfig.margin, doc.y)
 
-    doc.y += 20; // Plus d'espace après le titre
+    doc.y += 20 // Plus d'espace après le titre
 
     // Zone pour les informations importantes (sans encadré coloré)
-    const noticeWidth = doc.page.width - this.pageConfig.margin * 2;
-    const noticeY = doc.y;
+    const noticeWidth = doc.page.width - this.pageConfig.margin * 2
+    const noticeY = doc.y
 
     // Informations importantes reformulées et mieux structurées
     const notices = [
       "• Droit de rétractation : Vous disposez d'un délai de 14 jours pour renoncer à votre commande sans motif ni justification (art. L221-18 du Code de la consommation)",
-      "• Médiation : En cas de litige, vous pouvez recourir à la médiation de la consommation (www.mediation-consommation.fr)",
-      "• Assurances : Cette entreprise est couverte par une assurance responsabilité civile professionnelle et une garantie décennale obligatoire",
-      "• Garanties légales : Garantie décennale sur les travaux de gros œuvre, garantie biennale sur les équipements",
-    ];
+      '• Médiation : En cas de litige, vous pouvez recourir à la médiation de la consommation (www.mediation-consommation.fr)',
+      '• Assurances : Cette entreprise est couverte par une assurance responsabilité civile professionnelle et une garantie décennale obligatoire',
+      '• Garanties légales : Garantie décennale sur les travaux de gros œuvre, garantie biennale sur les équipements',
+    ]
 
     doc
       .font(this.fonts.regular)
       .fontSize(8) // Taille légèrement augmentée pour la lisibilité
       .fillColor(this.colors.dark)
-      .text(notices.join("\n"), this.pageConfig.margin, noticeY, {
+      .text(notices.join('\n'), this.pageConfig.margin, noticeY, {
         width: noticeWidth,
         lineGap: 1, // Espace réduit entre les lignes
-      });
+      })
 
-    doc.y = noticeY + 70; // Position après le texte
+    doc.y = noticeY + 70 // Position après le texte
   }
 
   async applyHeadersAndFooters() {
     const { doc, quote, invoice, companySettings, primaryColor } =
-      this.commonData;
-    const document = quote || invoice; // Support des devis et factures
-    const pages = doc.bufferedPageRange();
+      this.commonData
+    const document = quote || invoice // Support des devis et factures
+    const pages = doc.bufferedPageRange()
 
     for (let i = 0; i < pages.count; i++) {
-      const pageNumber = i + 1;
-      doc.switchToPage(i);
+      const pageNumber = i + 1
+      doc.switchToPage(i)
 
       // Vérifier si la page a du contenu avant d'appliquer header/footer
       // En vérifiant si il y a du texte ou des éléments dessinés sur cette page
@@ -1527,32 +1521,32 @@ class SimplePDFService {
         document,
         companySettings,
         primaryColor,
-        pageNumber,
-      );
+        pageNumber
+      )
 
       // Ajouter le pied de page
-      this.addFooterContent(doc, companySettings, pageNumber, pages.count);
+      this.addFooterContent(doc, companySettings, pageNumber, pages.count)
     }
   }
 
   addFooterContent(doc, companySettings, pageNumber, totalPages) {
     // Position du footer - zone réservée en bas
-    const footerStartY = doc.page.height - this.pageConfig.footerHeight;
+    const footerStartY = doc.page.height - this.pageConfig.footerHeight
 
     // Ligne de séparation
     doc
       .moveTo(this.pageConfig.margin, footerStartY + 8)
       .lineTo(doc.page.width - this.pageConfig.margin, footerStartY + 8)
-      .strokeColor("#e2e8f0")
+      .strokeColor('#e2e8f0')
       .lineWidth(0.5)
-      .stroke();
+      .stroke()
 
     // Texte des mentions légales - Version simplifiée
-    const legalText = this.buildSimpleLegalFooter(companySettings);
+    const legalText = this.buildSimpleLegalFooter(companySettings)
 
     // Position du texte avec plus de marge de sécurité
-    const textY = footerStartY + 18;
-    const textWidth = doc.page.width - 2 * this.pageConfig.margin;
+    const textY = footerStartY + 18
+    const textWidth = doc.page.width - 2 * this.pageConfig.margin
 
     doc
       .font(this.fonts.regular)
@@ -1560,14 +1554,14 @@ class SimplePDFService {
       .fillColor(this.colors.secondary)
       .text(legalText, this.pageConfig.margin, textY, {
         width: textWidth,
-        align: "center",
+        align: 'center',
         lineGap: 1,
-      });
+      })
 
     // Numéro de page centré sous les mentions légales si plusieurs pages
     if (totalPages > 1) {
       // Position fixe pour la pagination, bien au-dessus du bas de page
-      const pageY = doc.page.height - this.pageConfig.margin - 15; // 15px du bas de page
+      const pageY = doc.page.height - this.pageConfig.margin - 15 // 15px du bas de page
 
       doc
         .font(this.fonts.bold)
@@ -1579,234 +1573,231 @@ class SimplePDFService {
           pageY,
           {
             width: textWidth,
-            align: "center",
-          },
-        );
+            align: 'center',
+          }
+        )
     }
   }
 
   buildSimpleLegalFooter(companySettings = {}) {
     // Version simplifiée et compacte pour éviter le débordement
-    const parts = [];
+    const parts = []
 
     // Ligne 1: Entreprise et siège
-    const company = companySettings.company_name || "";
+    const company = companySettings.company_name || ''
     const legalForm =
-      companySettings.forme_juridique || companySettings.legal_form || "";
+      companySettings.forme_juridique || companySettings.legal_form || ''
     const address = [
       companySettings.address_line1,
       companySettings.address_line2,
-      `${companySettings.postal_code || ""} ${companySettings.city || ""}`.trim(),
+      `${companySettings.postal_code || ''} ${companySettings.city || ''}`.trim(),
     ]
       .filter(Boolean)
-      .join(", ");
+      .join(', ')
 
     if (company) {
-      let line1 = legalForm ? `${company} — ${legalForm}` : company;
+      let line1 = legalForm ? `${company} — ${legalForm}` : company
       if (companySettings.capital_social || companySettings.share_capital) {
         const capital =
-          companySettings.capital_social || companySettings.share_capital;
-        line1 += ` • Capital: ${capital}`;
+          companySettings.capital_social || companySettings.share_capital
+        line1 += ` • Capital: ${capital}`
       }
-      if (address) line1 += ` • Siège social: ${address}`;
-      parts.push(line1);
+      if (address) line1 += ` • Siège social: ${address}`
+      parts.push(line1)
     }
 
     // Ligne 2: Numéros officiels
-    const officials = [];
-    if (companySettings.siret)
-      officials.push(`SIRET: ${companySettings.siret}`);
+    const officials = []
+    if (companySettings.siret) officials.push(`SIRET: ${companySettings.siret}`)
     if (companySettings.rcs_number || companySettings.numero_rcs) {
-      const rcs = companySettings.rcs_number || companySettings.numero_rcs;
-      officials.push(`RCS: ${rcs}`);
+      const rcs = companySettings.rcs_number || companySettings.numero_rcs
+      officials.push(`RCS: ${rcs}`)
     }
     if (companySettings.ape_code || companySettings.code_ape) {
       officials.push(
-        `APE: ${companySettings.ape_code || companySettings.code_ape}`,
-      );
+        `APE: ${companySettings.ape_code || companySettings.code_ape}`
+      )
     }
     if (companySettings.vat_number || companySettings.tva_intracommunautaire) {
       officials.push(
-        `TVA: ${companySettings.vat_number || companySettings.tva_intracommunautaire}`,
-      );
+        `TVA: ${companySettings.vat_number || companySettings.tva_intracommunautaire}`
+      )
     }
-    if (officials.length > 0) parts.push(officials.join(" • "));
+    if (officials.length > 0) parts.push(officials.join(' • '))
 
     // Ligne 3: Assurances et contact
-    const contacts = [];
+    const contacts = []
     if (companySettings.insurance_company || companySettings.assurance_rc) {
       const insurance =
-        companySettings.insurance_company || companySettings.assurance_rc;
+        companySettings.insurance_company || companySettings.assurance_rc
       const policy =
         companySettings.insurance_policy_number ||
-        companySettings.police_assurance;
-      contacts.push(`RC Pro: ${insurance}${policy ? ` ${policy}` : ""}`);
+        companySettings.police_assurance
+      contacts.push(`RC Pro: ${insurance}${policy ? ` ${policy}` : ''}`)
     }
-    if (companySettings.phone) contacts.push(`Tél: ${companySettings.phone}`);
-    if (companySettings.email) contacts.push(`Email: ${companySettings.email}`);
+    if (companySettings.phone) contacts.push(`Tél: ${companySettings.phone}`)
+    if (companySettings.email) contacts.push(`Email: ${companySettings.email}`)
     if (companySettings.website)
-      contacts.push(`Web: ${companySettings.website}`);
-    if (contacts.length > 0) parts.push(contacts.join(" • "));
+      contacts.push(`Web: ${companySettings.website}`)
+    if (contacts.length > 0) parts.push(contacts.join(' • '))
 
-    return parts.join("\n");
+    return parts.join('\n')
   }
 
   buildCompleteLegalFooter(companySettings = {}) {
     // Informations obligatoires selon la législation française
     const company =
-      companySettings.company_name || companySettings.legal_name || "";
+      companySettings.company_name || companySettings.legal_name || ''
     const legalForm =
-      companySettings.forme_juridique || companySettings.legal_form || "";
-    const capital = companySettings.capital_social;
-    const siret = companySettings.siret || "";
-    const rcs = companySettings.rcs_number || companySettings.numero_rcs || "";
-    const ape = companySettings.ape_code || companySettings.code_ape || "";
+      companySettings.forme_juridique || companySettings.legal_form || ''
+    const capital = companySettings.capital_social
+    const siret = companySettings.siret || ''
+    const rcs = companySettings.rcs_number || companySettings.numero_rcs || ''
+    const ape = companySettings.ape_code || companySettings.code_ape || ''
     const tva =
-      companySettings.vat_number ||
-      companySettings.tva_intracommunautaire ||
-      "";
+      companySettings.vat_number || companySettings.tva_intracommunautaire || ''
     const address = [
       companySettings.address_line1,
       companySettings.address_line2,
-      `${companySettings.postal_code || ""} ${companySettings.city || ""}`.trim(),
+      `${companySettings.postal_code || ''} ${companySettings.city || ''}`.trim(),
     ]
       .filter(Boolean)
-      .join(", ");
+      .join(', ')
 
     // Construction des mentions légales - Version compacte pour le footer
-    const legalParts = [];
+    const legalParts = []
 
     // Ligne 1: Identification entreprise
-    const identificationParts = [];
+    const identificationParts = []
     if (company && legalForm) {
-      identificationParts.push(`${company} — ${legalForm}`);
+      identificationParts.push(`${company} — ${legalForm}`)
     } else if (company) {
-      identificationParts.push(company);
+      identificationParts.push(company)
     }
     if (capital) {
-      identificationParts.push(`Capital: ${capital}`);
+      identificationParts.push(`Capital: ${capital}`)
     }
 
     if (address) {
-      identificationParts.push(`Siège social: ${address}`);
+      identificationParts.push(`Siège social: ${address}`)
     }
 
     if (identificationParts.length > 0) {
-      legalParts.push(identificationParts.join(" • "));
+      legalParts.push(identificationParts.join(' • '))
     }
 
     // Ligne 2: Numéros officiels
-    const officialNumbers = [];
+    const officialNumbers = []
     if (siret) {
-      officialNumbers.push(`SIREN/SIRET: ${siret}`);
+      officialNumbers.push(`SIREN/SIRET: ${siret}`)
     }
     if (rcs) {
-      const tribunal = companySettings.tribunal_commercial || "RCS";
-      officialNumbers.push(`${tribunal}: ${rcs}`);
+      const tribunal = companySettings.tribunal_commercial || 'RCS'
+      officialNumbers.push(`${tribunal}: ${rcs}`)
     }
     if (ape) {
-      officialNumbers.push(`APE/NAF: ${ape}`);
+      officialNumbers.push(`APE/NAF: ${ape}`)
     }
     if (tva) {
-      officialNumbers.push(`TVA intracom: ${tva}`);
+      officialNumbers.push(`TVA intracom: ${tva}`)
     } else {
-      officialNumbers.push("TVA non applicable, art. 293 B du CGI");
+      officialNumbers.push('TVA non applicable, art. 293 B du CGI')
     }
 
     if (officialNumbers.length > 0) {
-      legalParts.push(officialNumbers.join(" • "));
+      legalParts.push(officialNumbers.join(' • '))
     }
 
     // Ligne 3: Assurances
-    const insuranceParts = [];
+    const insuranceParts = []
     const insurance =
-      companySettings.insurance_company || companySettings.assurance_rc || "";
+      companySettings.insurance_company || companySettings.assurance_rc || ''
     const policyNumber =
       companySettings.insurance_policy_number ||
       companySettings.police_assurance ||
-      "";
+      ''
     if (insurance) {
       insuranceParts.push(
-        `Assurance RC Pro: ${insurance}${policyNumber ? ` — Police: ${policyNumber}` : ""}`,
-      );
+        `Assurance RC Pro: ${insurance}${policyNumber ? ` — Police: ${policyNumber}` : ''}`
+      )
     }
 
     const decennaleInsurance =
       companySettings.decennale_insurance ||
       companySettings.garantie_decennale ||
-      "";
+      ''
     if (decennaleInsurance) {
-      insuranceParts.push(`Garantie décennale: ${decennaleInsurance}`);
+      insuranceParts.push(`Garantie décennale: ${decennaleInsurance}`)
     }
 
     if (insuranceParts.length > 0) {
-      legalParts.push(insuranceParts.join(" • "));
+      legalParts.push(insuranceParts.join(' • '))
     }
 
     // Ligne 4: Contact et médiation
-    const contactParts = [];
+    const contactParts = []
     if (companySettings.phone)
-      contactParts.push(`Tél: ${companySettings.phone}`);
+      contactParts.push(`Tél: ${companySettings.phone}`)
     if (companySettings.email)
-      contactParts.push(`Email: ${companySettings.email}`);
+      contactParts.push(`Email: ${companySettings.email}`)
     if (companySettings.website)
-      contactParts.push(`Web: ${companySettings.website}`);
+      contactParts.push(`Web: ${companySettings.website}`)
 
-    const mediator = companySettings.mediator_name || "";
-    const mediatorWebsite = companySettings.mediator_website || "";
+    const mediator = companySettings.mediator_name || ''
+    const mediatorWebsite = companySettings.mediator_website || ''
     if (mediator) {
       contactParts.push(
-        `Médiateur: ${mediator}${mediatorWebsite ? ` — ${mediatorWebsite}` : ""}`,
-      );
+        `Médiateur: ${mediator}${mediatorWebsite ? ` — ${mediatorWebsite}` : ''}`
+      )
     }
 
     if (contactParts.length > 0) {
-      legalParts.push(contactParts.join(" • "));
+      legalParts.push(contactParts.join(' • '))
     }
 
     // Ligne 5: Mentions complémentaires si nécessaire
-    const additionalParts = [];
+    const additionalParts = []
     if (companySettings.btp_compliance) {
       additionalParts.push(
-        "Entreprise du BTP soumise aux dispositions de l'article L. 111-28 du Code de la construction",
-      );
+        "Entreprise du BTP soumise aux dispositions de l'article L. 111-28 du Code de la construction"
+      )
     }
     if (companySettings.rgpd_compliance) {
       additionalParts.push(
-        "Traitement des données conforme au RGPD — Politique de confidentialité disponible sur demande",
-      );
+        'Traitement des données conforme au RGPD — Politique de confidentialité disponible sur demande'
+      )
     }
 
     if (additionalParts.length > 0) {
-      legalParts.push(additionalParts.join(" • "));
+      legalParts.push(additionalParts.join(' • '))
     }
 
     // Nettoyer et assembler
     const sanitizedParts = legalParts
-      .map((part) => part.replace(/\s+/g, " ").trim())
-      .filter(Boolean);
+      .map((part) => part.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
 
-    return sanitizedParts.join("\n");
+    return sanitizedParts.join('\n')
   }
 
   formatCurrency(amount) {
-    const formatted = new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
+    const formatted = new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
       useGrouping: true,
-    }).format(Number(amount || 0));
+    }).format(Number(amount || 0))
 
     // Remplace les espaces insécables par des espaces normaux
-    return formatted.replace(/\u00A0/g, " ").replace(/\s+/g, " ");
+    return formatted.replace(/\u00A0/g, ' ').replace(/\s+/g, ' ')
   }
 
   addInvoicePaymentConditions(doc, invoice, companySettings, primaryColor) {
     // Vérifier si on a assez d'espace sur la page actuelle
-    const requiredHeight = 200; // Estimation pour tout le contenu conditions
-    const availableSpace = this.getContentEndY() - doc.y;
+    const requiredHeight = 200 // Estimation pour tout le contenu conditions
+    const availableSpace = this.getContentEndY() - doc.y
 
     if (availableSpace < requiredHeight) {
-      this.addNewPage();
+      this.addNewPage()
     }
 
     // const startY = doc.y; // Non utilisé
@@ -1816,151 +1807,151 @@ class SimplePDFService {
       .font(this.fonts.bold)
       .fontSize(16)
       .fillColor(primaryColor)
-      .text("CONDITIONS DE PAIEMENT", this.pageConfig.margin, doc.y);
+      .text('CONDITIONS DE PAIEMENT', this.pageConfig.margin, doc.y)
 
-    doc.y += 20;
+    doc.y += 20
 
     // Section conditions de paiement spécifiques aux factures
     doc
       .font(this.fonts.bold)
       .fontSize(12)
       .fillColor(this.colors.dark)
-      .text("MODALITÉS DE RÈGLEMENT", this.pageConfig.margin, doc.y);
+      .text('MODALITÉS DE RÈGLEMENT', this.pageConfig.margin, doc.y)
 
-    doc.y += 12;
+    doc.y += 12
 
     // Encadré conditions de paiement
-    const conditionsY = doc.y;
-    const conditionsWidth = doc.page.width - this.pageConfig.margin * 2;
+    const conditionsY = doc.y
+    const conditionsWidth = doc.page.width - this.pageConfig.margin * 2
 
     doc
       .rect(this.pageConfig.margin, conditionsY, conditionsWidth, 100)
       .fillColor(this.colors.light)
       .fill()
-      .strokeColor("#cbd5e1")
-      .stroke();
+      .strokeColor('#cbd5e1')
+      .stroke()
 
     // Contenu des conditions spécifiques aux factures
     const formatDate = (date) => {
-      if (!date) return "-";
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return "-";
-      return d.toLocaleDateString("fr-FR");
-    };
+      if (!date) return '-'
+      const d = new Date(date)
+      if (isNaN(d.getTime())) return '-'
+      return d.toLocaleDateString('fr-FR')
+    }
 
     const conditions = [
       `• Date d'échéance : ${formatDate(invoice.dueDate)}`,
       invoice.paymentTerms
         ? `• Conditions : ${invoice.paymentTerms}`
-        : "• Paiement à réception de facture",
-      "• Moyens de paiement : Chèque, virement bancaire, espèces (< 1000€)",
-      companySettings?.iban ? `• IBAN : ${companySettings.iban}` : "",
-      companySettings?.bic ? `• BIC : ${companySettings.bic}` : "",
+        : '• Paiement à réception de facture',
+      '• Moyens de paiement : Chèque, virement bancaire, espèces (< 1000€)',
+      companySettings?.iban ? `• IBAN : ${companySettings.iban}` : '',
+      companySettings?.bic ? `• BIC : ${companySettings.bic}` : '',
       companySettings?.bank_name
         ? `• Banque : ${companySettings.bank_name}`
-        : "",
-      "• En cas de retard : pénalités de retard au taux légal en vigueur",
-      "• Indemnité forfaitaire pour frais de recouvrement : 40€ (art. L441-10 C. com.)",
-    ].filter(Boolean);
+        : '',
+      '• En cas de retard : pénalités de retard au taux légal en vigueur',
+      '• Indemnité forfaitaire pour frais de recouvrement : 40€ (art. L441-10 C. com.)',
+    ].filter(Boolean)
 
     doc
       .font(this.fonts.regular)
       .fontSize(9)
       .fillColor(this.colors.dark)
       .text(
-        conditions.join("\n"),
+        conditions.join('\n'),
         this.pageConfig.margin + 10,
         conditionsY + 10,
         {
           width: conditionsWidth - 20,
           lineGap: 2,
-        },
-      );
+        }
+      )
 
-    doc.y = conditionsY + 115;
-    doc.y += 8; // Espacement avant la section informations légales
+    doc.y = conditionsY + 115
+    doc.y += 8 // Espacement avant la section informations légales
 
     // Section informations légales spécifiques aux factures
-    this.addInvoiceLegalNotices(doc, companySettings);
+    this.addInvoiceLegalNotices(doc, companySettings)
   }
 
   addInvoiceLegalNotices(doc, companySettings) {
-    doc.y += 20;
+    doc.y += 20
 
     // Titre
     doc
       .font(this.fonts.bold)
       .fontSize(11)
       .fillColor(this.colors.danger)
-      .text("INFORMATIONS LÉGALES", this.pageConfig.margin, doc.y);
+      .text('INFORMATIONS LÉGALES', this.pageConfig.margin, doc.y)
 
-    doc.y += 15;
+    doc.y += 15
 
     // Encadré pour les informations légales
-    const noticeWidth = doc.page.width - this.pageConfig.margin * 2;
-    const noticeY = doc.y;
+    const noticeWidth = doc.page.width - this.pageConfig.margin * 2
+    const noticeY = doc.y
 
     doc
       .rect(this.pageConfig.margin, noticeY, noticeWidth, 60)
-      .fillColor("#fff5f5")
+      .fillColor('#fff5f5')
       .fill()
-      .strokeColor("#fca5a5")
+      .strokeColor('#fca5a5')
       .lineWidth(1)
-      .stroke();
+      .stroke()
 
     // Informations légales spécifiques aux factures
     const notices = [
-      "• Facture conforme aux dispositions légales françaises",
-      "• TVA : " +
+      '• Facture conforme aux dispositions légales françaises',
+      '• TVA : ' +
         (companySettings.vat_number || companySettings.tva_intracommunautaire
           ? `N° ${companySettings.vat_number || companySettings.tva_intracommunautaire}`
-          : "Non applicable, art. 293 B du CGI"),
-      "• En cas de litige : recours possible à la médiation de la consommation (www.mediation-consommation.fr)",
-      "• Assurances : RC Pro et décennale souscrites",
-      "• Garanties légales : Garantie décennale sur les travaux de gros œuvre, garantie biennale sur les équipements",
-    ];
+          : 'Non applicable, art. 293 B du CGI'),
+      '• En cas de litige : recours possible à la médiation de la consommation (www.mediation-consommation.fr)',
+      '• Assurances : RC Pro et décennale souscrites',
+      '• Garanties légales : Garantie décennale sur les travaux de gros œuvre, garantie biennale sur les équipements',
+    ]
 
     doc
       .font(this.fonts.regular)
       .fontSize(8)
       .fillColor(this.colors.dark)
-      .text(notices.join("\n"), this.pageConfig.margin + 10, noticeY + 8, {
+      .text(notices.join('\n'), this.pageConfig.margin + 10, noticeY + 8, {
         width: noticeWidth - 20,
         lineGap: 1,
-      });
+      })
 
-    doc.y = noticeY + 70;
+    doc.y = noticeY + 70
   }
 
   async generateInvoicePDF(invoice, companySettings) {
     return new Promise((resolve, reject) => {
-      (async () => {
+      ;(async () => {
         try {
           // Format A4 avec marges professionnelles
           const doc = new PDFDocument({
-            size: "A4",
+            size: 'A4',
             margin: this.pageConfig.margin,
             bufferPages: true,
             autoFirstPage: true,
-          });
+          })
 
           // Calculer la zone de contenu disponible
           this.pageConfig.contentAreaHeight =
             doc.page.height -
             this.pageConfig.margin * 2 -
             this.pageConfig.headerHeight -
-            this.pageConfig.footerHeight;
+            this.pageConfig.footerHeight
 
-          const chunks = [];
+          const chunks = []
 
           // Collecter les données du PDF
-          doc.on("data", (chunk) => chunks.push(chunk));
-          doc.on("end", () => resolve(Buffer.concat(chunks)));
-          doc.on("error", reject);
+          doc.on('data', (chunk) => chunks.push(chunk))
+          doc.on('end', () => resolve(Buffer.concat(chunks)))
+          doc.on('error', reject)
 
           // Configuration des couleurs personnalisées
           const primaryColor =
-            companySettings?.primary_color || this.colors.primary;
+            companySettings?.primary_color || this.colors.primary
 
           // Stocker les données communes pour toutes les pages
           this.commonData = {
@@ -1968,10 +1959,10 @@ class SimplePDFService {
             companySettings,
             primaryColor,
             doc,
-          };
+          }
 
           // Position de départ du contenu (après l'en-tête)
-          doc.y = this.getContentStartY();
+          doc.y = this.getContentStartY()
 
           // Structure du document pour facture
           this.addCompanyAndClientInfo(
@@ -1979,38 +1970,216 @@ class SimplePDFService {
             invoice,
             companySettings,
             true,
-            primaryColor,
-          ); // true = facture
-          this.addInvoiceDetails(doc, invoice);
-          this.addItemsTable(doc, invoice, primaryColor);
-          this.addTotalsSection(doc, invoice, primaryColor);
+            primaryColor
+          ) // true = facture
+          this.addInvoiceDetails(doc, invoice)
+          this.addItemsTable(doc, invoice, primaryColor)
+          this.addTotalsSection(doc, invoice, primaryColor)
 
           // Ajouter les conditions de paiement sur la même page si possible, sinon nouvelle page
-          const requiredHeightForPayment = 200;
+          const requiredHeightForPayment = 200
           if (this.needsNewPage(requiredHeightForPayment)) {
-            this.addNewPage();
+            this.addNewPage()
           } else {
             // Ajouter de l'espace avant les conditions si on reste sur la même page
-            doc.y += 40;
+            doc.y += 40
           }
 
           this.addInvoicePaymentConditions(
             doc,
             invoice,
             companySettings,
-            primaryColor,
-          );
+            primaryColor
+          )
 
           // Appliquer les en-têtes et pieds de page sur toutes les pages
-          await this.applyHeadersAndFooters();
+          await this.applyHeadersAndFooters()
 
           // Finaliser le document
-          doc.end();
+          doc.end()
         } catch (error) {
-          reject(error);
+          reject(error)
         }
-      })();
-    });
+      })()
+    })
+  }
+
+  async generateAcceptedQuotePDF(quote, companySettings, acceptanceData) {
+    return new Promise((resolve, reject) => {
+      ;(async () => {
+        try {
+          // Format A4 avec marges professionnelles
+          const doc = new PDFDocument({
+            size: 'A4',
+            margin: this.pageConfig.margin,
+            bufferPages: true,
+            autoFirstPage: true,
+          })
+
+          // Calculer la zone de contenu disponible
+          this.pageConfig.contentAreaHeight =
+            doc.page.height -
+            this.pageConfig.margin * 2 -
+            this.pageConfig.headerHeight -
+            this.pageConfig.footerHeight
+
+          const chunks = []
+
+          // Collecter les données du PDF
+          doc.on('data', (chunk) => chunks.push(chunk))
+          doc.on('end', () => resolve(Buffer.concat(chunks)))
+          doc.on('error', reject)
+
+          // Configuration des couleurs personnalisées
+          const primaryColor =
+            companySettings?.primary_color || this.colors.primary
+
+          // Stocker les données communes pour toutes les pages
+          this.commonData = {
+            quote,
+            companySettings,
+            primaryColor,
+            doc,
+          }
+
+          // Position de départ du contenu (après l'en-tête)
+          doc.y = this.getContentStartY()
+
+          // Structure du document
+          this.addCompanyAndClientInfo(
+            doc,
+            quote,
+            companySettings,
+            false,
+            primaryColor
+          ) // false = devis
+          this.addQuoteDetails(doc, quote)
+          this.addItemsTable(doc, quote, primaryColor)
+          this.addTotalsSection(doc, quote, primaryColor)
+
+          // Ajouter les conditions sur la même page si possible, sinon nouvelle page
+          const requiredHeightForConditions = 350
+          if (this.needsNewPage(requiredHeightForConditions)) {
+            this.addNewPage()
+          } else {
+            // Ajouter de l'espace avant les conditions si on reste sur la même page
+            doc.y += 40
+          }
+
+          await this.addConditionsAndSignature(
+            doc,
+            quote,
+            companySettings,
+            primaryColor
+          )
+
+          // Ajouter la section de validation électronique
+          await this.addElectronicValidation(
+            doc,
+            quote,
+            companySettings,
+            acceptanceData,
+            primaryColor
+          )
+
+          // Appliquer les en-têtes et pieds de page sur toutes les pages
+          await this.applyHeadersAndFooters()
+
+          // Finaliser le document
+          doc.end()
+        } catch (error) {
+          reject(error)
+        }
+      })()
+    })
+  }
+
+  async addElectronicValidation(
+    doc,
+    quote,
+    companySettings,
+    acceptanceData,
+    primaryColor
+  ) {
+    // Nouvelle page pour la validation électronique
+    this.addNewPage()
+
+    // Titre de validation électronique
+    doc
+      .font(this.fonts.bold)
+      .fontSize(16)
+      .fillColor(primaryColor)
+      .text('VALIDATION ÉLECTRONIQUE', this.pageConfig.margin, doc.y)
+      .fillColor(this.colors.dark)
+
+    doc.y += 30
+
+    // Encadré de validation
+    const validationY = doc.y
+    const validationWidth = doc.page.width - this.pageConfig.margin * 2
+    const validationHeight = 200
+
+    doc
+      .rect(
+        this.pageConfig.margin,
+        validationY,
+        validationWidth,
+        validationHeight
+      )
+      .fillColor('#f0f9ff')
+      .fill()
+      .strokeColor(primaryColor)
+      .lineWidth(2)
+      .stroke()
+
+    // Contenu de la validation
+    const contentX = this.pageConfig.margin + 20
+    let currentY = validationY + 20
+
+    // Statut accepté
+    doc
+      .font(this.fonts.bold)
+      .fontSize(14)
+      .fillColor('#059669')
+      .text('✓ DEVIS ACCEPTÉ ÉLECTRONIQUEMENT', contentX, currentY)
+      .fillColor(this.colors.dark)
+    currentY += 30
+
+    // Informations de validation
+    const validationInfo = [
+      `Date d'acceptation : ${acceptanceData.acceptedAt.toLocaleString('fr-FR')}`,
+      `Adresse IP du client : ${acceptanceData.clientIp}`,
+      `Empreinte du document : ${acceptanceData.pdfSha256}`,
+      `Navigateur : ${acceptanceData.clientUserAgent || 'Non disponible'}`,
+    ]
+
+    doc
+      .font(this.fonts.regular)
+      .fontSize(10)
+      .text(validationInfo.join('\n'), contentX, currentY)
+    currentY += 80
+
+    // Mention légale
+    doc
+      .font(this.fonts.bold)
+      .fontSize(10)
+      .text('Valeur légale :', contentX, currentY)
+    currentY += 15
+
+    doc
+      .font(this.fonts.regular)
+      .fontSize(9)
+      .text(
+        "Cette validation électronique a la même valeur légale qu'une signature manuscrite conformément à l'article 1366 du Code civil français.",
+        contentX,
+        currentY,
+        {
+          width: validationWidth - 40,
+          align: 'justify',
+        }
+      )
+
+    doc.y = validationY + validationHeight + 20
   }
 
   async close() {
@@ -2018,4 +2187,4 @@ class SimplePDFService {
   }
 }
 
-module.exports = new SimplePDFService();
+module.exports = new SimplePDFService()

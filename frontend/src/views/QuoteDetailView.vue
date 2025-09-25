@@ -52,7 +52,7 @@
           </button>
           <button
             v-if="quote"
-            @click="openSendModal = true"
+            @click="sendQuoteByEmail"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
           >
             Envoyer par e‑mail
@@ -366,10 +366,12 @@ import { onMounted, computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Layout from "@/components/Layout.vue";
 import { useQuotesStore } from "@/stores/quotes";
+import { useToast } from "vue-toastification";
 
 const route = useRoute();
 const router = useRouter();
 const quotesStore = useQuotesStore();
+const toast = useToast();
 
 const id = computed(() => route.params.id);
 const loading = computed(() => quotesStore.loading);
@@ -380,6 +382,20 @@ const sendForm = ref({ to: "", subject: "", message: "" });
 const defaultSubject = computed(() =>
   `Votre devis ${quote.value?.quoteNumber || ""}`.trim(),
 );
+
+// Pré-remplir l'email du client quand le modal s'ouvre
+const openSendModalHandler = () => {
+  if (quote.value?.client?.email) {
+    sendForm.value.to = quote.value.client.email;
+  }
+  if (!sendForm.value.subject) {
+    sendForm.value.subject = defaultSubject.value;
+  }
+  if (!sendForm.value.message) {
+    sendForm.value.message = `Bonjour ${quote.value?.client?.firstName || ""} ${quote.value?.client?.lastName || ""},\n\nVeuillez trouver ci-joint votre devis ${quote.value?.quoteNumber || ""}.\n\nCordialement,\nL'équipe`;
+  }
+  openSendModal.value = true;
+};
 const isValidEmail = (e) => /[^@\s]+@[^@\s]+\.[^@\s]+/.test(e || "");
 
 const formatCurrency = (amount) =>
@@ -422,6 +438,18 @@ const editQuote = () => {
 
 const sendEmail = async () => {
   try {
+    // Vérifier que l'email est valide
+    if (!sendForm.value.to || !isValidEmail(sendForm.value.to)) {
+      toast.error("Veuillez saisir une adresse email valide");
+      return;
+    }
+
+    // Demander confirmation
+    const confirmed = confirm(
+      `Envoyer le devis ${quote.value?.quoteNumber || ""} par email à ${sendForm.value.to} ?`,
+    );
+    if (!confirmed) return;
+
     const payload = {
       to: sendForm.value.to,
       subject: sendForm.value.subject || defaultSubject.value,
@@ -429,6 +457,9 @@ const sendEmail = async () => {
     };
     const resp = await quotesStore.sendByEmail(id.value, payload);
     openSendModal.value = false;
-  } catch (_) {}
+  } catch (error) {
+    console.error("Erreur envoi email:", error);
+    // L'erreur est déjà gérée par le store avec un toast
+  }
 };
 </script>
