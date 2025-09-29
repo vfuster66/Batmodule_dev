@@ -13,7 +13,7 @@ RUN apk add --no-cache \
 COPY package*.json ./
 
 # Installer les dépendances (dev inclus pour le développement)
-RUN npm ci
+RUN npm install
 
 # Copier seulement le code source nécessaire
 COPY src ./src

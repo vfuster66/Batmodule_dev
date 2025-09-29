@@ -1,4 +1,4 @@
-const { query } = require("../config/database");
+const { query } = require('../config/database')
 
 async function ensureAuditTable() {
   await query(`
@@ -13,7 +13,7 @@ async function ensureAuditTable() {
         );
         CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id);
         CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id);
-    `);
+    `)
 }
 
 async function logAudit({
@@ -22,12 +22,28 @@ async function logAudit({
   entityId,
   action,
   metadata = {},
+  // Support des nouveaux paramètres
+  resourceType,
+  resourceId,
+  details,
+  ipAddress,
 }) {
-  await ensureAuditTable();
+  await ensureAuditTable()
+
+  // Mapper les nouveaux paramètres vers les anciens
+  const finalEntityType = entityType || resourceType
+  const finalEntityId = entityId || resourceId
+  const finalMetadata = metadata || details || {}
+
+  // Ajouter l'IP si fournie
+  if (ipAddress) {
+    finalMetadata.ipAddress = ipAddress
+  }
+
   await query(
-    "INSERT INTO audit_logs (user_id, entity_type, entity_id, action, metadata) VALUES ($1, $2, $3, $4, $5)",
-    [userId || null, entityType, entityId, action, metadata],
-  );
+    'INSERT INTO audit_logs (user_id, entity_type, entity_id, action, metadata) VALUES ($1, $2, $3, $4, $5)',
+    [userId || null, finalEntityType, finalEntityId, action, finalMetadata]
+  )
 }
 
-module.exports = { logAudit };
+module.exports = { logAudit }

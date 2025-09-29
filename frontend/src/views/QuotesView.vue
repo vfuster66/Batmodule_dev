@@ -404,18 +404,6 @@
         </div>
         <div>
           <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
-            >Montant total (€)</label
-          >
-          <input
-            v-model.number="advanceForm.totalAmount"
-            type="number"
-            min="0.01"
-            step="0.01"
-            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
-          />
-        </div>
-        <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
             >Échéance</label
           >
           <input
@@ -1451,7 +1439,7 @@
 
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import Layout from "@/components/Layout.vue";
 import { useQuotesStore } from "@/stores/quotes";
 import { useInvoicesStore } from "@/stores/invoices";
@@ -1461,6 +1449,7 @@ import api from "@/utils/api";
 import { useToast } from "vue-toastification";
 
 const router = useRouter();
+const route = useRoute();
 const quotesStore = useQuotesStore();
 const invoicesStore = useInvoicesStore();
 const clientsStore = useClientsStore();
@@ -1477,7 +1466,6 @@ const advanceForm = ref({
   quoteId: "",
   title: "",
   advanceAmount: 0,
-  totalAmount: 0,
   dueDate: "",
   notes: "",
   purchaseOrderNumber: "",
@@ -1900,7 +1888,32 @@ onMounted(async () => {
     const { data } = await api.get("/services");
     services.value = data.services || [];
   } catch (_) {}
+
+  // Vérifier si on doit ouvrir le modal de création
+  if (route.query.action === "create") {
+    openCreateModal();
+    clearActionQuery();
+  }
 });
+
+// Fonction pour nettoyer le paramètre action
+const clearActionQuery = () => {
+  if (!route.query?.action) return;
+
+  const { action, ...rest } = route.query;
+  router.replace({ query: rest });
+};
+
+// Surveillance du paramètre action pour les clics répétés
+watch(
+  () => route.query.action,
+  (action) => {
+    if (action === "create") {
+      openCreateModal();
+      clearActionQuery();
+    }
+  },
+);
 
 const viewQuote = (id) => {
   router.push(`/quotes/${id}`);
@@ -1996,7 +2009,6 @@ function openAdvanceModal(quote) {
     quoteId: quote.id,
     title: `Acompte – ${quote.title || quote.quoteNumber}`,
     advanceAmount: Number(((quote.totalTtc || 0) * 0.3).toFixed(2)),
-    totalAmount: Number(quote.totalTtc || 0),
     dueDate: due.toISOString().slice(0, 10),
     notes: `Acompte pour le devis ${quote.quoteNumber}`,
     purchaseOrderNumber: "",
@@ -2008,13 +2020,7 @@ function closeAdvanceModal() {
 }
 const canSubmitAdvance = computed(() => {
   const f = advanceForm.value;
-  return (
-    !!f.clientId &&
-    !!f.title &&
-    f.advanceAmount > 0 &&
-    f.totalAmount > 0 &&
-    !!f.dueDate
-  );
+  return !!f.clientId && !!f.title && f.advanceAmount > 0 && !!f.dueDate;
 });
 async function submitAdvance() {
   try {
@@ -2023,7 +2029,7 @@ async function submitAdvance() {
     });
     closeAdvanceModal();
     await quotesStore.fetchQuotes();
-    if (created?.id) router.push(`/invoices/${created.id}`);
+    if (created?.id) router.push("/invoices");
   } catch (_) {}
 }
 

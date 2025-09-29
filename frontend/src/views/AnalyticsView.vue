@@ -1,6 +1,23 @@
 <template>
   <Layout>
-    <div class="space-y-6">
+    <div ref="containerRef" class="space-y-6">
+      <!-- Loading indicator -->
+      <div
+        v-if="isLoading"
+        class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4"
+      >
+        <strong>Chargement...</strong> Récupération des données analytics...
+      </div>
+
+      <!-- Error indicator -->
+      <div
+        v-if="hasError"
+        class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"
+      >
+        <strong>Erreur:</strong> Impossible de charger les données analytics.
+        Vérifiez votre connexion et votre authentification.
+      </div>
+
       <!-- Revenus 12 mois -->
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
         <div class="flex items-center justify-between mb-2">
@@ -11,7 +28,7 @@
             Total: {{ formatCurrency(sum(revenueByMonth.map((x) => x.value))) }}
           </div>
         </div>
-        <svg :width="width" :height="height">
+        <svg :width="width" :height="height" class="w-full max-w-full">
           <g :transform="`translate(${m.left},${m.top})`">
             <template v-for="(bar, i) in revenueBars" :key="i">
               <rect
@@ -60,7 +77,7 @@
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
           Devis par mois
         </h3>
-        <svg :width="width" :height="height">
+        <svg :width="width" :height="height" class="w-full max-w-full">
           <g :transform="`translate(${m.left},${m.top})`">
             <polyline
               :points="linePoints(acceptedSeries)"
@@ -174,7 +191,7 @@
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
           Pipeline devis (envoyés)
         </h3>
-        <svg :width="width" :height="height">
+        <svg :width="width" :height="height" class="w-full max-w-full">
           <g :transform="`translate(${m.left},${m.top})`">
             <template v-for="(bar, i) in pipelineBars" :key="i">
               <rect
@@ -222,32 +239,79 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import Layout from "@/components/Layout.vue";
 import api from "@/utils/api";
 
-const width = 720,
-  height = 220;
+// Dimensions dynamiques
+const containerRef = ref(null);
+const width = ref(720);
+const height = 220;
 const m = { top: 10, right: 10, bottom: 24, left: 32 };
-const innerW = width - m.left - m.right;
+
+const innerW = computed(() => width.value - m.left - m.right);
 const innerH = height - m.top - m.bottom;
+
+// Observer pour ajuster la largeur dynamiquement
+let resizeObserver = null;
+let removeWindowListener = null;
+
+const updateWidth = () => {
+  if (containerRef.value) {
+    const containerWidth = containerRef.value.offsetWidth;
+    // Largeur minimale de 320px, maximale de 1200px
+    width.value = Math.max(320, Math.min(1200, containerWidth - 32));
+  }
+};
 
 const revenueByMonth = ref([]);
 const quotesMonthly = ref([]);
 const pipelineByMonth = ref([]);
 const topClients90 = ref([]);
 const aging = ref({ o0_30: 0, o31_60: 0, o61_90: 0, o90_plus: 0, dueSoon: 0 });
+const isLoading = ref(true);
+const hasError = ref(false);
 
 onMounted(async () => {
   try {
+    isLoading.value = true;
+    hasError.value = false;
+
     const { data } = await api.get("/dashboard/analytics");
+
     revenueByMonth.value = data.revenueByMonth || [];
     quotesMonthly.value = data.quotesMonthly || [];
     pipelineByMonth.value = data.pipelineSentByMonth || [];
     topClients90.value = data.topClients90 || [];
     aging.value = data.outstandingAging || aging.value;
+
+    isLoading.value = false;
   } catch (e) {
+    hasError.value = true;
+    isLoading.value = false;
     /* handled by api */
+  }
+
+  // Initialiser l'observer de redimensionnement
+  if (containerRef.value) {
+    updateWidth();
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(updateWidth);
+      resizeObserver.observe(containerRef.value);
+    } else if (typeof window !== "undefined") {
+      window.addEventListener("resize", updateWidth);
+      removeWindowListener = () =>
+        window.removeEventListener("resize", updateWidth);
+    }
+  }
+});
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+  if (removeWindowListener) {
+    removeWindowListener();
   }
 });
 
@@ -263,7 +327,7 @@ function formatCurrency(v) {
   }).format(Number(v || 0));
 }
 function shortMonth(ym) {
-  const [y, m] = (ym || "").split("-");
+  const [, m] = (ym || "").split("-");
   const months = [
     "",
     "jan",
@@ -271,43 +335,54 @@ function shortMonth(ym) {
     "mar",
     "avr",
     "mai",
-    "jui",
-    "jui",
+    "juin",
+    "juil",
     "aoû",
     "sep",
     "oct",
     "nov",
     "déc",
   ];
-  return months[Number(m)];
+  return months[Number(m)] || "";
 }
 function formatShort(v) {
   if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
-  if (v >= 1e3) return (v / 1e3).toFixed(0) + "k";
+  if (v >= 1e3) {
+    // Arrondi inférieur pour éviter la surestimation
+    const k = Math.floor(v / 1e3);
+    return k + "k";
+  }
   return Math.round(v).toString();
 }
 
 // Bars revenue
-const revenueMax = computed(() =>
-  Math.max(1, ...revenueByMonth.value.map((d) => d.value)),
-);
-const barW = computed(
-  () => innerW / Math.max(1, revenueByMonth.value.length) - 6,
-);
-const revenueBars = computed(() =>
-  revenueByMonth.value.map((d, i) => {
-    const x = i * (innerW / revenueByMonth.value.length) + 3;
-    const h = (d.value / revenueMax.value) * innerH;
+const revenueMax = computed(() => {
+  if (!revenueByMonth.value || revenueByMonth.value.length === 0) return 1;
+  return Math.max(1, ...revenueByMonth.value.map((d) => d.value || 0));
+});
+
+const barW = computed(() => {
+  if (!revenueByMonth.value || revenueByMonth.value.length === 0) return 0;
+  return Math.max(0, innerW.value / revenueByMonth.value.length - 6);
+});
+
+const revenueBars = computed(() => {
+  if (!revenueByMonth.value || revenueByMonth.value.length === 0) return [];
+  if (!innerW.value || innerW.value <= 0) return [];
+
+  return revenueByMonth.value.map((d, i) => {
+    const x = i * (innerW.value / revenueByMonth.value.length) + 3;
+    const h = ((d.value || 0) / revenueMax.value) * innerH;
     return {
-      x,
-      y: innerH - h,
-      w: barW.value,
-      h,
-      value: d.value,
+      x: isNaN(x) ? 0 : x,
+      y: isNaN(innerH - h) ? innerH : innerH - h,
+      w: isNaN(barW.value) ? 0 : barW.value,
+      h: isNaN(h) ? 0 : h,
+      value: d.value || 0,
       label: d.label,
     };
-  }),
-);
+  });
+});
 
 // Lines quotes accepted/sent
 const acceptedSeries = computed(() =>
@@ -317,14 +392,19 @@ const sentSeries = computed(() =>
   quotesMonthly.value.map((d) => ({ label: d.label, value: d.sent })),
 );
 function x(i) {
-  return i * (innerW / Math.max(1, labels.value.length - 1));
+  if (!innerW.value || !labels.value || labels.value.length <= 1) return 0;
+  const result = i * (innerW.value / Math.max(1, labels.value.length - 1));
+  return isNaN(result) ? 0 : result;
 }
+
 function y2(v) {
+  if (!quotesMonthly.value || quotesMonthly.value.length === 0) return innerH;
   const max = Math.max(
     1,
-    ...quotesMonthly.value.map((d) => Math.max(d.accepted, d.sent)),
+    ...quotesMonthly.value.map((d) => Math.max(d.accepted || 0, d.sent || 0)),
   );
-  return innerH - (v / max) * innerH;
+  const result = innerH - ((v || 0) / max) * innerH;
+  return isNaN(result) ? innerH : result;
 }
 function linePoints(series) {
   const arr = Array.isArray(series) ? series : series?.value || [];
@@ -332,23 +412,28 @@ function linePoints(series) {
 }
 
 // Bars pipeline
-const pipelineMax = computed(() =>
-  Math.max(1, ...pipelineByMonth.value.map((d) => d.value)),
-);
-const pipelineBars = computed(() =>
-  pipelineByMonth.value.map((d, i) => {
-    const x = i * (innerW / pipelineByMonth.value.length) + 3;
-    const h = (d.value / pipelineMax.value) * innerH;
+const pipelineMax = computed(() => {
+  if (!pipelineByMonth.value || pipelineByMonth.value.length === 0) return 1;
+  return Math.max(1, ...pipelineByMonth.value.map((d) => d.value || 0));
+});
+
+const pipelineBars = computed(() => {
+  if (!pipelineByMonth.value || pipelineByMonth.value.length === 0) return [];
+  if (!innerW.value || innerW.value <= 0) return [];
+
+  return pipelineByMonth.value.map((d, i) => {
+    const x = i * (innerW.value / pipelineByMonth.value.length) + 3;
+    const h = ((d.value || 0) / pipelineMax.value) * innerH;
     return {
-      x,
-      y: innerH - h,
-      w: barW.value,
-      h,
-      value: d.value,
+      x: isNaN(x) ? 0 : x,
+      y: isNaN(innerH - h) ? innerH : innerH - h,
+      w: isNaN(barW.value) ? 0 : barW.value,
+      h: isNaN(h) ? 0 : h,
+      value: d.value || 0,
       label: d.label,
     };
-  }),
-);
+  });
+});
 </script>
 
 <style scoped>

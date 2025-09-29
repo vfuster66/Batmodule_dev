@@ -292,150 +292,217 @@
           </div>
         </div>
 
-        <ul v-else class="divide-y divide-gray-200 dark:divide-gray-700">
-          <li
-            v-for="service in services"
-            :key="service.id"
-            class="hover:bg-gray-50 dark:hover:bg-gray-700"
+        <!-- Services groupés par catégorie -->
+        <div v-else class="space-y-4">
+          <div
+            v-for="category in servicesByCategory"
+            :key="category.id"
+            class="border border-gray-200 dark:border-gray-700 rounded-lg"
           >
-            <div class="px-4 py-4 flex items-center justify-between">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
+            <!-- En-tête de catégorie -->
+            <div
+              class="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 cursor-pointer"
+              @click="toggleCategory(category.id)"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
                   <div
-                    class="h-10 w-10 rounded-full flex items-center justify-center"
-                    :style="{
-                      backgroundColor: service.category_color + '20',
-                      borderColor: service.category_color,
-                    }"
-                    :class="'border-2'"
-                  >
-                    <span
-                      class="text-sm font-medium"
-                      :style="{ color: service.category_color }"
-                    >
-                      {{ getInitials(service.name) }}
-                    </span>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <div class="flex items-center">
-                    <p
+                    class="w-4 h-4 rounded-full"
+                    :style="{ backgroundColor: category.color }"
+                  ></div>
+                  <div>
+                    <h3
                       class="text-sm font-medium text-gray-900 dark:text-white"
                     >
-                      {{ service.name }}
+                      {{ category.categoryNumber }} - {{ category.name }}
+                    </h3>
+                    <p
+                      v-if="category.description"
+                      class="text-xs text-gray-500 dark:text-gray-400"
+                    >
+                      {{ category.description }}
                     </p>
-                    <span
-                      v-if="!service.is_active"
-                      class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                    >
-                      Inactif
-                    </span>
                   </div>
-                  <div
-                    class="flex items-center text-sm text-gray-500 dark:text-gray-400"
-                  >
-                    <p>{{ service.description || "Aucune description" }}</p>
-                    <span v-if="service.category_name" class="ml-2"
-                      >• {{ service.category_name }}</span
-                    >
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-4">
-                <div class="text-right">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ formatCurrency(service.price_ht) }} HT
-                  </div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ formatCurrency(service.price_ttc) }} TTC
-                  </div>
-                  <div class="text-xs text-gray-400">/ {{ service.unit }}</div>
                 </div>
                 <div class="flex items-center space-x-2">
-                  <button
-                    @click="viewService(service)"
-                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                   >
-                    <svg
-                      class="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      ></path>
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      ></path>
-                    </svg>
-                  </button>
-                  <button
-                    @click="editService(service)"
-                    class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                    {{ category.services.length }} service{{
+                      category.services.length > 1 ? "s" : ""
+                    }}
+                  </span>
+                  <svg
+                    class="h-4 w-4 text-gray-400 transition-transform duration-200"
+                    :class="{
+                      'rotate-180': expandedCategories.includes(category.id),
+                    }"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg
-                      class="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      ></path>
-                    </svg>
-                  </button>
-                  <button
-                    @click="deleteService(service)"
-                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <svg
-                      class="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      ></path>
-                    </svg>
-                  </button>
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    ></path>
+                  </svg>
                 </div>
               </div>
             </div>
-          </li>
-        </ul>
+
+            <!-- Services de la catégorie -->
+            <div
+              v-show="expandedCategories.includes(category.id)"
+              class="divide-y divide-gray-200 dark:divide-gray-600"
+            >
+              <div
+                v-for="service in category.services"
+                :key="service.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <div class="px-4 py-4 flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div
+                        class="h-10 w-10 rounded-full flex items-center justify-center border-2"
+                        :style="{
+                          backgroundColor: service.category_color + '20',
+                          borderColor: service.category_color,
+                        }"
+                      >
+                        <span
+                          class="text-sm font-medium"
+                          :style="{ color: service.category_color }"
+                        >
+                          {{ service.service_number }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <div class="flex items-center">
+                        <p
+                          class="text-sm font-medium text-gray-900 dark:text-white"
+                        >
+                          {{ service.name }}
+                        </p>
+                        <span
+                          v-if="!service.is_active"
+                          class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                        >
+                          Inactif
+                        </span>
+                      </div>
+                      <div
+                        class="flex items-center text-sm text-gray-500 dark:text-gray-400"
+                      >
+                        <p>{{ service.description || "Aucune description" }}</p>
+                        <span v-if="service.category_name" class="ml-2"
+                          >• {{ service.category_name }}</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                      <div class="text-sm text-gray-900 dark:text-white">
+                        {{ formatCurrency(service.price_ht) }} HT
+                      </div>
+                      <div class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ formatCurrency(service.price_ttc) }} TTC
+                      </div>
+                      <div class="text-xs text-gray-400">
+                        / {{ service.unit }}
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <button
+                        @click="viewService(service)"
+                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        <svg
+                          class="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          ></path>
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          ></path>
+                        </svg>
+                      </button>
+                      <button
+                        @click="editService(service)"
+                        class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
+                      >
+                        <svg
+                          class="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          ></path>
+                        </svg>
+                      </button>
+                      <button
+                        @click="deleteService(service)"
+                        class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <svg
+                          class="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          ></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- Modal de création/édition de service -->
+      <ServiceModal
+        v-if="showCreateModal || showEditModal"
+        :service="editingService"
+        :categories="categories"
+        :is-edit="showEditModal"
+        @close="closeModal"
+        @save="handleSaveService"
+      />
+
+      <!-- Modal de création de catégorie -->
+      <CategoryModal
+        v-if="showCreateCategoryModal"
+        @close="closeCategoryModal"
+        @save="handleSaveCategory"
+      />
     </div>
-
-    <!-- Modal de création/édition de service -->
-    <ServiceModal
-      v-if="showCreateModal || showEditModal"
-      :service="editingService"
-      :categories="categories"
-      :is-edit="showEditModal"
-      @close="closeModal"
-      @save="handleSaveService"
-    />
-
-    <!-- Modal de création de catégorie -->
-    <CategoryModal
-      v-if="showCreateCategoryModal"
-      @close="closeCategoryModal"
-      @save="handleSaveCategory"
-    />
   </Layout>
 </template>
 
@@ -461,11 +528,52 @@ const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const showCreateCategoryModal = ref(false);
 const editingService = ref(null);
+const expandedCategories = ref([]);
 
 // Getters du store
 const services = computed(() => servicesStore.services);
 const categories = computed(() => servicesStore.categories);
 const loading = computed(() => servicesStore.loading);
+
+// Services groupés par catégorie
+const servicesByCategory = computed(() => {
+  const grouped = {};
+
+  // Grouper les services par catégorie
+  services.value.forEach((service) => {
+    const categoryId = service.category_id || "uncategorized";
+    const categoryName = service.category_name || "Sans catégorie";
+    const categoryColor = service.category_color || "#6B7280";
+    const categoryNumber = service.category_number || 0;
+
+    if (!grouped[categoryId]) {
+      grouped[categoryId] = {
+        id: categoryId,
+        name: categoryName,
+        color: categoryColor,
+        categoryNumber: categoryNumber,
+        description: service.category_description,
+        services: [],
+      };
+    }
+    grouped[categoryId].services.push(service);
+  });
+
+  // Convertir en tableau et trier par numéro de catégorie
+  return Object.values(grouped).sort(
+    (a, b) => a.categoryNumber - b.categoryNumber,
+  );
+});
+
+// Gestion des accordéons
+const toggleCategory = (categoryId) => {
+  const index = expandedCategories.value.indexOf(categoryId);
+  if (index > -1) {
+    expandedCategories.value.splice(index, 1);
+  } else {
+    expandedCategories.value.push(categoryId);
+  }
+};
 
 // Recherche avec debounce
 let searchTimeout = null;
@@ -570,6 +678,9 @@ onMounted(async () => {
   try {
     await servicesStore.fetchServices();
   } catch (_) {}
+
+  // Ouvrir toutes les catégories par défaut
+  expandedCategories.value = categories.value.map((cat) => cat.id);
 });
 
 // Watchers

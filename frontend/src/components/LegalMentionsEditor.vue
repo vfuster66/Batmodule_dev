@@ -367,10 +367,8 @@ const isB2C = computed(() => store.settings.is_b2c);
 // Méthodes
 const loadSettings = async () => {
   try {
-    console.log("🔍 Chargement des paramètres dans LegalMentionsEditor...");
     await store.fetchSettings();
     form.value = { ...store.settings };
-    console.log("🔍 Paramètres chargés:", form.value);
   } catch (error) {
     console.error("🔍 Erreur lors du chargement des paramètres:", error);
     toast.error("Erreur lors du chargement des paramètres");
@@ -379,10 +377,8 @@ const loadSettings = async () => {
 
 const loadTemplates = async () => {
   try {
-    console.log("🔍 Chargement des modèles légaux...");
     const data = await store.getLegalTemplates();
     templates.value = data;
-    console.log("🔍 Modèles chargés:", data);
     toast.success("Modèles chargés");
   } catch (error) {
     console.error("🔍 Erreur lors du chargement des modèles:", error);
@@ -429,19 +425,12 @@ const viewPublicPages = () => {
 
 // Lifecycle
 onMounted(() => {
-  console.log("🔍 LegalMentionsEditor monté");
-  console.log("🔍 Store settings:", store.settings);
-  console.log("🔍 Store settings keys:", Object.keys(store.settings));
-
   // Ne charger les paramètres que s'ils ne sont pas déjà chargés
   if (Object.keys(store.settings).length === 0) {
-    console.log("🔍 Chargement des paramètres car store vide");
     loadSettings();
   } else {
-    console.log("🔍 Utilisation des paramètres existants");
     form.value = { ...store.settings };
   }
-  // Ne pas charger les templates automatiquement
 });
 
 // Watchers

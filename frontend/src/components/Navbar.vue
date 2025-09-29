@@ -28,7 +28,7 @@
     <!-- Contenu principal de la navbar -->
     <div class="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
       <!-- Titre de la page actuelle -->
-      <div class="flex items-center">
+      <div v-if="pageTitle" class="flex items-center">
         <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
           {{ pageTitle }}
         </h1>

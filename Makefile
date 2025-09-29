@@ -37,6 +37,26 @@ stop: ## Arrêter les services
 
 restart: stop start ## Redémarrer les services
 
+restart-backend: ## Redémarrer le backend uniquement
+	@echo "🔄 Redémarrage du backend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) restart backend
+	@echo "✅ Backend redémarré"
+
+restart-frontend: ## Redémarrer le frontend uniquement
+	@echo "🔄 Redémarrage du frontend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) restart frontend
+	@echo "✅ Frontend redémarré"
+
+rebuild-backend: ## Reconstruire et redémarrer le backend
+	@echo "🔨 Reconstruction et redémarrage du backend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) up -d --build backend
+	@echo "✅ Backend reconstruit et redémarré"
+
+rebuild-frontend: ## Reconstruire et redémarrer le frontend
+	@echo "🔨 Reconstruction et redémarrage du frontend..."
+	docker-compose -f $(DEV_COMPOSE_FILE) up -d --build frontend
+	@echo "✅ Frontend reconstruit et redémarré"
+
 clean: ## Nettoyer les conteneurs et volumes
 	@echo "🧹 Nettoyage..."
 	docker-compose -f $(DEV_COMPOSE_FILE) down -v --remove-orphans

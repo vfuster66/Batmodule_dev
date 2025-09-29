@@ -1,4 +1,4 @@
-const { query } = require("../config/database");
+const { query } = require('../config/database')
 
 class CompanySettingsService {
   /**
@@ -9,23 +9,23 @@ class CompanySettingsService {
   async getSettings(userId, createDefault = true) {
     try {
       const result = await query(
-        "SELECT * FROM company_settings WHERE user_id = $1",
-        [userId],
-      );
+        'SELECT * FROM company_settings WHERE user_id = $1',
+        [userId]
+      )
 
       if (result.rows.length === 0) {
         if (createDefault) {
           // Créer des paramètres par défaut
-          return await this.createDefaultSettings(userId);
+          return await this.createDefaultSettings(userId)
         } else {
-          return null;
+          return null
         }
       }
 
-      return result.rows[0];
+      return result.rows[0]
     } catch (error) {
-      console.error("Erreur lors de la récupération des paramètres:", error);
-      throw new Error("Échec de la récupération des paramètres");
+      console.error('Erreur lors de la récupération des paramètres:', error)
+      throw new Error('Échec de la récupération des paramètres')
     }
   }
 
@@ -38,22 +38,22 @@ class CompanySettingsService {
     try {
       const defaultSettings = {
         user_id: userId,
-        company_name: initialData.company_name || "Mon Entreprise",
-        primary_color: "#004AAD",
-        secondary_color: "#6B7280",
+        company_name: initialData.company_name || 'Mon Entreprise',
+        primary_color: '#004AAD',
+        secondary_color: '#6B7280',
         default_vat_rate: 20.0,
-        currency: "EUR",
+        currency: 'EUR',
         payment_terms: 30,
-        quote_prefix: "DEV",
-        invoice_prefix: "FAC",
+        quote_prefix: 'DEV',
+        invoice_prefix: 'FAC',
         show_vat: true,
         show_logo_on_documents: true,
-        country: "France",
+        country: 'France',
         // Champs alimentés depuis l'inscription si disponibles
         address_line1: initialData.address_line1 || null,
         phone: initialData.phone || null,
         email: initialData.email || null,
-      };
+      }
 
       // Insère si absent, ignore si déjà présent (conflit sur user_id)
       const result = await query(
@@ -82,16 +82,16 @@ class CompanySettingsService {
           defaultSettings.address_line1,
           defaultSettings.phone,
           defaultSettings.email,
-        ],
-      );
+        ]
+      )
 
-      return result.rows[0];
+      return result.rows[0]
     } catch (error) {
       console.error(
-        "Erreur lors de la création des paramètres par défaut:",
-        error,
-      );
-      throw new Error("Échec de la création des paramètres par défaut");
+        'Erreur lors de la création des paramètres par défaut:',
+        error
+      )
+      throw new Error('Échec de la création des paramètres par défaut')
     }
   }
 
@@ -103,65 +103,65 @@ class CompanySettingsService {
    */
   async updateSettings(userId, updateData) {
     try {
-      const fields = [];
-      const values = [];
-      let paramCount = 1;
+      const fields = []
+      const values = []
+      let paramCount = 1
 
       // Construire dynamiquement la requête UPDATE
       Object.keys(updateData).forEach((key) => {
         if (updateData[key] !== undefined) {
-          fields.push(`${key} = $${paramCount}`);
+          fields.push(`${key} = $${paramCount}`)
           // Convertir les chaînes vides en null pour éviter les erreurs de validation
-          const value = updateData[key] === "" ? null : updateData[key];
+          const value = updateData[key] === '' ? null : updateData[key]
 
           // Tronquer les valeurs trop longues pour éviter les erreurs 500
-          let processedValue = value;
-          if (typeof value === "string") {
+          let processedValue = value
+          if (typeof value === 'string') {
             // Limites de longueur par champ
             const fieldLimits = {
               phone: 20,
               vat_number: 20,
               rcs_number: 20,
               tva_intracommunautaire: 20,
-            };
+            }
 
-            const limit = fieldLimits[key];
+            const limit = fieldLimits[key]
             if (limit && value.length > limit) {
               console.log(
-                `⚠️  Champ ${key} tronqué: ${value.length} → ${limit} caractères`,
-              );
-              processedValue = value.substring(0, limit);
+                `⚠️  Champ ${key} tronqué: ${value.length} → ${limit} caractères`
+              )
+              processedValue = value.substring(0, limit)
             }
           }
 
-          values.push(processedValue);
-          paramCount++;
+          values.push(processedValue)
+          paramCount++
         }
-      });
+      })
 
       if (fields.length === 0) {
-        throw new Error("Aucune donnée à mettre à jour");
+        throw new Error('Aucune donnée à mettre à jour')
       }
 
-      fields.push(`updated_at = CURRENT_TIMESTAMP`);
-      values.push(userId);
+      fields.push(`updated_at = CURRENT_TIMESTAMP`)
+      values.push(userId)
 
       const result = await query(
         `UPDATE company_settings 
-                 SET ${fields.join(", ")}
+                 SET ${fields.join(', ')}
                  WHERE user_id = $${paramCount}
                  RETURNING *`,
-        values,
-      );
+        values
+      )
 
       if (result.rows.length === 0) {
-        throw new Error("Paramètres non trouvés");
+        throw new Error('Paramètres non trouvés')
       }
 
-      return result.rows[0];
+      return result.rows[0]
     } catch (error) {
-      console.error("Erreur lors de la mise à jour des paramètres:", error);
-      throw error;
+      console.error('Erreur lors de la mise à jour des paramètres:', error)
+      throw error
     }
   }
 
@@ -171,57 +171,57 @@ class CompanySettingsService {
    * @returns {Object} - Résultat de la validation
    */
   validateRequiredSettings(settings) {
-    const errors = [];
-    const warnings = [];
+    const errors = []
+    const warnings = []
 
     // Champs obligatoires pour la conformité légale
     const requiredFields = [
-      "company_name",
-      "siret",
-      "forme_juridique",
-      "address_line1",
-      "postal_code",
-      "city",
-      "phone",
-      "email",
-    ];
+      'company_name',
+      'siret',
+      'forme_juridique',
+      'address_line1',
+      'postal_code',
+      'city',
+      'phone',
+      'email',
+    ]
 
     requiredFields.forEach((field) => {
-      if (!settings[field] || settings[field].toString().trim() === "") {
-        errors.push(`Le champ ${field} est obligatoire`);
+      if (!settings[field] || settings[field].toString().trim() === '') {
+        errors.push(`Le champ ${field} est obligatoire`)
       }
-    });
+    })
 
     // Validation SIRET
     if (settings.siret && !this.validateSIRET(settings.siret)) {
-      errors.push("Le SIRET est invalide");
+      errors.push('Le SIRET est invalide')
     }
 
     // Validation email
     if (settings.email && !this.validateEmail(settings.email)) {
-      errors.push("L'adresse email est invalide");
+      errors.push("L'adresse email est invalide")
     }
 
     // Validation téléphone
     if (settings.phone && !this.validatePhone(settings.phone)) {
-      warnings.push("Le format du téléphone pourrait être amélioré");
+      warnings.push('Le format du téléphone pourrait être amélioré')
     }
 
     // Validation IBAN
     if (settings.iban && !this.validateIBAN(settings.iban)) {
-      warnings.push("Le format de l'IBAN pourrait être incorrect");
+      warnings.push("Le format de l'IBAN pourrait être incorrect")
     }
 
     // Validation BIC
     if (settings.bic && !this.validateBIC(settings.bic)) {
-      warnings.push("Le format du BIC pourrait être incorrect");
+      warnings.push('Le format du BIC pourrait être incorrect')
     }
 
     return {
       isValid: errors.length === 0,
       errors,
       warnings,
-    };
+    }
   }
 
   /**
@@ -230,21 +230,21 @@ class CompanySettingsService {
    * @returns {boolean} - SIRET valide
    */
   validateSIRET(siret) {
-    if (!siret || siret.length !== 14) return false;
-    if (!/^\d{14}$/.test(siret)) return false;
+    if (!siret || siret.length !== 14) return false
+    if (!/^\d{14}$/.test(siret)) return false
 
     // Algorithme de Luhn
-    let sum = 0;
+    let sum = 0
     for (let i = 0; i < 13; i++) {
-      let digit = parseInt(siret[i]);
+      let digit = parseInt(siret[i])
       if (i % 2 === 1) {
-        digit *= 2;
-        if (digit > 9) digit -= 9;
+        digit *= 2
+        if (digit > 9) digit -= 9
       }
-      sum += digit;
+      sum += digit
     }
 
-    return (10 - (sum % 10)) % 10 === parseInt(siret[13]);
+    return (10 - (sum % 10)) % 10 === parseInt(siret[13])
   }
 
   /**
@@ -253,8 +253,8 @@ class CompanySettingsService {
    * @returns {boolean} - Email valide
    */
   validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
   }
 
   /**
@@ -263,8 +263,8 @@ class CompanySettingsService {
    * @returns {boolean} - Téléphone valide
    */
   validatePhone(phone) {
-    const phoneRegex = /^(?:\+33|0)[1-9](?:[0-9]{8})$/;
-    return phoneRegex.test(phone.replace(/\s/g, ""));
+    const phoneRegex = /^(?:\+33|0)[1-9](?:[0-9]{8})$/
+    return phoneRegex.test(phone.replace(/\s/g, ''))
   }
 
   /**
@@ -273,17 +273,17 @@ class CompanySettingsService {
    * @returns {boolean} - IBAN valide
    */
   validateIBAN(iban) {
-    if (!iban) return false;
+    if (!iban) return false
 
     // Nettoyer l'IBAN (supprimer espaces et convertir en majuscules)
-    const cleaned = iban.replace(/\s/g, "").toUpperCase();
+    const cleaned = iban.replace(/\s/g, '').toUpperCase()
 
     // Un IBAN français fait exactement 27 caractères
-    if (cleaned.length !== 27) return false;
+    if (cleaned.length !== 27) return false
 
     // Format IBAN français : FR + 2 chiffres + 23 caractères alphanumériques
-    const ibanRegex = /^FR\d{2}[A-Z0-9]{23}$/;
-    return ibanRegex.test(cleaned);
+    const ibanRegex = /^FR\d{2}[A-Z0-9]{23}$/
+    return ibanRegex.test(cleaned)
   }
 
   /**
@@ -292,17 +292,17 @@ class CompanySettingsService {
    * @returns {boolean} - BIC valide
    */
   validateBIC(bic) {
-    if (!bic) return false;
+    if (!bic) return false
 
     // Nettoyer le BIC (supprimer espaces et convertir en majuscules)
-    const cleaned = bic.replace(/\s/g, "").toUpperCase();
+    const cleaned = bic.replace(/\s/g, '').toUpperCase()
 
     // Un BIC fait 8 ou 11 caractères
-    if (cleaned.length !== 8 && cleaned.length !== 11) return false;
+    if (cleaned.length !== 8 && cleaned.length !== 11) return false
 
     // Format BIC : 4 lettres (banque) + 2 lettres (pays) + 2 caractères (localisation) + 3 caractères optionnels (succursale)
-    const bicRegex = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/;
-    return bicRegex.test(cleaned);
+    const bicRegex = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/
+    return bicRegex.test(cleaned)
   }
 
   /**
@@ -312,8 +312,8 @@ class CompanySettingsService {
    */
   async generateComplianceReport(userId) {
     try {
-      const settings = await this.getSettings(userId);
-      const validation = this.validateRequiredSettings(settings);
+      const settings = await this.getSettings(userId)
+      const validation = this.validateRequiredSettings(settings)
 
       const report = {
         userId,
@@ -325,15 +325,15 @@ class CompanySettingsService {
           missingFields: this.getMissingFields(settings),
           recommendations: this.getRecommendations(settings),
         },
-      };
+      }
 
-      return report;
+      return report
     } catch (error) {
       console.error(
-        "Erreur lors de la génération du rapport de conformité:",
-        error,
-      );
-      throw new Error("Échec de la génération du rapport de conformité");
+        'Erreur lors de la génération du rapport de conformité:',
+        error
+      )
+      throw new Error('Échec de la génération du rapport de conformité')
     }
   }
 
@@ -343,51 +343,56 @@ class CompanySettingsService {
    * @returns {number} - Score de conformité (0-100)
    */
   calculateComplianceScore(settings) {
-    let score = 0;
+    let score = 0
+
+    // Fonction helper pour vérifier si un champ a une valeur valide
+    const hasValue = (value) => {
+      return value && value.toString().trim() !== ''
+    }
 
     // Champs obligatoires (60 points)
     const requiredFields = [
-      "company_name",
-      "siret",
-      "forme_juridique",
-      "address_line1",
-      "postal_code",
-      "city",
-      "phone",
-      "email",
-    ];
+      'company_name',
+      'siret',
+      'forme_juridique',
+      'address_line1',
+      'postal_code',
+      'city',
+      'phone',
+      'email',
+    ]
 
     const requiredScore =
-      (requiredFields.filter((field) => settings[field]).length /
+      (requiredFields.filter((field) => hasValue(settings[field])).length /
         requiredFields.length) *
-      60;
-    score += requiredScore;
+      60
+    score += requiredScore
 
     // Champs légaux (25 points)
     const legalFields = [
-      "rcs_number",
-      "tribunal_commercial",
-      "tva_intracommunautaire",
-      "ape_code",
-      "insurance_company",
-      "insurance_policy_number",
-    ];
+      'rcs_number',
+      'tribunal_commercial',
+      'tva_intracommunautaire',
+      'ape_code',
+      'insurance_company',
+      'insurance_policy_number',
+    ]
 
     const legalScore =
-      (legalFields.filter((field) => settings[field]).length /
+      (legalFields.filter((field) => hasValue(settings[field])).length /
         legalFields.length) *
-      25;
-    score += legalScore;
+      25
+    score += legalScore
 
     // Champs bancaires (15 points)
-    const bankFields = ["iban", "bic", "bank_name"];
+    const bankFields = ['iban', 'bic', 'bank_name']
     const bankScore =
-      (bankFields.filter((field) => settings[field]).length /
+      (bankFields.filter((field) => hasValue(settings[field])).length /
         bankFields.length) *
-      15;
-    score += bankScore;
+      15
+    score += bankScore
 
-    return Math.round(score);
+    return Math.round(score)
   }
 
   /**
@@ -396,18 +401,23 @@ class CompanySettingsService {
    * @returns {Array} - Champs manquants
    */
   getMissingFields(settings) {
-    const requiredFields = [
-      "company_name",
-      "siret",
-      "forme_juridique",
-      "address_line1",
-      "postal_code",
-      "city",
-      "phone",
-      "email",
-    ];
+    // Fonction helper pour vérifier si un champ a une valeur valide
+    const hasValue = (value) => {
+      return value && value.toString().trim() !== ''
+    }
 
-    return requiredFields.filter((field) => !settings[field]);
+    const requiredFields = [
+      'company_name',
+      'siret',
+      'forme_juridique',
+      'address_line1',
+      'postal_code',
+      'city',
+      'phone',
+      'email',
+    ]
+
+    return requiredFields.filter((field) => !hasValue(settings[field]))
   }
 
   /**
@@ -416,30 +426,30 @@ class CompanySettingsService {
    * @returns {Array} - Recommandations
    */
   getRecommendations(settings) {
-    const recommendations = [];
+    const recommendations = []
 
     if (!settings.siret) {
-      recommendations.push("Ajoutez votre SIRET pour la conformité légale");
+      recommendations.push('Ajoutez votre SIRET pour la conformité légale')
     }
 
     if (!settings.insurance_company) {
-      recommendations.push("Configurez votre assurance décennale obligatoire");
+      recommendations.push('Configurez votre assurance décennale obligatoire')
     }
 
     if (!settings.iban) {
       recommendations.push(
-        "Ajoutez vos coordonnées bancaires pour les paiements",
-      );
+        'Ajoutez vos coordonnées bancaires pour les paiements'
+      )
     }
 
     if (!settings.mediator_name && settings.is_b2c) {
       recommendations.push(
-        "Configurez le médiateur de la consommation pour le B2C",
-      );
+        'Configurez le médiateur de la consommation pour le B2C'
+      )
     }
 
-    return recommendations;
+    return recommendations
   }
 }
 
-module.exports = new CompanySettingsService();
+module.exports = new CompanySettingsService()

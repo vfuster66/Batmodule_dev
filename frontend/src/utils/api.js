@@ -1,190 +1,187 @@
-import axios from "axios";
-import { useToast } from "vue-toastification";
+import axios from 'axios'
+import { useToast } from 'vue-toastification'
 import {
   sanitizeLogMessage,
   isSensitiveUrl,
   configureSecureConsole,
-} from "./security";
-import { initProductionSecurity } from "@/config/production";
+} from './security'
+import { initProductionSecurity } from '@/config/production'
 
 // Configuration de base de l'API
 const api = axios.create({
   // Use Vite dev proxy by default to avoid CORS and DNS issues
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 15000, // Augmenté le timeout
-  headers: { "Content-Type": "application/json" },
+  headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
-});
+})
 
 // Configuration de sécurité
-configureSecureConsole();
-initProductionSecurity();
-
-// Debug: Afficher l'URL de base utilisée (dev uniquement)
-if (import.meta.env.DEV) {
-  console.log("🔧 API Base URL:", api.defaults.baseURL);
-}
+configureSecureConsole()
+initProductionSecurity()
 
 // Intercepteur de requête
 api.interceptors.request.use(
   (config) => {
     // En prod, on utilise le cookie HttpOnly; en dev on garde le Bearer si présent
-    if (import.meta.env.MODE !== "production") {
-      const token = localStorage.getItem("token");
+    if (import.meta.env.MODE !== 'production') {
+      const token = localStorage.getItem('token')
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers.Authorization = `Bearer ${token}`
       }
     }
 
     // Log des requêtes en développement (sans payload ni données sensibles)
     if (import.meta.env.DEV) {
-      const url = config.url || "";
-      const method = config.method?.toUpperCase();
+      const url = config.url || ''
+      const method = config.method?.toUpperCase()
 
       // Masquer les données sensibles pour les routes d'authentification
       if (isSensitiveUrl(url)) {
         console.log(
-          `🚀 API Request: ${method} ${url} [données sensibles masquées]`,
-        );
+          `🚀 API Request: ${method} ${url} [données sensibles masquées]`
+        )
       } else {
-        console.log(`🚀 API Request: ${method} ${url}`);
+        console.log(`🚀 API Request: ${method} ${url}`)
       }
     }
 
-    return config;
+    return config
   },
   (error) => {
-    console.error("❌ API Request Error:", error);
-    return Promise.reject(error);
-  },
-);
+    console.error('❌ API Request Error:', error)
+    return Promise.reject(error)
+  }
+)
 
 // Intercepteur de réponse
-// Helper: sanitize AxiosError for test environment to avoid DataCloneError
 const sanitizeAxiosError = (err) => {
-  if (!err || typeof err !== "object") return err;
-  const safe = { ...err };
+  if (!err || typeof err !== 'object') return err
+  const safe = { ...err }
   if (safe.config) {
     // eslint-disable-next-line no-unused-vars
     const { transformRequest, transformResponse, adapter, ...rest } =
-      safe.config;
-    safe.config = rest;
+      safe.config
+    safe.config = rest
   }
-  if (safe.request) delete safe.request;
-  if (typeof safe.toJSON === "function") delete safe.toJSON;
-  return safe;
-};
+  if (safe.request) delete safe.request
+  if (typeof safe.toJSON === 'function') delete safe.toJSON
+  return safe
+}
 
 api.interceptors.response.use(
   (response) => {
     // Log des réponses en développement (ne pas afficher les données sensibles)
     if (import.meta.env.DEV) {
-      const url = response.config?.url || "";
-      const method = response.config?.method?.toUpperCase();
-      const status = response.status;
-      // N’affiche jamais le body, et évite les routes d’auth
-      console.log(`✅ API Response: ${method} ${url} — ${status}`);
+      const url = response.config?.url || ''
+      const method = response.config?.method?.toUpperCase()
+      const status = response.status
+
+      // N'affiche jamais le body, et évite les routes d'auth
+      if (!isSensitiveUrl(url)) {
+        console.log(`📥 API Response: ${method} ${url} [${status}]`)
+      }
     }
 
-    return response;
+    return response
   },
   (error) => {
-    const toast = useToast();
+    const toast = useToast()
 
     // Log d'erreur sécurisé (ne pas afficher le payload ni les tokens)
     try {
-      const url = error.config?.url || "";
-      const method = error.config?.method?.toUpperCase();
-      const status = error.response?.status;
+      const url = error.config?.url || ''
+      const method = error.config?.method?.toUpperCase()
+      const status = error.response?.status
 
       // Masquer les messages d'erreur pour les routes d'authentification
-      let msg = error.message;
+      let msg = error.message
       if (!isSensitiveUrl(url)) {
         msg =
           error.response?.data?.error ||
           error.response?.data?.message ||
-          error.message;
+          error.message
       } else {
-        msg = "Erreur d'authentification";
+        msg = "Erreur d'authentification"
       }
 
-      console.error("❌ API Error:", {
+      console.error('❌ API Error:', {
         method,
         url,
         status,
         message: sanitizeLogMessage(msg),
-      });
+      })
     } catch (_) {
-      console.error("❌ API Error");
+      console.error('❌ API Error')
     }
 
     // Gestion des erreurs HTTP
     if (error.response) {
-      const { status, data } = error.response;
+      const { status, data } = error.response
 
-      const url = error.config?.url || "";
+      const url = error.config?.url || ''
       const isAuthPath =
-        url.includes("/auth/login") || url.includes("/auth/register");
+        url.includes('/auth/login') || url.includes('/auth/register')
       switch (status) {
         case 401:
           if (!isAuthPath) {
-            if (import.meta.env.MODE !== "production") {
-              localStorage.removeItem("token");
+            if (import.meta.env.MODE !== 'production') {
+              localStorage.removeItem('token')
             }
-            toast.error("Session expirée, veuillez vous reconnecter");
-            window.location.href = "/login";
+            toast.error('Session expirée, veuillez vous reconnecter')
+            window.location.href = '/login'
           }
-          break;
+          break
 
         case 403:
-          toast.error("Accès refusé");
-          break;
+          toast.error('Accès refusé')
+          break
 
         case 404:
-          toast.error("Ressource non trouvée");
-          break;
+          toast.error('Ressource non trouvée')
+          break
 
         case 422:
           // Erreurs de validation
           if (data.details && Array.isArray(data.details)) {
             data.details.forEach((detail) => {
-              toast.error(detail.message);
-            });
+              toast.error(detail.message)
+            })
           } else {
-            toast.error(data.message || "Données invalides");
+            toast.error(data.message || 'Données invalides')
           }
-          break;
+          break
 
         case 400:
           // Détails validation (backend peut renvoyer details)
           if (data?.details && Array.isArray(data.details)) {
-            data.details.forEach((d) => toast.error(d.message || d));
+            data.details.forEach((d) => toast.error(d.message || d))
           } else if (data?.error) {
-            toast.error(data.error);
+            toast.error(data.error)
           } else {
-            toast.error(data.message || "Requête invalide");
+            toast.error(data.message || 'Requête invalide')
           }
-          break;
+          break
 
         case 500:
-          toast.error("Erreur serveur interne");
-          break;
+          toast.error('Erreur serveur interne')
+          break
 
         default:
-          toast.error(data.message || "Une erreur est survenue");
+          toast.error(data.message || 'Une erreur est survenue')
       }
     } else if (error.request) {
       // Erreur de réseau
-      toast.error("Erreur de connexion au serveur");
+      toast.error('Erreur de connexion au serveur')
     } else {
       // Autre erreur
-      toast.error("Une erreur inattendue est survenue");
+      toast.error('Une erreur inattendue est survenue')
     }
 
     const toThrow =
-      import.meta.env.MODE === "test" ? sanitizeAxiosError(error) : error;
-    return Promise.reject(toThrow);
-  },
-);
+      import.meta.env.MODE === 'test' ? sanitizeAxiosError(error) : error
+    return Promise.reject(toThrow)
+  }
+)
 
-export default api;
+export default api

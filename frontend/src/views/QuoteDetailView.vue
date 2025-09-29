@@ -52,10 +52,35 @@
           </button>
           <button
             v-if="quote"
-            @click="sendQuoteByEmail"
+            @click="sendEmail"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
           >
             Envoyer par e‑mail
+          </button>
+          <button
+            v-if="
+              quote &&
+              quote.status === 'accepted' &&
+              quote.depositAmount > 0 &&
+              !quote.depositPaid
+            "
+            @click="markDepositPaid"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+          >
+            <svg
+              class="h-4 w-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Acompte encaissé
           </button>
           <button
             @click="$router.back()"
@@ -178,6 +203,78 @@
               </div>
             </div>
           </div>
+
+          <!-- Section Acompte -->
+          <div
+            v-if="quote.depositAmount > 0"
+            class="bg-white dark:bg-gray-800 shadow rounded-lg p-4"
+          >
+            <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">
+              Acompte
+            </div>
+            <div class="text-gray-900 dark:text-white text-sm space-y-2">
+              <div class="flex items-center justify-between">
+                <span>Montant d'acompte:</span>
+                <span class="font-semibold">{{
+                  formatCurrency(quote.depositAmount)
+                }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>État:</span>
+                <span
+                  :class="
+                    quote.depositPaid
+                      ? 'text-green-600 font-semibold'
+                      : 'text-orange-600 font-semibold'
+                  "
+                  class="inline-flex items-center"
+                >
+                  <svg
+                    v-if="quote.depositPaid"
+                    class="h-4 w-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <svg
+                    v-else
+                    class="h-4 w-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  {{ quote.depositPaid ? "Encaissé" : "En attente" }}
+                </span>
+              </div>
+              <div
+                v-if="!quote.depositPaid"
+                class="text-xs text-gray-500 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded"
+              >
+                💡 L'acompte doit être encaissé avant de commencer les travaux
+                (Code de commerce art. L441-10)
+              </div>
+              <div
+                v-else
+                class="text-xs text-gray-500 bg-green-50 dark:bg-green-900/20 p-2 rounded"
+              >
+                ✅ Acompte encaissé - Les travaux peuvent débuter
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Description -->
@@ -283,82 +380,6 @@
       </div>
     </div>
   </Layout>
-
-  <!-- Modal envoi par e‑mail -->
-  <div
-    v-if="openSendModal"
-    class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-  >
-    <div
-      class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg overflow-hidden"
-    >
-      <div
-        class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
-      >
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-          Envoyer le devis par e‑mail
-        </h3>
-        <button
-          @click="openSendModal = false"
-          class="text-gray-500 hover:text-gray-700 dark:text-gray-300"
-        >
-          ✕
-        </button>
-      </div>
-      <div class="p-6 space-y-4">
-        <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
-            >Destinataire</label
-          >
-          <input
-            v-model="sendForm.to"
-            type="email"
-            placeholder="client@example.com"
-            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
-          />
-        </div>
-        <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
-            >Sujet</label
-          >
-          <input
-            v-model="sendForm.subject"
-            type="text"
-            :placeholder="defaultSubject"
-            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
-          />
-        </div>
-        <div>
-          <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
-            >Message</label
-          >
-          <textarea
-            v-model="sendForm.message"
-            rows="4"
-            class="w-full px-3 py-2 rounded-md border dark:bg-gray-700 dark:border-gray-600"
-            placeholder="Bonjour, veuillez trouver votre devis en pièce jointe."
-          ></textarea>
-        </div>
-      </div>
-      <div
-        class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2"
-      >
-        <button
-          @click="openSendModal = false"
-          class="px-4 py-2 rounded-md border dark:border-gray-600"
-        >
-          Annuler
-        </button>
-        <button
-          @click="sendEmail"
-          :disabled="quotesStore.loading || !isValidEmail(sendForm.to)"
-          class="px-4 py-2 rounded-md bg-green-600 text-white"
-        >
-          Envoyer
-        </button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup>
@@ -376,27 +397,6 @@ const toast = useToast();
 const id = computed(() => route.params.id);
 const loading = computed(() => quotesStore.loading);
 const quote = computed(() => quotesStore.currentQuote);
-
-const openSendModal = ref(false);
-const sendForm = ref({ to: "", subject: "", message: "" });
-const defaultSubject = computed(() =>
-  `Votre devis ${quote.value?.quoteNumber || ""}`.trim(),
-);
-
-// Pré-remplir l'email du client quand le modal s'ouvre
-const openSendModalHandler = () => {
-  if (quote.value?.client?.email) {
-    sendForm.value.to = quote.value.client.email;
-  }
-  if (!sendForm.value.subject) {
-    sendForm.value.subject = defaultSubject.value;
-  }
-  if (!sendForm.value.message) {
-    sendForm.value.message = `Bonjour ${quote.value?.client?.firstName || ""} ${quote.value?.client?.lastName || ""},\n\nVeuillez trouver ci-joint votre devis ${quote.value?.quoteNumber || ""}.\n\nCordialement,\nL'équipe`;
-  }
-  openSendModal.value = true;
-};
-const isValidEmail = (e) => /[^@\s]+@[^@\s]+\.[^@\s]+/.test(e || "");
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
@@ -436,26 +436,56 @@ const editQuote = () => {
   router.push(`/quotes/${id.value}/edit`);
 };
 
+const markDepositPaid = async () => {
+  if (!quote.value) return;
+
+  try {
+    // Appeler l'API pour marquer l'acompte comme payé
+    const response = await fetch(`/api/quotes/${id.value}/deposit-paid`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (response.ok) {
+      toast.success(
+        "Acompte marqué comme encaissé ! Les travaux peuvent maintenant débuter.",
+      );
+      // Recharger les données du devis
+      await quotesStore.fetchQuote(id.value);
+    } else {
+      const error = await response.json();
+      toast.error(error.error || "Erreur lors de la mise à jour");
+    }
+  } catch (error) {
+    console.error("Erreur lors du marquage de l'acompte:", error);
+    toast.error("Erreur lors de la mise à jour");
+  }
+};
+
 const sendEmail = async () => {
   try {
-    // Vérifier que l'email est valide
-    if (!sendForm.value.to || !isValidEmail(sendForm.value.to)) {
-      toast.error("Veuillez saisir une adresse email valide");
+    // Vérifier que le client a un email
+    const clientEmail = quote.value?.client?.email;
+    if (!clientEmail) {
+      toast.error("Aucun email trouvé pour ce client");
       return;
     }
 
     // Demander confirmation
     const confirmed = confirm(
-      `Envoyer le devis ${quote.value?.quoteNumber || ""} par email à ${sendForm.value.to} ?`,
+      `Envoyer le devis ${quote.value?.quoteNumber || ""} par email à ${clientEmail} ?`,
     );
     if (!confirmed) return;
 
-    const payload = {
-      to: sendForm.value.to,
-      subject: sendForm.value.subject || defaultSubject.value,
-      message: sendForm.value.message || "",
-    };
-    const resp = await quotesStore.sendByEmail(id.value, payload);
+    // Appeler l'API pour envoyer l'email avec les mêmes paramètres que dans QuotesView
+    await quotesStore.sendByEmail(id.value, {
+      to: clientEmail,
+      subject: `Devis ${quote.value?.quoteNumber || ""} - ${quote.value?.client?.companyName || quote.value?.client?.firstName + " " + quote.value?.client?.lastName || "Client"}`,
+      message: `Bonjour,\n\nVeuillez trouver ci-joint le devis ${quote.value?.quoteNumber || ""}.\n\nCordialement,\nL'équipe`,
+    });
     openSendModal.value = false;
   } catch (error) {
     console.error("Erreur envoi email:", error);

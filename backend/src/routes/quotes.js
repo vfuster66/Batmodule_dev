@@ -3,7 +3,7 @@ const Joi = require('joi')
 const { query, transaction } = require('../config/database')
 const { logAudit } = require('../services/auditService')
 const { authenticateToken } = require('../middleware/auth')
-const pdfService = require('../services/pdfServiceSimple')
+const PDFService = require('../services/pdfServiceSimple')
 const calculationService = require('../services/calculationService')
 const crypto = require('crypto')
 const nodemailer = require('nodemailer')
@@ -163,7 +163,10 @@ const quoteSchema = Joi.object({
   description: Joi.string().allow('').optional(),
   validUntil: Joi.date().optional(),
   notes: Joi.string().allow('').optional(),
-  depositPercent: Joi.number().min(0).max(100).optional(),
+  depositPercent: Joi.number().min(30).max(100).optional().messages({
+    'number.min':
+      "Le pourcentage d'acompte doit être d'au moins 30% (minimum légal - Code de commerce art. L441-10)",
+  }),
   depositAmount: Joi.number().min(0).optional(),
   siteSameAsBilling: Joi.boolean().optional(),
   siteAddressLine1: Joi.string().allow('').optional(),
@@ -490,6 +493,22 @@ router.post('/', authenticateToken, async (req, res, next) => {
         finalDepositAmount = depositAmount
       } else if (depositPercent && depositPercent > 0) {
         finalDepositAmount = (calculations.totalTtc * depositPercent) / 100
+      }
+
+      // Validation du minimum légal d'acompte (30% - Code de commerce art. L441-10)
+      if (finalDepositAmount > 0) {
+        const actualPercent = (finalDepositAmount / calculations.totalTtc) * 100
+        const minimumPercent = 30.0
+
+        if (actualPercent < minimumPercent) {
+          return res.status(400).json({
+            error: 'Acompte insuffisant',
+            details: [
+              `L'acompte doit représenter au moins ${minimumPercent}% du montant total (${actualPercent.toFixed(1)}% actuellement).`,
+              'Conformité : Code de commerce art. L441-10',
+            ],
+          })
+        }
       }
 
       // Créer le devis
@@ -1113,6 +1132,7 @@ router.get('/:id/pdf', authenticateToken, async (req, res, next) => {
         : totals.totalTtc
 
     // Générer le PDF
+    const pdfService = new PDFService()
     const pdfBuffer = await pdfService.generateQuotePDF(
       quoteData,
       companySettings
@@ -1246,8 +1266,30 @@ router.post('/:id/send', authenticateToken, async (req, res, next) => {
       updatedAt: q.updated_at,
     }
 
-    // Générer le PDF en pièce jointe
-    const pdfBuffer = await pdfService.generateQuotePDF(quoteData, company)
+    // Générer le PDF en pièce jointe selon le statut du devis
+    let pdfBuffer
+    if (q.status === 'accepted') {
+      // Pour les devis acceptés, générer la version avec validation électronique
+      const acceptanceData = {
+        acceptedAt: new Date(q.updated_at || q.created_at),
+        clientIp: req.ip || req.connection.remoteAddress || 'Non disponible',
+        pdfSha256: crypto
+          .createHash('sha256')
+          .update(JSON.stringify(quoteData))
+          .digest('hex'),
+        clientUserAgent: req.get('User-Agent') || 'Non disponible',
+      }
+      const pdfService = new PDFService()
+      pdfBuffer = await pdfService.generateAcceptedQuotePDF(
+        quoteData,
+        company,
+        acceptanceData
+      )
+    } else {
+      // Pour les autres statuts, générer la version standard
+      const pdfService = new PDFService()
+      pdfBuffer = await pdfService.generateQuotePDF(quoteData, company)
+    }
 
     // Construire et envoyer le mail
     const transport = createMailTransport()
@@ -1295,14 +1337,18 @@ router.post('/:id/send', authenticateToken, async (req, res, next) => {
             </table>
         `
 
-    const html = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            </head>
-            <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
+    // Contenu de l'email adapté selon le statut du devis
+    let emailContent = ''
+    if (q.status === 'accepted') {
+      emailContent = `
+            <p style="margin: 0 0 20px 0; font-size: 16px;">Bonjour ${q.first_name || ''} ${q.last_name || ''},</p>
+            <p style="margin: 0 0 20px 0; font-size: 16px;">Veuillez trouver ci-joint votre devis <strong>${q.quote_number}</strong> <span style="color: #059669; font-weight: bold;">(ACCEPTÉ)</span>.</p>
+            <p style="margin: 0 0 20px 0; font-size: 16px;">✅ <strong>Ce devis a été accepté électroniquement</strong> et a valeur de contrat.</p>
+            <p style="margin: 0 0 20px 0; font-size: 16px;">Le PDF joint contient toutes les informations de validation électronique nécessaires.</p>
+            <p style="margin: 20px 0; font-size: 16px;">Nous vous contacterons prochainement pour planifier l'intervention.</p>
+      `
+    } else {
+      emailContent = `
             <p style="margin: 0 0 20px 0; font-size: 16px;">Bonjour ${q.first_name || ''} ${q.last_name || ''},</p>
             <p style="margin: 0 0 20px 0; font-size: 16px;">Veuillez trouver ci-joint votre devis <strong>${q.quote_number}</strong>.</p>
             <p style="margin: 0 0 20px 0; font-size: 16px;">📋 <strong>Pour accepter ce devis, vous avez deux options :</strong></p>
@@ -1316,6 +1362,18 @@ router.post('/:id/send', authenticateToken, async (req, res, next) => {
                 </a>
             </div>
             <p style="margin: 20px 0; font-size: 16px;">Nous restons à votre disposition pour toute précision complémentaire.</p>
+      `
+    }
+
+    const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
+            ${emailContent}
                 <p style="margin: 20px 0; font-size: 16px;">Cordialement,</p>
                 ${signatureBlock}
                 <div style="margin-top: 24px; padding: 12px 14px; background-color: #f9fafb; border-left: 4px solid #004AAD; font-size: 14px; color: #6c757d;">
@@ -1739,7 +1797,11 @@ router.post(
         createdAt: q.created_at,
         updatedAt: q.updated_at,
       }
-      const pdfBuffer = await pdfService.generateQuotePDF(quoteData, company)
+      const quotePdfService = new PDFService()
+      const pdfBuffer = await quotePdfService.generateQuotePDF(
+        quoteData,
+        company
+      )
       const pdfSha256 = crypto
         .createHash('sha256')
         .update(pdfBuffer)
@@ -1749,6 +1811,48 @@ router.post(
         `UPDATE quotes SET status = 'accepted', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
         [id]
       )
+
+      // Créer automatiquement une facture d'acompte si un acompte est défini
+      const advanceInvoiceService = require('../services/advanceInvoiceService')
+      const depositAmount = parseFloat(q.deposit_amount || 0)
+      const depositPercent = parseFloat(q.deposit_percent || 0)
+
+      if (depositAmount > 0 || depositPercent > 0) {
+        try {
+          // Calculer le montant de l'acompte
+          let advanceAmount = depositAmount
+          if (advanceAmount === 0 && depositPercent > 0) {
+            advanceAmount = (parseFloat(q.total_ttc) * depositPercent) / 100
+          }
+
+          // Vérifier que l'acompte respecte le minimum légal (30%)
+          const minimumPercent = 30.0
+          const actualPercent = (advanceAmount / parseFloat(q.total_ttc)) * 100
+          if (actualPercent < minimumPercent) {
+            advanceAmount = (parseFloat(q.total_ttc) * minimumPercent) / 100
+          }
+
+          // Créer la facture d'acompte
+          await advanceInvoiceService.createAdvanceInvoice({
+            userId: q.user_id,
+            clientId: q.client_id,
+            quoteId: q.id,
+            title: `Acompte - ${q.title}`,
+            description: `Acompte de ${actualPercent.toFixed(1)}% pour le devis ${q.quote_number}`,
+            advanceAmount: advanceAmount,
+            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
+            notes: `Facture d'acompte générée automatiquement lors de l'acceptation du devis ${q.quote_number}`,
+            paymentMethod: 'transfer', // Par défaut, virement demandé
+            paymentDate: new Date(),
+          })
+        } catch (error) {
+          console.error(
+            "Erreur lors de la création automatique de la facture d'acompte:",
+            error
+          )
+          // Ne pas faire échouer l'acceptation si la facture d'acompte échoue
+        }
+      }
       await query(
         `INSERT INTO quote_status_history (quote_id, event_type, ip, user_agent, metadata) VALUES ($1,'accepted',$2,$3,$4)`,
         [
@@ -1760,16 +1864,14 @@ router.post(
       )
 
       // Générer un PDF spécial "accepté" avec validation électronique
-      const acceptedPdfBuffer = await pdfService.generateAcceptedQuotePDF(
-        quoteData,
-        company,
-        {
+      const acceptedPdfService = new PDFService()
+      const acceptedPdfBuffer =
+        await acceptedPdfService.generateAcceptedQuotePDF(quoteData, company, {
           acceptedAt: new Date(),
           clientIp: req.ip,
           clientUserAgent: req.get('user-agent') || null,
           pdfSha256: pdfSha256,
-        }
-      )
+        })
 
       // Accusé de réception par e‑mail (si possible)
       try {
@@ -1780,11 +1882,53 @@ router.post(
           'no-reply@example.com'
         const to = q.email // email client
         const subject = `Accusé de réception — Devis ${q.quote_number} accepté`
-        const html = `<p>Bonjour ${q.first_name || ''} ${q.last_name || ''},</p>
+
+        // Construire le contenu HTML enrichi avec les informations d'acompte
+        let html = `<p>Bonjour ${q.first_name || ''} ${q.last_name || ''},</p>
                         <p>Nous accusons réception de l'acceptation du devis <strong>${q.quote_number}</strong>.</p>
-                        <p>Date/heure: ${new Date().toLocaleString('fr-FR')}<br/>Empreinte du document (SHA‑256): <code>${pdfSha256}</code></p>
-                        <p>En pièce jointe, le devis accepté avec validation électronique.</p>
-                        <p>Cordialement,</p>`
+                        <p>Date/heure: ${new Date().toLocaleString('fr-FR')}<br/>Empreinte du document (SHA‑256): <code>${pdfSha256}</code></p>`
+
+        // Ajouter les informations d'acompte si applicable (conformité art. L441-10 C. com.)
+        const depositAmount = parseFloat(q.deposit_amount || 0)
+        const depositPercent = parseFloat(q.deposit_percent || 0)
+
+        if (depositAmount > 0 || depositPercent > 0) {
+          let advanceAmount = depositAmount
+          if (advanceAmount === 0 && depositPercent > 0) {
+            advanceAmount = (parseFloat(q.total_ttc) * depositPercent) / 100
+          }
+
+          // Vérifier le minimum légal (30%)
+          const minimumPercent = 30.0
+          const actualPercent = (advanceAmount / parseFloat(q.total_ttc)) * 100
+          if (actualPercent < minimumPercent) {
+            advanceAmount = (parseFloat(q.total_ttc) * minimumPercent) / 100
+          }
+
+          const formattedAmount = advanceAmount.toLocaleString('fr-FR', {
+            style: 'currency',
+            currency: 'EUR',
+          })
+
+          html += `<div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #007bff;">Modalités de règlement de l'acompte</h3>
+                        <p><strong>Montant de l'acompte :</strong> ${formattedAmount}</p>
+                        <p><strong>Date limite de paiement :</strong> ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')}</p>
+                        <p><strong>Moyen de paiement :</strong> Virement bancaire</p>`
+
+          // Ajouter les coordonnées bancaires si disponibles
+          if (company.iban && company.bic) {
+            html += `<p><strong>Coordonnées bancaires :</strong><br/>
+                        IBAN : ${company.iban}<br/>
+                        BIC : ${company.bic}</p>`
+          }
+
+          html += `<p style="margin-bottom: 0;"><strong>Important :</strong> Les travaux ne pourront débuter qu'après réception de l'acompte.</p>
+                        </div>`
+        }
+
+        html += `<p>En pièce jointe, le devis accepté avec validation électronique.</p>
+                        <p>Cordialement,<br/>${company.company_name || "L'équipe"}</p>`
         await transport.sendMail({
           from,
           to,
@@ -1947,5 +2091,68 @@ router.post(
     }
   }
 )
+
+// POST /api/quotes/:id/deposit-paid - Marquer l'acompte comme encaissé
+router.post('/:id/deposit-paid', authenticateToken, async (req, res, next) => {
+  try {
+    const { id } = req.params
+
+    // Vérifier que le devis appartient à l'utilisateur et est accepté
+    const quoteResult = await query(
+      'SELECT * FROM quotes WHERE id = $1 AND user_id = $2 AND status = $3',
+      [id, req.user.userId, 'accepted']
+    )
+
+    if (quoteResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Devis non trouvé ou non accepté' })
+    }
+
+    const quote = quoteResult.rows[0]
+
+    // Vérifier qu'il y a un acompte défini
+    if (!quote.deposit_amount || quote.deposit_amount <= 0) {
+      return res
+        .status(400)
+        .json({ error: 'Aucun acompte défini sur ce devis' })
+    }
+
+    // Vérifier que l'acompte n'est pas déjà marqué comme payé
+    if (quote.deposit_paid) {
+      return res
+        .status(400)
+        .json({ error: "L'acompte est déjà marqué comme encaissé" })
+    }
+
+    // Marquer l'acompte comme payé
+    await query(
+      'UPDATE quotes SET deposit_paid = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [id]
+    )
+
+    // Enregistrer l'événement dans l'audit
+    await logAudit({
+      userId: req.user.userId,
+      action: 'deposit_marked_paid',
+      resourceType: 'quote',
+      resourceId: id,
+      details: {
+        quoteNumber: quote.quote_number,
+        depositAmount: quote.deposit_amount,
+        depositPercent: quote.deposit_percent,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    })
+
+    res.json({
+      success: true,
+      message: 'Acompte marqué comme encaissé avec succès',
+      depositPaid: true,
+    })
+  } catch (error) {
+    console.error("Erreur lors du marquage de l'acompte:", error)
+    next(error)
+  }
+})
 
 module.exports = router

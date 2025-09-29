@@ -170,10 +170,12 @@
 import { ref, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useCompanySettingsStore } from "@/stores/companySettings";
 import { useToast } from "vue-toastification";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const companySettingsStore = useCompanySettingsStore();
 const toast = useToast();
 
 const isLoading = ref(false);
@@ -200,7 +202,24 @@ const handleLogin = async () => {
 
     if (result.success) {
       toast.success("Connexion réussie !");
-      router.push("/dashboard");
+
+      // Vérifier le pourcentage de completion des paramètres entreprise
+      try {
+        await companySettingsStore.fetchSettings();
+        const isConfigured = companySettingsStore.isConfigured;
+
+        if (isConfigured) {
+          // Paramètres complets à 100%, rediriger vers le dashboard
+          router.push("/dashboard");
+        } else {
+          // Paramètres incomplets, rediriger vers les paramètres entreprise
+          router.push("/settings");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification des paramètres:", error);
+        // En cas d'erreur, rediriger vers les paramètres par défaut
+        router.push("/settings");
+      }
     }
   } catch (error) {
     console.error("Erreur de connexion:", error);
@@ -220,7 +239,24 @@ const loginDemo = async () => {
 
     if (result.success) {
       toast.success("Connexion en mode démo réussie !");
-      router.push("/dashboard");
+
+      // Vérifier le pourcentage de completion des paramètres entreprise
+      try {
+        await companySettingsStore.fetchSettings();
+        const isConfigured = companySettingsStore.isConfigured;
+
+        if (isConfigured) {
+          // Paramètres complets à 100%, rediriger vers le dashboard
+          router.push("/dashboard");
+        } else {
+          // Paramètres incomplets, rediriger vers les paramètres entreprise
+          router.push("/settings");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification des paramètres:", error);
+        // En cas d'erreur, rediriger vers les paramètres par défaut
+        router.push("/settings");
+      }
     }
   } catch (error) {
     console.error("Erreur de connexion démo:", error);

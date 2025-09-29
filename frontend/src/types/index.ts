@@ -33,6 +33,7 @@ export interface ServiceCategory {
   name: string;
   description?: string;
   color: string;
+  categoryNumber?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,6 +50,7 @@ export interface Service {
   priceTtc: number;
   vatRate: number;
   isActive: boolean;
+  serviceNumber?: string;
   createdAt: string;
   updatedAt: string;
 }

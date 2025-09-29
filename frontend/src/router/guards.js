@@ -47,11 +47,13 @@ export function setupNavigationGuards(router) {
 
         // Vérifier si les paramètres sont déjà chargés
         if (Object.keys(companyStore.settings).length === 0) {
-          // Si pas de paramètres chargés, rediriger directement
-          console.log(
-            "Aucun paramètre d'entreprise chargé, redirection vers company-settings"
-          )
-          return next('/company-settings')
+          // Si pas de paramètres chargés, essayer de les charger d'abord
+          try {
+            await companyStore.fetchSettings()
+          } catch (error) {
+            console.error('Erreur lors du chargement des paramètres:', error)
+            return next('/company-settings')
+          }
         }
 
         // Champs obligatoires pour la configuration de base

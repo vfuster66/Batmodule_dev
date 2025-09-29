@@ -545,6 +545,47 @@
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Capital social
+            </label>
+            <input
+              v-model="form.capital_social"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="10000.00"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p class="mt-1 text-sm text-gray-500">
+              Montant en euros (obligatoire pour les sociétés de capitaux)
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Forme juridique
+            </label>
+            <select
+              v-model="form.forme_juridique"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sélectionner une forme</option>
+              <option value="SARL">SARL</option>
+              <option value="SAS">SAS</option>
+              <option value="SA">SA</option>
+              <option value="EURL">EURL</option>
+              <option value="SASU">SASU</option>
+              <option value="SNC">SNC</option>
+              <option value="SCI">SCI</option>
+              <option value="Auto-entrepreneur">Auto-entrepreneur</option>
+              <option value="Entreprise individuelle">
+                Entreprise individuelle
+              </option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -659,6 +700,41 @@
           Configuration des paiements
         </h2>
         <div class="space-y-6">
+          <!-- Pourcentage d'acompte par défaut -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Pourcentage d'acompte par défaut *
+            </label>
+            <div class="flex items-center space-x-4">
+              <input
+                v-model.number="form.default_deposit_percent"
+                type="number"
+                min="30"
+                max="100"
+                step="5"
+                required
+                class="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                :class="{
+                  'border-red-500': form.default_deposit_percent < 30,
+                }"
+              />
+              <span class="text-sm text-gray-500">%</span>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">
+                  <span class="font-medium">Minimum légal :</span> 30% (Code de
+                  commerce art. L441-10)
+                </p>
+                <p
+                  v-if="form.default_deposit_percent < 30"
+                  class="text-xs text-red-600 mt-1"
+                >
+                  ⚠️ Le pourcentage doit être d'au moins 30% pour respecter la
+                  réglementation
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div class="flex items-center">
             <input
               v-model="form.cash_payments_enabled"

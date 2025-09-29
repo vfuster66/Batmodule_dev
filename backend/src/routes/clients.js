@@ -1,44 +1,60 @@
-const express = require("express");
-const Joi = require("joi");
-const { query } = require("../config/database");
-const { authenticateToken } = require("../middleware/auth");
+const express = require('express')
+const Joi = require('joi')
+const { query } = require('../config/database')
+const { authenticateToken } = require('../middleware/auth')
+const { validateSiret } = require('../utils/siretValidator')
 
-const router = express.Router();
+const router = express.Router()
 
 // Schémas de validation
 const clientSchema = Joi.object({
   firstName: Joi.string()
     .min(2)
     .max(100)
-    .when("isCompany", {
+    .when('isCompany', {
       is: true,
-      then: Joi.optional().allow(""),
+      then: Joi.optional().allow(''),
       otherwise: Joi.required(),
     }),
   lastName: Joi.string()
     .min(2)
     .max(100)
-    .when("isCompany", {
+    .when('isCompany', {
       is: true,
-      then: Joi.optional().allow(""),
+      then: Joi.optional().allow(''),
       otherwise: Joi.required(),
     }),
-  companyName: Joi.string().max(255).optional().allow(""),
-  email: Joi.string().email().optional().allow(""),
-  phone: Joi.string().max(20).optional().allow(""),
-  addressLine1: Joi.string().max(255).optional().allow(""),
-  addressLine2: Joi.string().max(255).optional().allow(""),
-  postalCode: Joi.string().max(10).optional().allow(""),
-  city: Joi.string().max(100).optional().allow(""),
-  country: Joi.string().max(100).default("France").allow(""),
-  notes: Joi.string().optional().allow(""),
+  companyName: Joi.string().max(255).optional().allow(''),
+  email: Joi.string().email().optional().allow(''),
+  phone: Joi.string().max(20).optional().allow(''),
+  addressLine1: Joi.string().max(255).optional().allow(''),
+  addressLine2: Joi.string().max(255).optional().allow(''),
+  postalCode: Joi.string().max(10).optional().allow(''),
+  city: Joi.string().max(100).optional().allow(''),
+  country: Joi.string().max(100).default('France').allow(''),
+  notes: Joi.string().optional().allow(''),
   isCompany: Joi.boolean().default(false),
   // Champs légaux pour les entreprises
-  siret: Joi.string().max(14).optional().allow(""),
-  vatNumber: Joi.string().max(20).optional().allow(""),
-  legalForm: Joi.string().max(50).optional().allow(""),
-  rcsNumber: Joi.string().max(50).optional().allow(""),
-  apeCode: Joi.string().max(10).optional().allow(""),
+  siret: Joi.string()
+    .max(14)
+    .optional()
+    .allow('')
+    .custom((value, helpers) => {
+      if (value && value.trim() !== '') {
+        // Normaliser le SIRET (supprimer espaces et tirets)
+        const normalizedSiret = value.replace(/[\s-]/g, '')
+        if (!validateSiret(normalizedSiret)) {
+          return helpers.error('custom.invalidSiret')
+        }
+        // Retourner la version normalisée
+        return normalizedSiret
+      }
+      return value
+    }),
+  vatNumber: Joi.string().max(20).optional().allow(''),
+  legalForm: Joi.string().max(50).optional().allow(''),
+  rcsNumber: Joi.string().max(50).optional().allow(''),
+  apeCode: Joi.string().max(10).optional().allow(''),
   capitalSocial: Joi.number().positive().optional().allow(null),
 })
   .custom((value, helpers) => {
@@ -46,57 +62,59 @@ const clientSchema = Joi.object({
     if (value.isCompany) {
       // Pour une entreprise, au moins le nom de l'entreprise OU prénom/nom doit être rempli
       if (!value.companyName && !value.firstName && !value.lastName) {
-        return helpers.error("custom.companyOrPersonRequired");
+        return helpers.error('custom.companyOrPersonRequired')
       }
     } else {
       // Pour une personne, prénom et nom sont obligatoires
       if (!value.firstName || !value.lastName) {
-        return helpers.error("custom.personNameRequired");
+        return helpers.error('custom.personNameRequired')
       }
     }
-    return value;
+    return value
   })
   .messages({
-    "custom.companyOrPersonRequired":
+    'custom.companyOrPersonRequired':
       "Pour une entreprise, le nom de l'entreprise ou le prénom/nom du contact doit être renseigné",
-    "custom.personNameRequired":
-      "Pour une personne, le prénom et le nom sont obligatoires",
-  });
+    'custom.personNameRequired':
+      'Pour une personne, le prénom et le nom sont obligatoires',
+    'custom.invalidSiret':
+      "Le numéro SIRET n'est pas valide (doit contenir 14 chiffres et respecter l'algorithme de Luhn)",
+  })
 
 // GET / - Récupérer tous les clients de l'utilisateur
-router.get("/", authenticateToken, async (req, res, next) => {
+router.get('/', authenticateToken, async (req, res, next) => {
   try {
-    const { search, page = 1, limit = 20, sortBy, sortOrder } = req.query;
-    const offset = (page - 1) * limit;
+    const { search, page = 1, limit = 20, sortBy, sortOrder } = req.query
+    const offset = (page - 1) * limit
 
-    let whereClause = "WHERE user_id = $1";
-    let queryParams = [req.user.userId];
-    let paramCount = 1;
+    let whereClause = 'WHERE user_id = $1'
+    let queryParams = [req.user.userId]
+    let paramCount = 1
 
     if (search) {
-      paramCount++;
+      paramCount++
       whereClause += ` AND (
         first_name ILIKE $${paramCount} OR 
         last_name ILIKE $${paramCount} OR 
         company_name ILIKE $${paramCount} OR 
         email ILIKE $${paramCount}
-      )`;
-      queryParams.push(`%${search}%`);
+      )`
+      queryParams.push(`%${search}%`)
     }
 
     // Tri sécurisé
     const allowedSort = new Map([
-      ["created_at", "created_at"],
-      ["updated_at", "updated_at"],
-      ["last_name", "last_name"],
-      ["first_name", "first_name"],
-      ["company_name", "company_name"],
-      ["email", "email"],
-    ]);
+      ['created_at', 'created_at'],
+      ['updated_at', 'updated_at'],
+      ['last_name', 'last_name'],
+      ['first_name', 'first_name'],
+      ['company_name', 'company_name'],
+      ['email', 'email'],
+    ])
     const orderCol =
-      allowedSort.get(String(sortBy || "").toLowerCase()) || "last_name";
+      allowedSort.get(String(sortBy || '').toLowerCase()) || 'last_name'
     const orderDir =
-      String(sortOrder || "").toLowerCase() === "desc" ? "DESC" : "ASC";
+      String(sortOrder || '').toLowerCase() === 'desc' ? 'DESC' : 'ASC'
 
     const result = await query(
       `SELECT 
@@ -112,14 +130,14 @@ router.get("/", authenticateToken, async (req, res, next) => {
        ${whereClause}
        ORDER BY ${orderCol} ${orderDir}
        LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`,
-      [...queryParams, limit, offset],
-    );
+      [...queryParams, limit, offset]
+    )
 
     // Compter le total pour la pagination
     const countResult = await query(
       `SELECT COUNT(*) as total FROM clients ${whereClause}`,
-      queryParams,
-    );
+      queryParams
+    )
 
     res.json({
       clients: result.rows.map((client) => ({
@@ -157,14 +175,14 @@ router.get("/", authenticateToken, async (req, res, next) => {
         total: parseInt(countResult.rows[0].total),
         pages: Math.ceil(countResult.rows[0].total / limit),
       },
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-});
+})
 
 // GET /export - Exporter tous les clients en CSV
-router.get("/export", authenticateToken, async (req, res, next) => {
+router.get('/export', authenticateToken, async (req, res, next) => {
   try {
     const result = await query(
       `SELECT first_name, last_name, company_name, email, phone, 
@@ -173,87 +191,87 @@ router.get("/export", authenticateToken, async (req, res, next) => {
              FROM clients 
              WHERE user_id = $1 
              ORDER BY created_at DESC`,
-      [req.user.userId],
-    );
+      [req.user.userId]
+    )
 
     // Générer le CSV
     const headers = [
-      "Prénom",
-      "Nom",
-      "Entreprise",
-      "Email",
-      "Téléphone",
-      "Adresse 1",
-      "Adresse 2",
-      "Code postal",
-      "Ville",
-      "Pays",
-      "Est une entreprise",
-      "SIRET",
-      "N° TVA",
-      "Forme juridique",
-      "RCS",
-      "Code APE",
-      "Capital social",
-      "Notes",
-    ];
+      'Prénom',
+      'Nom',
+      'Entreprise',
+      'Email',
+      'Téléphone',
+      'Adresse 1',
+      'Adresse 2',
+      'Code postal',
+      'Ville',
+      'Pays',
+      'Est une entreprise',
+      'SIRET',
+      'N° TVA',
+      'Forme juridique',
+      'RCS',
+      'Code APE',
+      'Capital social',
+      'Notes',
+    ]
 
     const csvContent = [
-      headers.join(","),
+      headers.join(','),
       ...result.rows.map((row) =>
         [
-          `"${(row.first_name || "").replace(/"/g, '""')}"`,
-          `"${(row.last_name || "").replace(/"/g, '""')}"`,
-          `"${(row.company_name || "").replace(/"/g, '""')}"`,
-          `"${(row.email || "").replace(/"/g, '""')}"`,
-          `"${(row.phone || "").replace(/"/g, '""')}"`,
-          `"${(row.address_line1 || "").replace(/"/g, '""')}"`,
-          `"${(row.address_line2 || "").replace(/"/g, '""')}"`,
-          `"${(row.postal_code || "").replace(/"/g, '""')}"`,
-          `"${(row.city || "").replace(/"/g, '""')}"`,
-          `"${(row.country || "").replace(/"/g, '""')}"`,
-          row.is_company ? "Oui" : "Non",
-          `"${(row.siret || "").replace(/"/g, '""')}"`,
-          `"${(row.vat_number || "").replace(/"/g, '""')}"`,
-          `"${(row.legal_form || "").replace(/"/g, '""')}"`,
-          `"${(row.rcs_number || "").replace(/"/g, '""')}"`,
-          `"${(row.ape_code || "").replace(/"/g, '""')}"`,
-          row.capital_social || "",
-          `"${(row.notes || "").replace(/"/g, '""')}"`,
-        ].join(","),
+          `"${(row.first_name || '').replace(/"/g, '""')}"`,
+          `"${(row.last_name || '').replace(/"/g, '""')}"`,
+          `"${(row.company_name || '').replace(/"/g, '""')}"`,
+          `"${(row.email || '').replace(/"/g, '""')}"`,
+          `"${(row.phone || '').replace(/"/g, '""')}"`,
+          `"${(row.address_line1 || '').replace(/"/g, '""')}"`,
+          `"${(row.address_line2 || '').replace(/"/g, '""')}"`,
+          `"${(row.postal_code || '').replace(/"/g, '""')}"`,
+          `"${(row.city || '').replace(/"/g, '""')}"`,
+          `"${(row.country || '').replace(/"/g, '""')}"`,
+          row.is_company ? 'Oui' : 'Non',
+          `"${(row.siret || '').replace(/"/g, '""')}"`,
+          `"${(row.vat_number || '').replace(/"/g, '""')}"`,
+          `"${(row.legal_form || '').replace(/"/g, '""')}"`,
+          `"${(row.rcs_number || '').replace(/"/g, '""')}"`,
+          `"${(row.ape_code || '').replace(/"/g, '""')}"`,
+          row.capital_social || '',
+          `"${(row.notes || '').replace(/"/g, '""')}"`,
+        ].join(',')
       ),
-    ].join("\n");
+    ].join('\n')
 
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="clients-${new Date().toISOString().split("T")[0]}.csv"`,
-    );
-    res.send("\ufeff" + csvContent); // BOM UTF-8 pour Excel
+      'Content-Disposition',
+      `attachment; filename="clients-${new Date().toISOString().split('T')[0]}.csv"`
+    )
+    res.send('\ufeff' + csvContent) // BOM UTF-8 pour Excel
   } catch (error) {
-    next(error);
+    next(error)
   }
-});
+})
 
 // GET /:id - Récupérer un client spécifique
-router.get("/:id", authenticateToken, async (req, res, next) => {
+router.get('/:id', authenticateToken, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params
 
     const result = await query(
       `SELECT id, first_name, last_name, company_name, email, phone, address_line1, address_line2, postal_code, city, country, notes, is_company, siret, vat_number, legal_form, rcs_number, ape_code, capital_social, created_at, updated_at
        FROM clients 
        WHERE id = $1 AND user_id = $2`,
-      [id, req.user.userId],
-    );
+      [id, req.user.userId]
+    )
 
     if (result.rows.length === 0) {
       return res.status(404).json({
-        error: "Client non trouvé",
-      });
+        error: 'Client non trouvé',
+      })
     }
 
-    const client = result.rows[0];
+    const client = result.rows[0]
 
     res.json({
       client: {
@@ -279,21 +297,21 @@ router.get("/:id", authenticateToken, async (req, res, next) => {
         createdAt: client.created_at,
         updatedAt: client.updated_at,
       },
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-});
+})
 
 // POST / - Créer un nouveau client
-router.post("/", authenticateToken, async (req, res, next) => {
+router.post('/', authenticateToken, async (req, res, next) => {
   try {
-    const { error, value } = clientSchema.validate(req.body);
+    const { error, value } = clientSchema.validate(req.body)
     if (error) {
       return res.status(400).json({
-        error: "Données invalides",
+        error: 'Données invalides',
         details: error.details.map((detail) => detail.message),
-      });
+      })
     }
 
     const {
@@ -315,7 +333,39 @@ router.post("/", authenticateToken, async (req, res, next) => {
       rcsNumber,
       apeCode,
       capitalSocial,
-    } = value;
+    } = value
+
+    // Vérifier l'unicité du SIRET si fourni
+    if (siret && siret.trim() !== '') {
+      const existingSiret = await query(
+        'SELECT id FROM clients WHERE siret = $1 AND user_id = $2',
+        [siret, req.user.userId]
+      )
+      if (existingSiret.rows.length > 0) {
+        return res.status(400).json({
+          error: 'SIRET déjà utilisé',
+          message: 'Un client avec ce numéro SIRET existe déjà',
+        })
+      }
+    }
+
+    // Vérifier l'unicité de l'email si fourni (normalisé)
+    if (email && email.trim() !== '') {
+      const normalizedEmail = email.trim().toLowerCase()
+      const existingEmail = await query(
+        'SELECT id FROM clients WHERE LOWER(TRIM(email)) = $1 AND user_id = $2',
+        [normalizedEmail, req.user.userId]
+      )
+      if (existingEmail.rows.length > 0) {
+        return res.status(400).json({
+          error: 'Email déjà utilisé',
+          message: 'Un client avec cet email existe déjà',
+        })
+      }
+    }
+
+    // Normaliser l'email avant insertion
+    const normalizedEmail = email ? email.trim().toLowerCase() : email
 
     const result = await query(
       `INSERT INTO clients (user_id, first_name, last_name, company_name, email, phone, address_line1, address_line2, postal_code, city, country, notes, is_company, siret, vat_number, legal_form, rcs_number, ape_code, capital_social)
@@ -326,7 +376,7 @@ router.post("/", authenticateToken, async (req, res, next) => {
         firstName,
         lastName,
         companyName,
-        email,
+        normalizedEmail,
         phone,
         addressLine1,
         addressLine2,
@@ -341,13 +391,13 @@ router.post("/", authenticateToken, async (req, res, next) => {
         rcsNumber,
         apeCode,
         capitalSocial,
-      ],
-    );
+      ]
+    )
 
-    const client = result.rows[0];
+    const client = result.rows[0]
 
     res.status(201).json({
-      message: "Client créé avec succès",
+      message: 'Client créé avec succès',
       client: {
         id: client.id,
         firstName: client.first_name,
@@ -371,25 +421,32 @@ router.post("/", authenticateToken, async (req, res, next) => {
         createdAt: client.created_at,
         updatedAt: client.updated_at,
       },
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-});
+})
 
 // PUT /:id - Mettre à jour un client
-router.put("/:id", authenticateToken, async (req, res, next) => {
+router.put('/:id', authenticateToken, async (req, res, next) => {
   try {
-    const { id } = req.params;
-    console.log("PUT /clients payload reçu:", req.body);
-    const { error, value } = clientSchema.validate(req.body);
+    const { id } = req.params
+    console.log('PUT /clients payload reçu')
+    const { error, value } = clientSchema.validate(req.body)
 
     if (error) {
-      console.log("Erreur de validation:", error.details);
+      // Log sécurisé sans données personnelles
+      console.warn(
+        'Erreur de validation client:',
+        error.details.map((detail) => ({
+          field: detail.path[0],
+          message: detail.message,
+        }))
+      )
       return res.status(400).json({
-        error: "Données invalides",
+        error: 'Données invalides',
         details: error.details.map((detail) => detail.message),
-      });
+      })
     }
 
     const {
@@ -411,7 +468,39 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
       rcsNumber,
       apeCode,
       capitalSocial,
-    } = value;
+    } = value
+
+    // Vérifier l'unicité du SIRET si fourni (en excluant le client actuel)
+    if (siret && siret.trim() !== '') {
+      const existingSiret = await query(
+        'SELECT id FROM clients WHERE siret = $1 AND user_id = $2 AND id != $3',
+        [siret, req.user.userId, id]
+      )
+      if (existingSiret.rows.length > 0) {
+        return res.status(400).json({
+          error: 'SIRET déjà utilisé',
+          message: 'Un autre client avec ce numéro SIRET existe déjà',
+        })
+      }
+    }
+
+    // Vérifier l'unicité de l'email si fourni (en excluant le client actuel, normalisé)
+    if (email && email.trim() !== '') {
+      const normalizedEmail = email.trim().toLowerCase()
+      const existingEmail = await query(
+        'SELECT id FROM clients WHERE LOWER(TRIM(email)) = $1 AND user_id = $2 AND id != $3',
+        [normalizedEmail, req.user.userId, id]
+      )
+      if (existingEmail.rows.length > 0) {
+        return res.status(400).json({
+          error: 'Email déjà utilisé',
+          message: 'Un autre client avec cet email existe déjà',
+        })
+      }
+    }
+
+    // Normaliser l'email avant mise à jour
+    const normalizedEmail = email ? email.trim().toLowerCase() : email
 
     const result = await query(
       `UPDATE clients 
@@ -422,7 +511,7 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
         firstName,
         lastName,
         companyName,
-        email,
+        normalizedEmail,
         phone,
         addressLine1,
         addressLine2,
@@ -439,19 +528,19 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
         capitalSocial,
         id,
         req.user.userId,
-      ],
-    );
+      ]
+    )
 
     if (result.rows.length === 0) {
       return res.status(404).json({
-        error: "Client non trouvé",
-      });
+        error: 'Client non trouvé',
+      })
     }
 
-    const client = result.rows[0];
+    const client = result.rows[0]
 
     res.json({
-      message: "Client mis à jour avec succès",
+      message: 'Client mis à jour avec succès',
       client: {
         id: client.id,
         firstName: client.first_name,
@@ -475,107 +564,211 @@ router.put("/:id", authenticateToken, async (req, res, next) => {
         createdAt: client.created_at,
         updatedAt: client.updated_at,
       },
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-});
+})
 
 // DELETE /:id - Supprimer un client
-router.delete("/:id", authenticateToken, async (req, res, next) => {
+router.delete('/:id', authenticateToken, async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params
 
-    const result = await query(
-      "DELETE FROM clients WHERE id = $1 AND user_id = $2 RETURNING id",
-      [id, req.user.userId],
-    );
+    // Vérifier si le client existe et appartient à l'utilisateur
+    const clientResult = await query(
+      'SELECT id, first_name, last_name FROM clients WHERE id = $1 AND user_id = $2',
+      [id, req.user.userId]
+    )
 
-    if (result.rows.length === 0) {
+    if (clientResult.rows.length === 0) {
       return res.status(404).json({
-        error: "Client non trouvé",
-      });
+        error: 'Client non trouvé',
+      })
     }
 
+    // Vérifier s'il existe des devis ou factures liés à ce client
+    const quotesResult = await query(
+      'SELECT COUNT(*) as count FROM quotes WHERE client_id = $1 AND user_id = $2',
+      [id, req.user.userId]
+    )
+
+    const invoicesResult = await query(
+      'SELECT COUNT(*) as count FROM invoices WHERE client_id = $1 AND user_id = $2',
+      [id, req.user.userId]
+    )
+
+    const quotesCount = parseInt(quotesResult.rows[0].count)
+    const invoicesCount = parseInt(invoicesResult.rows[0].count)
+
+    if (quotesCount > 0 || invoicesCount > 0) {
+      return res.status(400).json({
+        error: 'Impossible de supprimer ce client',
+        message: `Ce client est lié à ${quotesCount} devis et ${invoicesCount} factures. Pour des raisons de traçabilité, vous devez d'abord supprimer ou anonymiser ces documents.`,
+        details: {
+          quotesCount,
+          invoicesCount,
+        },
+      })
+    }
+
+    // Supprimer le client s'il n'y a pas de documents liés
+    await query(
+      'DELETE FROM clients WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.userId]
+    )
+
     res.json({
-      message: "Client supprimé avec succès",
-    });
+      message: 'Client supprimé avec succès',
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-});
+})
 
 // Schéma de validation pour l'import
 const importClientSchema = Joi.object({
-  firstName: Joi.string().min(2).max(100).required(),
-  lastName: Joi.string().min(2).max(100).required(),
-  companyName: Joi.string().max(255).optional().allow(""),
-  email: Joi.string().email().optional().allow(""),
-  phone: Joi.string().max(20).optional().allow(""),
-  addressLine1: Joi.string().max(255).optional().allow(""),
-  addressLine2: Joi.string().max(255).optional().allow(""),
-  postalCode: Joi.string().max(10).optional().allow(""),
-  city: Joi.string().max(100).optional().allow(""),
-  country: Joi.string().max(100).default("France"),
-  notes: Joi.string().optional().allow(""),
+  firstName: Joi.string()
+    .min(2)
+    .max(100)
+    .when('isCompany', {
+      is: true,
+      then: Joi.optional().allow(''),
+      otherwise: Joi.required(),
+    }),
+  lastName: Joi.string()
+    .min(2)
+    .max(100)
+    .when('isCompany', {
+      is: true,
+      then: Joi.optional().allow(''),
+      otherwise: Joi.required(),
+    }),
+  companyName: Joi.string().max(255).optional().allow(''),
+  email: Joi.string().email().optional().allow(''),
+  phone: Joi.string().max(20).optional().allow(''),
+  addressLine1: Joi.string().max(255).optional().allow(''),
+  addressLine2: Joi.string().max(255).optional().allow(''),
+  postalCode: Joi.string().max(10).optional().allow(''),
+  city: Joi.string().max(100).optional().allow(''),
+  country: Joi.string().max(100).default('France'),
+  notes: Joi.string().optional().allow(''),
   isCompany: Joi.boolean().default(false),
-  siret: Joi.string().max(14).optional().allow(""),
-  vatNumber: Joi.string().max(20).optional().allow(""),
-  legalForm: Joi.string().max(50).optional().allow(""),
-  rcsNumber: Joi.string().max(50).optional().allow(""),
-  apeCode: Joi.string().max(10).optional().allow(""),
+  siret: Joi.string()
+    .max(14)
+    .optional()
+    .allow('')
+    .custom((value, helpers) => {
+      if (value && value.trim() !== '') {
+        // Normaliser le SIRET (supprimer espaces et tirets)
+        const normalizedSiret = value.replace(/[\s-]/g, '')
+        if (!validateSiret(normalizedSiret)) {
+          return helpers.error('custom.invalidSiret')
+        }
+        // Retourner la version normalisée
+        return normalizedSiret
+      }
+      return value
+    }),
+  vatNumber: Joi.string().max(20).optional().allow(''),
+  legalForm: Joi.string().max(50).optional().allow(''),
+  rcsNumber: Joi.string().max(50).optional().allow(''),
+  apeCode: Joi.string().max(10).optional().allow(''),
   capitalSocial: Joi.number().positive().optional().allow(null),
-});
+})
+  .custom((value, helpers) => {
+    // Validation personnalisée : au moins un des deux jeux doit être rempli
+    if (value.isCompany) {
+      // Pour une entreprise, au moins le nom de l'entreprise OU prénom/nom doit être rempli
+      if (!value.companyName && !value.firstName && !value.lastName) {
+        return helpers.error('custom.companyOrPersonRequired')
+      }
+    } else {
+      // Pour une personne, prénom et nom sont obligatoires
+      if (!value.firstName || !value.lastName) {
+        return helpers.error('custom.personNameRequired')
+      }
+    }
+    return value
+  })
+  .messages({
+    'custom.companyOrPersonRequired':
+      "Pour une entreprise, le nom de l'entreprise ou le prénom/nom du contact doit être renseigné",
+    'custom.personNameRequired':
+      'Pour une personne, le prénom et le nom sont obligatoires',
+    'custom.invalidSiret':
+      "Le numéro SIRET n'est pas valide (doit contenir 14 chiffres et respecter l'algorithme de Luhn)",
+  })
 
 // POST /import - Importer des clients depuis un CSV
-router.post("/import", authenticateToken, async (req, res, next) => {
+router.post('/import', authenticateToken, async (req, res, next) => {
   try {
-    const { clients } = req.body;
+    const { clients } = req.body
 
     if (!Array.isArray(clients) || clients.length === 0) {
       return res.status(400).json({
-        error: "Données invalides",
-        message: "Un tableau de clients est requis",
-      });
+        error: 'Données invalides',
+        message: 'Un tableau de clients est requis',
+      })
     }
 
     const results = {
       success: [],
       errors: [],
       total: clients.length,
-    };
+    }
 
     // Traiter chaque client
     for (let i = 0; i < clients.length; i++) {
-      const clientData = clients[i];
+      const clientData = clients[i]
 
       try {
         // Validation
-        const { error, value } = importClientSchema.validate(clientData);
+        const { error, value } = importClientSchema.validate(clientData)
         if (error) {
           results.errors.push({
             index: i + 1,
             data: clientData,
-            error: error.details.map((detail) => detail.message).join(", "),
-          });
-          continue;
+            error: error.details.map((detail) => detail.message).join(', '),
+          })
+          continue
         }
 
-        // Vérifier si le client existe déjà (par email si fourni)
-        if (value.email) {
-          const existingClient = await query(
-            "SELECT id FROM clients WHERE email = $1 AND user_id = $2",
-            [value.email, req.user.userId],
-          );
+        // Vérifier si le client existe déjà (par email et/ou SIRET)
+        let duplicateFound = false
+        let duplicateReason = ''
 
-          if (existingClient.rows.length > 0) {
-            results.errors.push({
-              index: i + 1,
-              data: clientData,
-              error: "Un client avec cet email existe déjà",
-            });
-            continue;
+        if (value.email && value.email.trim() !== '') {
+          const existingEmail = await query(
+            'SELECT id FROM clients WHERE email = $1 AND user_id = $2',
+            [value.email, req.user.userId]
+          )
+
+          if (existingEmail.rows.length > 0) {
+            duplicateFound = true
+            duplicateReason = 'Un client avec cet email existe déjà'
           }
+        }
+
+        if (value.siret && value.siret.trim() !== '' && !duplicateFound) {
+          const existingSiret = await query(
+            'SELECT id FROM clients WHERE siret = $1 AND user_id = $2',
+            [value.siret, req.user.userId]
+          )
+
+          if (existingSiret.rows.length > 0) {
+            duplicateFound = true
+            duplicateReason = 'Un client avec ce SIRET existe déjà'
+          }
+        }
+
+        if (duplicateFound) {
+          results.errors.push({
+            index: i + 1,
+            data: clientData,
+            error: duplicateReason,
+          })
+          continue
         }
 
         // Créer le client
@@ -606,29 +799,29 @@ router.post("/import", authenticateToken, async (req, res, next) => {
             value.apeCode,
             value.capitalSocial,
             value.notes,
-          ],
-        );
+          ]
+        )
 
         results.success.push({
           index: i + 1,
           client: result.rows[0],
-        });
+        })
       } catch (error) {
         results.errors.push({
           index: i + 1,
           data: clientData,
           error: error.message,
-        });
+        })
       }
     }
 
     res.json({
       message: `Import terminé: ${results.success.length} clients importés, ${results.errors.length} erreurs`,
       results,
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-});
+})
 
-module.exports = router;
+module.exports = router

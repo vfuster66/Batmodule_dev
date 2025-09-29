@@ -3,7 +3,7 @@ const sharp = require('sharp')
 
 class SimplePDFService {
   constructor() {
-    // Configuration des couleurs et styles
+    // Configuration des couleurs et styles (statiques, partagés)
     this.colors = {
       primary: '#2563eb', // Bleu professionnel
       secondary: '#64748b', // Gris moderne
@@ -19,7 +19,7 @@ class SimplePDFService {
       italic: 'Helvetica-Oblique',
     }
 
-    // Configuration de la page
+    // Configuration de la page (statique, partagée)
     this.pageConfig = {
       margin: 40,
       headerHeight: 130,
@@ -58,7 +58,7 @@ class SimplePDFService {
           const primaryColor =
             companySettings?.primary_color || this.colors.primary
 
-          // Stocker les données communes pour toutes les pages
+          // Stocker les données communes pour toutes les pages (local à cette génération)
           this.commonData = {
             quote,
             companySettings,
@@ -75,16 +75,17 @@ class SimplePDFService {
             quote,
             companySettings,
             false,
-            primaryColor
+            primaryColor,
+            this.commonData
           ) // false = devis
-          this.addQuoteDetails(doc, quote)
-          this.addItemsTable(doc, quote, primaryColor)
-          this.addTotalsSection(doc, quote, primaryColor)
+          this.addQuoteDetails(doc, quote, this.commonData)
+          this.addItemsTable(doc, quote, primaryColor, this.commonData)
+          this.addTotalsSection(doc, quote, primaryColor, this.commonData)
 
           // Ajouter les conditions sur la même page si possible, sinon nouvelle page
           const requiredHeightForConditions = 350
-          if (this.needsNewPage(requiredHeightForConditions)) {
-            this.addNewPage()
+          if (this.needsNewPage(requiredHeightForConditions, this.commonData)) {
+            this.addNewPage(this.commonData)
           } else {
             // Ajouter de l'espace avant les conditions si on reste sur la même page
             doc.y += 40
@@ -94,7 +95,8 @@ class SimplePDFService {
             doc,
             quote,
             companySettings,
-            primaryColor
+            primaryColor,
+            this.commonData
           )
 
           // Appliquer les en-têtes et pieds de page sur toutes les pages
@@ -109,15 +111,21 @@ class SimplePDFService {
     })
   }
 
-  addNewPage() {
-    const { doc } = this.commonData
+  addNewPage(commonData) {
+    const doc = commonData ? commonData.doc : this.commonData?.doc
+    if (!doc) {
+      throw new Error('Document not available in addNewPage')
+    }
     doc.addPage()
     // Positionner le curseur après l'en-tête
     doc.y = this.getContentStartY()
   }
 
-  hasContentOnCurrentPage() {
-    const { doc } = this.commonData
+  hasContentOnCurrentPage(commonData) {
+    const doc = commonData ? commonData.doc : this.commonData?.doc
+    if (!doc) {
+      throw new Error('Document not available in hasContentOnCurrentPage')
+    }
     return doc.y > this.getContentStartY() + 50 // Si on a écrit plus de 50px de contenu
   }
 
@@ -126,19 +134,26 @@ class SimplePDFService {
     return 150 // Ligne de séparation à y=125 + 5px d'espacement
   }
 
-  getContentEndY() {
+  getContentEndY(commonData) {
+    const doc = commonData ? commonData.doc : this.commonData?.doc
+    if (!doc) {
+      throw new Error('Document not available in getContentEndY')
+    }
     return (
-      this.commonData.doc.page.height -
-      this.pageConfig.margin -
-      this.pageConfig.footerHeight
+      doc.page.height - this.pageConfig.margin - this.pageConfig.footerHeight
     )
   }
 
-  needsNewPage(requiredHeight) {
-    const { doc } = this.commonData
+  needsNewPage(requiredHeight, commonData) {
+    const doc = commonData ? commonData.doc : this.commonData?.doc
+    if (!doc) {
+      throw new Error('Document not available in needsNewPage')
+    }
     // Marge de sécurité réduite pour optimiser l'utilisation de l'espace
     const safetyMargin = 5
-    return doc.y + requiredHeight + safetyMargin > this.getContentEndY()
+    return (
+      doc.y + requiredHeight + safetyMargin > this.getContentEndY(commonData)
+    )
   }
 
   async addHeaderContent(
@@ -313,22 +328,46 @@ class SimplePDFService {
 
     // Détecter le type de document
     const isInvoice = document.invoiceNumber !== undefined
-    const documentType = isInvoice ? 'FACTURE' : 'DEVIS'
+    let documentType = isInvoice ? 'FACTURE' : 'DEVIS'
     const documentNumber = isInvoice
       ? document.invoiceNumber
       : document.quoteNumber
     const documentLabel = isInvoice ? 'Facturé le' : 'Établi le'
+
+    // Gestion des types de factures et états
+    if (isInvoice) {
+      // Vérifier si la facture est acquittée
+      const isPaid =
+        document.status === 'paid' ||
+        (document.paidAmount &&
+          document.totalTtc &&
+          document.paidAmount >= document.totalTtc)
+
+      if (isPaid) {
+        documentType = 'FACTURE ACQUITTÉE'
+      } else if (document.invoice_type) {
+        const invoiceTypeLabels = {
+          acompte: 'FACTURE ACOMPTE',
+          solde: 'FACTURE SOLDE',
+          acquittee: 'FACTURE ACQUITTÉE',
+          rappel1: '1er RAPPEL',
+          rappel2: '2ème RAPPEL',
+          rappel3: 'DERNIER RAPPEL',
+        }
+        documentType = invoiceTypeLabels[document.invoice_type] || 'FACTURE'
+      }
+    }
 
     // Bloc document à droite
     doc.rect(400, 30, 140, 85).fillColor(primaryColor).fill()
 
     doc
       .font(this.fonts.bold)
-      .fontSize(16)
+      .fontSize(12)
       .fillColor('white')
-      .text(documentType, 400, 45, { align: 'center', width: 140 })
+      .text(documentType, 400, 44, { align: 'center', width: 140 })
 
-    doc.fontSize(13).text(`N° ${documentNumber || ''}`, 400, 65, {
+    doc.fontSize(11).text(`N° ${documentNumber || ''}`, 400, 62, {
       align: 'center',
       width: 140,
     })
@@ -337,7 +376,7 @@ class SimplePDFService {
     const date = document.createdAt
       ? new Date(document.createdAt).toLocaleDateString('fr-FR')
       : ''
-    doc.fontSize(9).text(`${documentLabel} ${date}`, 400, 85, {
+    doc.fontSize(8).text(`${documentLabel} ${date}`, 400, 82, {
       align: 'center',
       width: 140,
     })
@@ -361,24 +400,26 @@ class SimplePDFService {
     document,
     companySettings,
     isInvoice = false,
-    primaryColor
+    primaryColor,
+    commonData
   ) {
     // Vérifier s'il faut une nouvelle page
-    if (this.needsNewPage(150)) {
-      this.addNewPage()
+    if (this.needsNewPage(150, commonData)) {
+      this.addNewPage(commonData)
     }
 
     // Titre de section adapté au type de document
     const sectionTitle = isInvoice
       ? 'INFORMATIONS CLIENT ET FACTURATION'
       : 'INFORMATIONS CLIENT'
+
     doc
       .font(this.fonts.bold)
-      .fontSize(14)
+      .fontSize(12)
       .fillColor(this.colors.dark)
       .text(sectionTitle, this.pageConfig.margin, doc.y)
 
-    doc.y += 25
+    doc.y += 15
 
     // Deux colonnes pour les adresses
     const leftX = this.pageConfig.margin
@@ -504,10 +545,10 @@ class SimplePDFService {
       })
   }
 
-  addQuoteDetails(doc, quote) {
+  addQuoteDetails(doc, quote, commonData) {
     // Vérifier s'il faut une nouvelle page
-    if (this.needsNewPage(100)) {
-      this.addNewPage()
+    if (this.needsNewPage(100, commonData)) {
+      this.addNewPage(commonData)
     }
 
     // Objet du devis si présent
@@ -594,118 +635,12 @@ class SimplePDFService {
     }
   }
 
-  addInvoiceDetails(doc, invoice) {
+  addInvoiceDetails(_doc, _invoice) {}
+
+  addItemsTable(doc, quote, primaryColor, commonData) {
     // Vérifier s'il faut une nouvelle page
-    if (this.needsNewPage(100)) {
-      this.addNewPage()
-    }
-
-    // Informations de facturation
-    doc
-      .font(this.fonts.bold)
-      .fontSize(12)
-      .fillColor(this.colors.dark)
-      .text('INFORMATIONS DE FACTURATION', this.pageConfig.margin, doc.y)
-
-    doc.y += 20
-
-    // Encadré informations facture
-    const infoY = doc.y
-    const infoWidth = doc.page.width - this.pageConfig.margin * 2
-
-    doc
-      .rect(this.pageConfig.margin, infoY, infoWidth, 80)
-      .fillColor(this.colors.light)
-      .fill()
-      .strokeColor('#cbd5e1')
-      .stroke()
-
-    // Informations spécifiques aux factures
-    const formatDate = (date) => {
-      if (!date) return '-'
-      const d = new Date(date)
-      if (isNaN(d.getTime())) return '-'
-      return d.toLocaleDateString('fr-FR')
-    }
-
-    const invoiceInfo = [
-      `• Numéro de facture : ${invoice.invoiceNumber || ''}`,
-      `• Date d'émission : ${formatDate(invoice.createdAt)}`,
-      `• Date d'échéance : ${formatDate(invoice.dueDate)}`,
-      invoice.purchaseOrderNumber
-        ? `• Numéro de commande : ${invoice.purchaseOrderNumber}`
-        : '',
-      invoice.paymentTerms
-        ? `• Conditions de paiement : ${invoice.paymentTerms}`
-        : '',
-    ].filter(Boolean)
-
-    doc
-      .font(this.fonts.regular)
-      .fontSize(10)
-      .fillColor(this.colors.dark)
-      .text(invoiceInfo.join('\n'), this.pageConfig.margin + 10, infoY + 10, {
-        width: infoWidth - 20,
-        lineGap: 3,
-      })
-
-    doc.y = infoY + 90
-
-    // Objet de la facture si présent
-    if (invoice.title) {
-      doc
-        .font(this.fonts.bold)
-        .fontSize(12)
-        .fillColor(this.colors.dark)
-        .text('OBJET DE LA FACTURE', this.pageConfig.margin, doc.y)
-
-      doc
-        .rect(this.pageConfig.margin, doc.y + 15, infoWidth, 30)
-        .fillColor(this.colors.light)
-        .fill()
-        .strokeColor('#cbd5e1')
-        .stroke()
-
-      doc
-        .font(this.fonts.regular)
-        .fontSize(11)
-        .fillColor(this.colors.dark)
-        .text(invoice.title, this.pageConfig.margin + 10, doc.y + 25)
-
-      doc.y += 60
-    }
-
-    // Notes si présentes
-    if (invoice.notes) {
-      doc
-        .font(this.fonts.bold)
-        .fontSize(12)
-        .fillColor(this.colors.dark)
-        .text('NOTES', this.pageConfig.margin, doc.y)
-
-      doc
-        .rect(this.pageConfig.margin, doc.y + 15, infoWidth, 40)
-        .fillColor('#f8fafc')
-        .fill()
-        .strokeColor('#cbd5e1')
-        .stroke()
-
-      doc
-        .font(this.fonts.regular)
-        .fontSize(10)
-        .fillColor(this.colors.secondary)
-        .text(invoice.notes, this.pageConfig.margin + 10, doc.y + 25, {
-          width: infoWidth - 20,
-        })
-
-      doc.y += 70
-    }
-  }
-
-  addItemsTable(doc, quote, primaryColor) {
-    // Vérifier s'il faut une nouvelle page
-    if (this.needsNewPage(100)) {
-      this.addNewPage()
+    if (this.needsNewPage(100, commonData)) {
+      this.addNewPage(commonData)
     }
 
     // Titre de section
@@ -783,8 +718,8 @@ class SimplePDFService {
     if (Array.isArray(quote.sections) && quote.sections.length) {
       quote.sections.forEach((section, sectionIndex) => {
         // Vérifier si on a besoin d'une nouvelle page pour la section
-        if (this.needsNewPage(50)) {
-          this.addNewPage()
+        if (this.needsNewPage(50, commonData)) {
+          this.addNewPage(commonData)
           currentY = drawTableHeader(doc.y)
           doc.y = currentY
         }
@@ -811,8 +746,8 @@ class SimplePDFService {
 
         // Description de section si présente
         if (section.description) {
-          if (this.needsNewPage(25)) {
-            this.addNewPage()
+          if (this.needsNewPage(25, commonData)) {
+            this.addNewPage(commonData)
             currentY = drawTableHeader(doc.y)
             doc.y = currentY
           }
@@ -835,8 +770,8 @@ class SimplePDFService {
         sectionItems.forEach((item, itemIndex) => {
           const rowHeight = this.calculateRowHeight(doc, item, columns)
 
-          if (this.needsNewPage(rowHeight)) {
-            this.addNewPage()
+          if (this.needsNewPage(rowHeight, commonData)) {
+            this.addNewPage(commonData)
             currentY = drawTableHeader(doc.y)
             doc.y = currentY
           }
@@ -857,8 +792,8 @@ class SimplePDFService {
       ;(quote.items || []).forEach((item, itemIndex) => {
         const rowHeight = this.calculateRowHeight(doc, item, columns)
 
-        if (this.needsNewPage(rowHeight)) {
-          this.addNewPage()
+        if (this.needsNewPage(rowHeight, commonData)) {
+          this.addNewPage(commonData)
           currentY = drawTableHeader(doc.y)
           doc.y = currentY
         }
@@ -931,161 +866,318 @@ class SimplePDFService {
     return y + rowHeight
   }
 
-  addTotalsSection(doc, quote, primaryColor) {
-    const requiredHeight = 200
-    if (this.needsNewPage(requiredHeight)) {
-      this.addNewPage()
+  addTotalsSection(doc, quote, primaryColor, commonData) {
+    const requiredHeight = 220
+    if (this.needsNewPage(requiredHeight, commonData)) {
+      this.addNewPage(commonData)
+    }
+
+    const asNumber = (value, fallback = 0) => {
+      const num = Number(value)
+      return Number.isFinite(num) ? num : fallback
     }
 
     doc.moveDown(2)
 
-    const blockX = doc.page.width - this.pageConfig.margin - 220
-    const blockWidth = 220
-    const headerHeight = 28
-    const rowHeight = 24
+    // Configuration pour un tableau simple en 4 colonnes - encore plus large pour une meilleure lisibilité
+    const blockWidth = 360
+    const blockX = doc.page.width - this.pageConfig.margin - blockWidth
+    const headerHeight = 30
+    const rowHeight = 25
     const startY = doc.y
 
     const vatBreakdown = this.calculateVATBreakdown(quote.items || [])
     const computedVatTotal = vatBreakdown.reduce(
-      (sum, entry) => sum + entry.amount,
+      (sum, entry) => sum + entry.vat,
       0
     )
     const explicitVatTotal = Number(quote.totalVat ?? 0)
-    const hasComputedVat = vatBreakdown.length > 0
 
-    const totalsRows = [
-      {
-        label: 'Sous-total HT',
-        value: Number(quote.subtotalHt || 0),
-        tone: 'regular',
-      },
-    ]
+    const isInvoice = quote.invoiceNumber !== undefined
+    const isAdvanceInvoice =
+      isInvoice &&
+      (quote.invoiceType === 'acompte' || quote.invoice_type === 'acompte')
 
-    if (hasComputedVat) {
-      vatBreakdown
-        .filter((entry) => entry.amount > 0)
-        .forEach((entry) => {
-          const rateLabel = Number.isInteger(entry.rate)
-            ? entry.rate.toFixed(0)
-            : entry.rate.toFixed(2)
-          totalsRows.push({
-            label: `TVA ${rateLabel}%`,
-            value: entry.amount,
-            tone: 'regular',
-          })
-        })
+    const invoiceTotals = {
+      subtotalHt: asNumber(quote.subtotalHt, 0),
+      totalVat: asNumber(quote.totalVat, 0),
+      totalTtc: asNumber(quote.totalTtc, 0),
     }
 
-    const totalVatToDisplay =
-      explicitVatTotal > 0 ? explicitVatTotal : computedVatTotal
-    if (!hasComputedVat && totalVatToDisplay > 0) {
-      totalsRows.push({
-        label: 'TVA',
-        value: totalVatToDisplay,
-        tone: 'regular',
-      })
+    const originalTotalsSource = quote.originalTotals || {}
+    const originalTotals = {
+      subtotalHt: asNumber(
+        originalTotalsSource.subtotalHt ?? originalTotalsSource.subtotal_ht,
+        invoiceTotals.subtotalHt
+      ),
+      totalVat: asNumber(
+        originalTotalsSource.totalVat ?? originalTotalsSource.total_vat,
+        invoiceTotals.totalVat
+      ),
+      totalTtc: asNumber(
+        originalTotalsSource.totalTtc ?? originalTotalsSource.total_ttc,
+        invoiceTotals.totalTtc
+      ),
     }
 
-    totalsRows.push({
-      label: 'Total TTC',
-      value: Number(quote.totalTtc || 0),
-      tone: 'highlight',
-    })
+    const paidAmount = asNumber(quote.paidAmount, 0)
 
-    // Gestion des acomptes et factures acquittées
-    if (Number(quote.depositAmount || 0) > 0) {
-      totalsRows.push({
-        label: 'Acompte déjà facturé',
-        value: Number(quote.depositAmount),
-        tone: 'muted',
-      })
-      const remainingAmount = Math.max(
-        Number(quote.totalTtc || 0) - Number(quote.depositAmount),
-        0
-      )
+    // Calculer les données pour le tableau en 4 colonnes
+    let totalHt = 0
+    let totalVat = 0
+    let totalTtc = 0
+    let acompteHt = 0
+    let acompteVat = 0
+    let acompteTtc = 0
+    let soldeHt = 0
+    let soldeVat = 0
+    let soldeTtc = 0
 
-      if (remainingAmount === 0) {
-        totalsRows.push({
-          label: 'FACTURE ACQUITTÉE',
-          value: 0,
-          tone: 'acquitted',
-        })
+    if (isAdvanceInvoice && originalTotals.totalTtc > 0) {
+      // Pour les factures d'acompte
+      totalHt = originalTotals.subtotalHt
+      totalVat = originalTotals.totalVat
+      totalTtc = originalTotals.totalTtc
+
+      acompteHt = invoiceTotals.subtotalHt
+      acompteVat = invoiceTotals.totalVat
+      acompteTtc = invoiceTotals.totalTtc
+
+      soldeHt = Math.max(totalHt - acompteHt, 0)
+      soldeVat = Math.max(totalVat - acompteVat, 0)
+      soldeTtc = Math.max(totalTtc - acompteTtc, 0)
+    } else if (isInvoice) {
+      // Pour les factures normales
+      totalHt = invoiceTotals.subtotalHt
+      totalVat = explicitVatTotal > 0 ? explicitVatTotal : computedVatTotal
+      totalTtc = invoiceTotals.totalTtc
+
+      if (paidAmount > 0) {
+        const paidRatio = paidAmount / totalTtc
+        acompteHt = totalHt * paidRatio
+        acompteVat = totalVat * paidRatio
+        acompteTtc = paidAmount
+
+        soldeHt = Math.max(totalHt - acompteHt, 0)
+        soldeVat = Math.max(totalVat - acompteVat, 0)
+        soldeTtc = Math.max(totalTtc - acompteTtc, 0)
       } else {
-        totalsRows.push({
-          label: 'Reste à payer',
-          value: remainingAmount,
-          tone: 'highlight',
-        })
+        soldeHt = totalHt
+        soldeVat = totalVat
+        soldeTtc = totalTtc
+      }
+    } else {
+      // Pour les devis
+      totalHt = asNumber(quote.subtotalHt, 0)
+      totalVat = asNumber(quote.totalVat, 0)
+      totalTtc = asNumber(quote.totalTtc, 0)
+
+      if (asNumber(quote.depositAmount, 0) > 0) {
+        const depositAmount = asNumber(quote.depositAmount, 0)
+        const depositRatio = depositAmount / totalTtc
+        acompteHt = totalHt * depositRatio
+        acompteVat = totalVat * depositRatio
+        acompteTtc = depositAmount
+
+        soldeHt = Math.max(totalHt - acompteHt, 0)
+        soldeVat = Math.max(totalVat - acompteVat, 0)
+        soldeTtc = Math.max(totalTtc - acompteTtc, 0)
+      } else {
+        soldeHt = totalHt
+        soldeVat = totalVat
+        soldeTtc = totalTtc
       }
     }
 
-    const dataHeight = rowHeight * totalsRows.length
+    // Calculer la hauteur du tableau (1 ligne d'en-tête + lignes par taux de TVA + Total, Acompte, Solde)
+    const vatLinesCount = vatBreakdown.length
+    const dataHeight = rowHeight * (3 + vatLinesCount) // 3 pour Total, Acompte, Solde + lignes TVA
     const blockHeight = headerHeight + dataHeight
 
-    // Bloc récapitulatif
+    // Bloc récapitulatif simple sans coins arrondis
     doc
       .rect(blockX, startY, blockWidth, blockHeight)
-      .fillColor(this.colors.light)
+      .fillColor('#ffffff')
       .strokeColor('#cbd5e1')
       .lineWidth(1)
       .stroke()
 
+    // En-tête
     doc
       .rect(blockX, startY, blockWidth, headerHeight)
       .fillColor(primaryColor)
       .fill()
 
+    // Titre simple
     doc
       .font(this.fonts.bold)
-      .fontSize(11)
+      .fontSize(12)
       .fillColor('white')
-      .text('Récapitulatif', blockX, startY + 8, {
+      .text('RÉCAPITULATIF', blockX, startY + 8, {
         width: blockWidth,
         align: 'center',
       })
 
-    // Lignes de totaux
-    totalsRows.forEach((row, index) => {
-      const rowY = startY + headerHeight + index * rowHeight
-      const isHighlight = row.tone === 'highlight'
-      const isMuted = row.tone === 'muted'
-      const isAcquitted = row.tone === 'acquitted'
+    // Définir les colonnes du tableau (séparation nette des intitulés et des montants)
+    const columnConfig = [
+      {
+        width: Math.round(blockWidth * 0.25),
+        align: 'left',
+        headerAlign: 'left',
+      },
+      {
+        width: Math.round(blockWidth * 0.19),
+        align: 'right',
+        headerAlign: 'right',
+      },
+      {
+        width: Math.round(blockWidth * 0.19),
+        align: 'center',
+        headerAlign: 'center',
+      },
+      {
+        width: Math.round(blockWidth * 0.19),
+        align: 'right',
+        headerAlign: 'right',
+      },
+      {
+        width: Math.round(blockWidth * 0.19),
+        align: 'right',
+        headerAlign: 'right',
+      },
+    ]
 
-      let background = index % 2 === 0 ? '#f8fafc' : '#ffffff'
-      let textColor = this.colors.dark
-      let font = this.fonts.regular
-      let fontSize = 10
+    const declaredWidth = columnConfig.reduce((sum, col) => sum + col.width, 0)
+    if (declaredWidth !== blockWidth) {
+      columnConfig[columnConfig.length - 1].width += blockWidth - declaredWidth
+    }
 
-      if (isAcquitted) {
-        background = '#10b981' // Vert pour facture acquittée
-        textColor = 'white'
-        font = this.fonts.bold
-        fontSize = 11
-      } else if (isHighlight && !isMuted) {
-        background = primaryColor
-        textColor = 'white'
-        font = this.fonts.bold
-        fontSize = 11
-      } else if (isMuted) {
-        background = '#f1f5f9'
-        textColor = this.colors.secondary
-      }
+    columnConfig.forEach((col, index) => {
+      col.x =
+        index === 0
+          ? blockX
+          : columnConfig[index - 1].x + columnConfig[index - 1].width
+    })
 
-      doc.rect(blockX, rowY, blockWidth, rowHeight).fillColor(background).fill()
+    const headerY = startY + headerHeight
+    const headerLabels = [
+      'Libellé',
+      'Montant HT',
+      'Type TVA',
+      'Montant TVA',
+      'Montant TTC',
+    ]
+
+    columnConfig.forEach((col, idx) => {
+      doc
+        .rect(col.x, headerY, col.width, rowHeight)
+        .fillColor('#f8fafc')
+        .fill()
+        .strokeColor('#cbd5e1')
+        .lineWidth(0.5)
+        .stroke()
 
       doc
-        .font(font)
-        .fontSize(fontSize)
-        .fillColor(textColor)
-        .text(row.label, blockX + 14, rowY + 6, {
-          width: blockWidth - 28,
-          align: 'left',
+        .font(this.fonts.bold)
+        .fontSize(9)
+        .fillColor(this.colors.dark)
+        .text(headerLabels[idx], col.x + 5, headerY + 8, {
+          width: col.width - 10,
+          align: col.headerAlign || col.align,
         })
+    })
 
-      doc.text(this.formatCurrency(row.value), blockX + 14, rowY + 6, {
-        width: blockWidth - 28,
-        align: 'right',
+    const drawDataRow = (rowY, row) => {
+      columnConfig.forEach((col) => {
+        doc
+          .rect(col.x, rowY, col.width, rowHeight)
+          .fillColor(row.fillColor || '#ffffff')
+          .fill()
+          .strokeColor('#cbd5e1')
+          .lineWidth(0.5)
+          .stroke()
       })
+
+      columnConfig.forEach((col, idx) => {
+        const cell = row.values[idx] || {}
+        doc
+          .font(cell.font || this.fonts.regular)
+          .fontSize(cell.fontSize || 10)
+          .fillColor(cell.color || this.colors.dark)
+          .text(cell.text || '', col.x + 5, rowY + 8, {
+            width: col.width - 10,
+            align: cell.align || col.align,
+          })
+      })
+    }
+
+    // Construire les lignes de données avec détail par taux de TVA
+    const dataRows = []
+
+    // Ajouter les lignes par taux de TVA
+    vatBreakdown.forEach((vat, index) => {
+      const isEven = index % 2 === 0
+      dataRows.push({
+        fillColor: isEven ? '#ffffff' : '#f8fafc',
+        values: [
+          { text: `TVA ${vat.rate}%`, font: this.fonts.regular },
+          { text: this.formatCurrency(vat.ht), font: this.fonts.regular },
+          { text: `${vat.rate}%`, align: 'center' },
+          { text: this.formatCurrency(vat.vat), font: this.fonts.regular },
+          { text: this.formatCurrency(vat.ttc), font: this.fonts.regular },
+        ],
+      })
+    })
+
+    // Ajouter les lignes de totaux
+    dataRows.push(
+      {
+        fillColor: '#ffffff',
+        values: [
+          { text: 'Total', font: this.fonts.bold },
+          { text: this.formatCurrency(totalHt), font: this.fonts.bold },
+          { text: '', align: 'center' },
+          { text: this.formatCurrency(totalVat), font: this.fonts.bold },
+          { text: this.formatCurrency(totalTtc), font: this.fonts.bold },
+        ],
+      },
+      {
+        fillColor: '#f8fafc',
+        values: [
+          { text: 'Acompte', font: this.fonts.regular },
+          { text: this.formatCurrency(acompteHt) },
+          { text: '', align: 'center' },
+          { text: this.formatCurrency(acompteVat) },
+          { text: this.formatCurrency(acompteTtc) },
+        ],
+      },
+      {
+        fillColor: '#ffffff',
+        values: [
+          { text: 'Solde', font: this.fonts.bold, color: primaryColor },
+          {
+            text: this.formatCurrency(soldeHt),
+            font: this.fonts.bold,
+            color: primaryColor,
+          },
+          { text: '', align: 'center' },
+          {
+            text: this.formatCurrency(soldeVat),
+            font: this.fonts.bold,
+            color: primaryColor,
+          },
+          {
+            text: this.formatCurrency(soldeTtc),
+            font: this.fonts.bold,
+            color: primaryColor,
+          },
+        ],
+      }
+    )
+
+    dataRows.forEach((row, index) => {
+      const rowY = headerY + rowHeight * (index + 1)
+      drawDataRow(rowY, row)
     })
 
     // Informations de règlement à gauche
@@ -1115,41 +1207,70 @@ class SimplePDFService {
       )
     }
 
+    // Informations de règlement à gauche (design simple)
     if (infoLines.length) {
-      const infoWidth = blockX - this.pageConfig.margin - 20
-      const infoHeight = infoLines.length * 18 + 26
+      const infoWidth = blockX - this.pageConfig.margin - 25
+      const infoHeight = infoLines.length * 18 + 30
 
+      // Bloc simple sans coins arrondis
       doc
-        .roundedRect(this.pageConfig.margin, startY, infoWidth, infoHeight, 6)
+        .rect(this.pageConfig.margin, startY, infoWidth, infoHeight)
         .fillColor('#f8fafc')
-        .strokeColor('#e2e8f0')
+        .strokeColor('#cbd5e1')
         .lineWidth(1)
         .stroke()
 
+      // En-tête
+      doc
+        .rect(this.pageConfig.margin, startY, infoWidth, 25)
+        .fillColor(primaryColor)
+        .fill()
+
+      // Titre simple
       doc
         .font(this.fonts.bold)
         .fontSize(10)
-        .fillColor(this.colors.dark)
+        .fillColor('white')
         .text(
-          'Informations de règlement',
-          this.pageConfig.margin + 15,
-          startY + 10
+          'INFORMATIONS DE RÈGLEMENT',
+          this.pageConfig.margin + 10,
+          startY + 6,
+          {
+            width: infoWidth - 20,
+            align: 'center',
+          }
         )
 
+      // Contenu avec puces
+      const bulletPoints = infoLines.map((line) => '• ' + line)
       doc
         .font(this.fonts.regular)
         .fontSize(9)
-        .fillColor(this.colors.secondary)
-        .text(infoLines.join('\n'), this.pageConfig.margin + 15, startY + 26, {
-          width: infoWidth - 30,
-          lineGap: 4,
-        })
+        .fillColor(this.colors.dark)
+        .text(
+          bulletPoints.join('\n'),
+          this.pageConfig.margin + 10,
+          startY + 30,
+          {
+            width: infoWidth - 20,
+            lineGap: 3,
+          }
+        )
     }
 
-    doc.y =
-      startY +
-      Math.max(blockHeight, infoLines.length ? infoLines.length * 18 + 26 : 0) +
-      40
+    // Position finale
+    const infoBlockHeight = infoLines.length ? infoLines.length * 18 + 30 : 0
+    const contentHeight = Math.max(blockHeight, infoBlockHeight)
+    const separatorY = startY + contentHeight + 35
+
+    doc
+      .moveTo(this.pageConfig.margin, separatorY)
+      .lineTo(doc.page.width - this.pageConfig.margin, separatorY)
+      .strokeColor('#e2e8f0')
+      .lineWidth(1)
+      .stroke()
+
+    doc.y = separatorY + 15
   }
 
   calculateVATBreakdown(items) {
@@ -1157,27 +1278,49 @@ class SimplePDFService {
 
     items.forEach((item) => {
       const rate = Number(item.vatRate || 20)
-      const vatAmount = (Number(item.totalHt || 0) * rate) / 100
+      const itemHt = Number(item.totalHt || 0)
+      const vatAmount = (itemHt * rate) / 100
+      const itemTtc = itemHt + vatAmount
 
       if (vatMap.has(rate)) {
-        vatMap.set(rate, vatMap.get(rate) + vatAmount)
+        const existing = vatMap.get(rate)
+        vatMap.set(rate, {
+          ht: existing.ht + itemHt,
+          vat: existing.vat + vatAmount,
+          ttc: existing.ttc + itemTtc,
+        })
       } else {
-        vatMap.set(rate, vatAmount)
+        vatMap.set(rate, {
+          ht: itemHt,
+          vat: vatAmount,
+          ttc: itemTtc,
+        })
       }
     })
 
     return Array.from(vatMap.entries())
-      .map(([rate, amount]) => ({ rate, amount }))
+      .map(([rate, amounts]) => ({
+        rate,
+        ht: amounts.ht,
+        vat: amounts.vat,
+        ttc: amounts.ttc,
+      }))
       .sort((a, b) => a.rate - b.rate)
   }
 
-  async addConditionsAndSignature(doc, quote, companySettings, primaryColor) {
+  async addConditionsAndSignature(
+    doc,
+    quote,
+    companySettings,
+    primaryColor,
+    commonData
+  ) {
     // Vérifier si on a assez d'espace sur la page actuelle
     const requiredHeight = 350 // Estimation pour tout le contenu conditions
-    const availableSpace = this.getContentEndY() - doc.y
+    const availableSpace = this.getContentEndY(commonData) - doc.y
 
     if (availableSpace < requiredHeight) {
-      this.addNewPage()
+      this.addNewPage(commonData)
     }
 
     // const startY = doc.y; // Non utilisé
@@ -1529,7 +1672,44 @@ class SimplePDFService {
     }
   }
 
-  addFooterContent(doc, companySettings, pageNumber, totalPages) {
+  addFooterContent(
+    doc,
+    companySettings,
+    primaryColorOrPageNumber,
+    invoiceOrTotalPages = null
+  ) {
+    // Gérer les deux signatures :
+    // 1. (doc, companySettings, pageNumber, totalPages) - pour les devis
+    // 2. (doc, companySettings, primaryColor, invoice) - pour les factures
+    const isInvoiceMode =
+      typeof primaryColorOrPageNumber === 'string' &&
+      primaryColorOrPageNumber.startsWith('#')
+
+    if (isInvoiceMode) {
+      // Mode facture - appeler les fonctions spécifiques aux factures
+      const primaryColor = primaryColorOrPageNumber
+      const invoice = invoiceOrTotalPages
+
+      // Ajouter les conditions de paiement pour les factures
+      this.addInvoicePaymentConditions(
+        doc,
+        invoice,
+        companySettings,
+        primaryColor,
+        invoice?.client,
+        this.commonData
+      )
+
+      // Ajouter les mentions légales pour les factures
+      this.addInvoiceLegalNotices(doc, companySettings, invoice?.client)
+
+      return
+    }
+
+    // Mode devis - logique existante
+    const pageNumber = primaryColorOrPageNumber
+    const totalPages = invoiceOrTotalPages
+
     // Position du footer - zone réservée en bas
     const footerStartY = doc.page.height - this.pageConfig.footerHeight
 
@@ -1791,13 +1971,20 @@ class SimplePDFService {
     return formatted.replace(/\u00A0/g, ' ').replace(/\s+/g, ' ')
   }
 
-  addInvoicePaymentConditions(doc, invoice, companySettings, primaryColor) {
+  addInvoicePaymentConditions(
+    doc,
+    invoice,
+    companySettings,
+    primaryColor,
+    client = null,
+    commonData = null
+  ) {
     // Vérifier si on a assez d'espace sur la page actuelle
     const requiredHeight = 200 // Estimation pour tout le contenu conditions
-    const availableSpace = this.getContentEndY() - doc.y
+    const availableSpace = this.getContentEndY(commonData) - doc.y
 
     if (availableSpace < requiredHeight) {
-      this.addNewPage()
+      this.addNewPage(commonData)
     }
 
     // const startY = doc.y; // Non utilisé
@@ -1851,7 +2038,10 @@ class SimplePDFService {
         ? `• Banque : ${companySettings.bank_name}`
         : '',
       '• En cas de retard : pénalités de retard au taux légal en vigueur',
-      '• Indemnité forfaitaire pour frais de recouvrement : 40€ (art. L441-10 C. com.)',
+      // Indemnité forfaitaire uniquement pour les relations B2B
+      client && (client.isCompany || client.is_company)
+        ? '• Indemnité forfaitaire pour frais de recouvrement : 40€ (art. L441-10 C. com.)'
+        : '',
     ].filter(Boolean)
 
     doc
@@ -1872,10 +2062,10 @@ class SimplePDFService {
     doc.y += 8 // Espacement avant la section informations légales
 
     // Section informations légales spécifiques aux factures
-    this.addInvoiceLegalNotices(doc, companySettings)
+    this.addInvoiceLegalNotices(doc, companySettings, invoice.client)
   }
 
-  addInvoiceLegalNotices(doc, companySettings) {
+  addInvoiceLegalNotices(doc, companySettings, client = null) {
     doc.y += 20
 
     // Titre
@@ -1899,17 +2089,40 @@ class SimplePDFService {
       .lineWidth(1)
       .stroke()
 
-    // Informations légales spécifiques aux factures
+    // Informations légales conditionnelles selon le type de client
     const notices = [
       '• Facture conforme aux dispositions légales françaises',
       '• TVA : ' +
         (companySettings.vat_number || companySettings.tva_intracommunautaire
           ? `N° ${companySettings.vat_number || companySettings.tva_intracommunautaire}`
           : 'Non applicable, art. 293 B du CGI'),
-      '• En cas de litige : recours possible à la médiation de la consommation (www.mediation-consommation.fr)',
-      '• Assurances : RC Pro et décennale souscrites',
-      '• Garanties légales : Garantie décennale sur les travaux de gros œuvre, garantie biennale sur les équipements',
     ]
+
+    // Mentions spécifiques B2C (particuliers)
+    if (client && !(client.isCompany || client.is_company)) {
+      notices.push(
+        '• Droit de rétractation : 14 jours à compter de la signature du devis (art. L221-28 du Code de la consommation)'
+      )
+      notices.push(
+        '• En cas de litige : recours possible à la médiation de la consommation (www.mediation-consommation.fr)'
+      )
+    }
+
+    // Mentions spécifiques B2B (entreprises)
+    if (client && (client.isCompany || client.is_company)) {
+      notices.push(
+        '• Indemnité forfaitaire pour frais de recouvrement : 40€ (art. L441-10 C. com.)'
+      )
+      notices.push(
+        '• En cas de litige : compétence des tribunaux du siège social'
+      )
+    }
+
+    // Mentions communes
+    notices.push('• Assurances : RC Pro et décennale souscrites')
+    notices.push(
+      '• Garanties légales : Garantie décennale sur les travaux de gros œuvre, garantie biennale sur les équipements'
+    )
 
     doc
       .font(this.fonts.regular)
@@ -1943,15 +2156,13 @@ class SimplePDFService {
             this.pageConfig.footerHeight
 
           const chunks = []
-
-          // Collecter les données du PDF
           doc.on('data', (chunk) => chunks.push(chunk))
           doc.on('end', () => resolve(Buffer.concat(chunks)))
           doc.on('error', reject)
 
-          // Configuration des couleurs personnalisées
+          // Déterminer la couleur primaire
           const primaryColor =
-            companySettings?.primary_color || this.colors.primary
+            companySettings.primary_color || this.colors.primary
 
           // Stocker les données communes pour toutes les pages
           this.commonData = {
@@ -1961,131 +2172,42 @@ class SimplePDFService {
             doc,
           }
 
-          // Position de départ du contenu (après l'en-tête)
-          doc.y = this.getContentStartY()
-
-          // Structure du document pour facture
-          this.addCompanyAndClientInfo(
+          // Ajouter le contenu de la facture
+          await this.addHeaderContent(
+            doc,
+            invoice,
+            companySettings,
+            primaryColor,
+            1
+          )
+          await this.addCompanyAndClientInfo(
             doc,
             invoice,
             companySettings,
             true,
-            primaryColor
-          ) // true = facture
-          this.addInvoiceDetails(doc, invoice)
-          this.addItemsTable(doc, invoice, primaryColor)
-          this.addTotalsSection(doc, invoice, primaryColor)
-
-          // Ajouter les conditions de paiement sur la même page si possible, sinon nouvelle page
-          const requiredHeightForPayment = 200
-          if (this.needsNewPage(requiredHeightForPayment)) {
-            this.addNewPage()
-          } else {
-            // Ajouter de l'espace avant les conditions si on reste sur la même page
-            doc.y += 40
-          }
-
-          this.addInvoicePaymentConditions(
+            primaryColor,
+            this.commonData
+          )
+          this.addItemsTable(doc, invoice, primaryColor, this.commonData)
+          await this.addTotalsSection(
             doc,
             invoice,
-            companySettings,
-            primaryColor
+            primaryColor,
+            this.commonData
           )
 
-          // Appliquer les en-têtes et pieds de page sur toutes les pages
-          await this.applyHeadersAndFooters()
+          // Ajouter un récapitulatif spécial pour les factures de solde
+          if (invoice.invoice_type === 'solde') {
+            await this.addBalanceSummary(doc, invoice, primaryColor)
+          }
 
-          // Finaliser le document
-          doc.end()
-        } catch (error) {
-          reject(error)
-        }
-      })()
-    })
-  }
-
-  async generateAcceptedQuotePDF(quote, companySettings, acceptanceData) {
-    return new Promise((resolve, reject) => {
-      ;(async () => {
-        try {
-          // Format A4 avec marges professionnelles
-          const doc = new PDFDocument({
-            size: 'A4',
-            margin: this.pageConfig.margin,
-            bufferPages: true,
-            autoFirstPage: true,
-          })
-
-          // Calculer la zone de contenu disponible
-          this.pageConfig.contentAreaHeight =
-            doc.page.height -
-            this.pageConfig.margin * 2 -
-            this.pageConfig.headerHeight -
-            this.pageConfig.footerHeight
-
-          const chunks = []
-
-          // Collecter les données du PDF
-          doc.on('data', (chunk) => chunks.push(chunk))
-          doc.on('end', () => resolve(Buffer.concat(chunks)))
-          doc.on('error', reject)
-
-          // Configuration des couleurs personnalisées
-          const primaryColor =
-            companySettings?.primary_color || this.colors.primary
-
-          // Stocker les données communes pour toutes les pages
-          this.commonData = {
-            quote,
+          await this.addFooterContent(
+            doc,
             companySettings,
             primaryColor,
-            doc,
-          }
-
-          // Position de départ du contenu (après l'en-tête)
-          doc.y = this.getContentStartY()
-
-          // Structure du document
-          this.addCompanyAndClientInfo(
-            doc,
-            quote,
-            companySettings,
-            false,
-            primaryColor
-          ) // false = devis
-          this.addQuoteDetails(doc, quote)
-          this.addItemsTable(doc, quote, primaryColor)
-          this.addTotalsSection(doc, quote, primaryColor)
-
-          // Ajouter les conditions sur la même page si possible, sinon nouvelle page
-          const requiredHeightForConditions = 350
-          if (this.needsNewPage(requiredHeightForConditions)) {
-            this.addNewPage()
-          } else {
-            // Ajouter de l'espace avant les conditions si on reste sur la même page
-            doc.y += 40
-          }
-
-          await this.addConditionsAndSignature(
-            doc,
-            quote,
-            companySettings,
-            primaryColor
+            invoice
           )
 
-          // Ajouter la section de validation électronique
-          await this.addElectronicValidation(
-            doc,
-            quote,
-            companySettings,
-            acceptanceData,
-            primaryColor
-          )
-
-          // Appliquer les en-têtes et pieds de page sur toutes les pages
-          await this.applyHeadersAndFooters()
-
-          // Finaliser le document
           doc.end()
         } catch (error) {
           reject(error)
@@ -2094,92 +2216,141 @@ class SimplePDFService {
     })
   }
 
-  async addElectronicValidation(
-    doc,
-    quote,
-    companySettings,
-    acceptanceData,
-    primaryColor
-  ) {
-    // Nouvelle page pour la validation électronique
-    this.addNewPage()
+  async addBalanceSummary(doc, invoice, primaryColor) {
+    const pageWidth = doc.page.width
+    const margin = this.pageConfig.margin
+    const contentWidth = pageWidth - margin * 2
 
-    // Titre de validation électronique
-    doc
-      .font(this.fonts.bold)
-      .fontSize(16)
-      .fillColor(primaryColor)
-      .text('VALIDATION ÉLECTRONIQUE', this.pageConfig.margin, doc.y)
-      .fillColor(this.colors.dark)
+    // Espacement depuis la section précédente
+    const startY = doc.y + 30
 
-    doc.y += 30
-
-    // Encadré de validation
-    const validationY = doc.y
-    const validationWidth = doc.page.width - this.pageConfig.margin * 2
-    const validationHeight = 200
-
-    doc
-      .rect(
-        this.pageConfig.margin,
-        validationY,
-        validationWidth,
-        validationHeight
-      )
-      .fillColor('#f0f9ff')
-      .fill()
-      .strokeColor(primaryColor)
-      .lineWidth(2)
-      .stroke()
-
-    // Contenu de la validation
-    const contentX = this.pageConfig.margin + 20
-    let currentY = validationY + 20
-
-    // Statut accepté
+    // Titre de la section
     doc
       .font(this.fonts.bold)
       .fontSize(14)
-      .fillColor('#059669')
-      .text('✓ DEVIS ACCEPTÉ ÉLECTRONIQUEMENT', contentX, currentY)
-      .fillColor(this.colors.dark)
-    currentY += 30
+      .fillColor(primaryColor)
+      .text('RÉCAPITULATIF ACOMPTE / SOLDE', margin, startY)
 
-    // Informations de validation
-    const validationInfo = [
-      `Date d'acceptation : ${acceptanceData.acceptedAt.toLocaleString('fr-FR')}`,
-      `Adresse IP du client : ${acceptanceData.clientIp}`,
-      `Empreinte du document : ${acceptanceData.pdfSha256}`,
-      `Navigateur : ${acceptanceData.clientUserAgent || 'Non disponible'}`,
-    ]
+    const sectionY = startY + 25
 
+    // Tableau récapitulatif
+    const tableWidth = contentWidth * 0.7
+    const tableX = margin + (contentWidth - tableWidth) / 2
+    const rowHeight = 25
+    const headerHeight = 30
+
+    // En-tête du tableau
     doc
-      .font(this.fonts.regular)
-      .fontSize(10)
-      .text(validationInfo.join('\n'), contentX, currentY)
-    currentY += 80
+      .rect(tableX, sectionY, tableWidth, headerHeight)
+      .fillColor('#f8fafc')
+      .fill()
+      .strokeColor('#cbd5e1')
+      .lineWidth(0.5)
+      .stroke()
 
-    // Mention légale
     doc
       .font(this.fonts.bold)
       .fontSize(10)
-      .text('Valeur légale :', contentX, currentY)
-    currentY += 15
+      .fillColor(this.colors.dark)
+      .text('DÉTAIL', tableX + 10, sectionY + 10, {
+        width: tableWidth - 20,
+        align: 'center',
+      })
+
+    // Ligne 1: Total du devis original
+    const row1Y = sectionY + headerHeight
+    doc
+      .rect(tableX, row1Y, tableWidth, rowHeight)
+      .fillColor('#ffffff')
+      .fill()
+      .strokeColor('#cbd5e1')
+      .lineWidth(0.5)
+      .stroke()
 
     doc
       .font(this.fonts.regular)
-      .fontSize(9)
+      .fontSize(10)
+      .fillColor(this.colors.dark)
+      .text('Total du devis original', tableX + 10, row1Y + 8)
       .text(
-        "Cette validation électronique a la même valeur légale qu'une signature manuscrite conformément à l'article 1366 du Code civil français.",
-        contentX,
-        currentY,
+        this.formatCurrency(invoice.quote_total_ttc || 0),
+        tableX + 10,
+        row1Y + 8,
         {
-          width: validationWidth - 40,
+          width: tableWidth - 20,
+          align: 'right',
+        }
+      )
+
+    // Ligne 2: Acompte déjà versé
+    const row2Y = row1Y + rowHeight
+    doc
+      .rect(tableX, row2Y, tableWidth, rowHeight)
+      .fillColor('#f0fdf4')
+      .fill()
+      .strokeColor('#cbd5e1')
+      .lineWidth(0.5)
+      .stroke()
+
+    doc
+      .font(this.fonts.bold)
+      .fontSize(10)
+      .fillColor('#059669')
+      .text('Acompte déjà versé', tableX + 10, row2Y + 8)
+      .text(
+        this.formatCurrency(
+          (invoice.quote_total_ttc || 0) - (invoice.totalTtc || 0)
+        ),
+        tableX + 10,
+        row2Y + 8,
+        {
+          width: tableWidth - 20,
+          align: 'right',
+        }
+      )
+
+    // Ligne 3: Solde restant dû
+    const row3Y = row2Y + rowHeight
+    doc
+      .rect(tableX, row3Y, tableWidth, rowHeight)
+      .fillColor('#fef2f2')
+      .fill()
+      .strokeColor('#dc2626')
+      .lineWidth(1)
+      .stroke()
+
+    doc
+      .font(this.fonts.bold)
+      .fontSize(11)
+      .fillColor('#dc2626')
+      .text('SOLDE RESTANT DÛ', tableX + 10, row3Y + 7)
+      .text(
+        this.formatCurrency(invoice.totalTtc || 0),
+        tableX + 10,
+        row3Y + 7,
+        {
+          width: tableWidth - 20,
+          align: 'right',
+        }
+      )
+
+    // Note explicative
+    const noteY = row3Y + rowHeight + 20
+    doc
+      .font(this.fonts.regular)
+      .fontSize(9)
+      .fillColor('#6b7280')
+      .text(
+        "Cette facture de solde fait suite à la facture d'acompte déjà réglée. Le montant indiqué ci-dessus correspond au solde restant dû.",
+        margin,
+        noteY,
+        {
+          width: contentWidth,
           align: 'justify',
         }
       )
 
-    doc.y = validationY + validationHeight + 20
+    doc.y = noteY + 50
   }
 
   async close() {
@@ -2187,4 +2358,6 @@ class SimplePDFService {
   }
 }
 
-module.exports = new SimplePDFService()
+// Export de la classe pour créer une nouvelle instance à chaque utilisation
+// Cela évite les problèmes de concurrence avec les propriétés partagées
+module.exports = SimplePDFService

@@ -1,5 +1,5 @@
-const { query } = require("../config/database");
-const PDFService = require("./pdfService");
+const { query } = require('../config/database')
+const PDFService = require('./pdfService')
 
 class VATAttestationService {
   /**
@@ -22,7 +22,7 @@ class VATAttestationService {
         clientSignature,
         clientName,
         clientDate,
-      } = attestationData;
+      } = attestationData
 
       // Générer le PDF de l'attestation
       const pdfBuffer = await this.generateAttestationPDF({
@@ -35,7 +35,7 @@ class VATAttestationService {
         clientSignature,
         clientName,
         clientDate,
-      });
+      })
 
       // Sauvegarder l'attestation en base
       const result = await query(
@@ -59,20 +59,17 @@ class VATAttestationService {
           clientName,
           clientDate,
           pdfBuffer,
-        ],
-      );
+        ]
+      )
 
       return {
         success: true,
         attestation: result.rows[0],
         pdfBuffer,
-      };
+      }
     } catch (error) {
-      console.error(
-        "Erreur lors de la génération de l'attestation TVA:",
-        error,
-      );
-      throw new Error("Échec de la génération de l'attestation TVA");
+      console.error("Erreur lors de la génération de l'attestation TVA:", error)
+      throw new Error("Échec de la génération de l'attestation TVA")
     }
   }
 
@@ -82,18 +79,25 @@ class VATAttestationService {
    * @returns {Buffer} - PDF généré
    */
   async generateAttestationPDF(data) {
-    const html = this.generateAttestationHTML(data);
+    const html = this.generateAttestationHTML(data)
 
-    // Utiliser le service PDF existant
-    const pdfService = new PDFService();
-    return await pdfService.withPage(async (page) => {
-      await page.setContent(html, { waitUntil: "load" });
-      return await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
-      });
-    });
+    // Utiliser le service PDF existant avec fermeture automatique
+    const pdfService = new PDFService()
+    try {
+      return await pdfService.withPage(async (page) => {
+        await page.setContent(html, { waitUntil: 'load' })
+        return await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' },
+        })
+      })
+    } finally {
+      // Fermer proprement l'instance Puppeteer pour éviter les fuites
+      if (pdfService && typeof pdfService.close === 'function') {
+        await pdfService.close()
+      }
+    }
   }
 
   /**
@@ -109,24 +113,23 @@ class VATAttestationService {
       workType,
       workDescription,
       propertyAddress,
-      // clientSignature, // Variable non utilisée
       clientName,
       clientDate,
-    } = data;
+    } = data
 
     const propertyTypeText =
       {
         residential: "à usage d'habitation",
-        commercial: "à usage commercial",
-        mixed: "à usage mixte",
-      }[propertyType] || "à usage d'habitation";
+        commercial: 'à usage commercial',
+        mixed: 'à usage mixte',
+      }[propertyType] || "à usage d'habitation"
 
     const workTypeText =
       {
-        renovation: "de rénovation",
+        renovation: 'de rénovation',
         energy_improvement: "d'amélioration de la qualité énergétique",
-        maintenance: "de maintenance",
-      }[workType] || "de rénovation";
+        maintenance: 'de maintenance',
+      }[workType] || 'de rénovation'
 
     return `
 <!DOCTYPE html>
@@ -230,13 +233,13 @@ class VATAttestationService {
             </div>
             <div class="field">
                 <span class="field-label">Adresse du bien :</span>
-                <span class="field-value">${propertyAddress || "Non spécifiée"}</span>
+                <span class="field-value">${propertyAddress || 'Non spécifiée'}</span>
             </div>
         </div>
 
         <div class="section">
             <div class="section-title">DESCRIPTION DES TRAVAUX</div>
-            <div class="field-value">${workDescription || "Travaux de peinture et rénovation"}</div>
+            <div class="field-value">${workDescription || 'Travaux de peinture et rénovation'}</div>
         </div>
 
         <div class="section">
@@ -259,7 +262,7 @@ class VATAttestationService {
 
     <div class="signature-section">
         <div class="section-title">SIGNATURE DU CLIENT</div>
-        <p>Je soussigné(e) <strong>${clientName || "[Nom du client]"}</strong>, certifie sur l'honneur que les informations ci-dessus sont exactes et que les travaux concernent bien des locaux ${propertyTypeText} achevés depuis plus de deux ans.</p>
+        <p>Je soussigné(e) <strong>${clientName || '[Nom du client]'}</strong>, certifie sur l'honneur que les informations ci-dessus sont exactes et que les travaux concernent bien des locaux ${propertyTypeText} achevés depuis plus de deux ans.</p>
         
         <div style="margin-top: 30px;">
             <div class="signature-line"></div>
@@ -271,7 +274,7 @@ class VATAttestationService {
         <div style="margin-top: 20px;">
             <div class="field">
                 <span class="field-label">Date :</span>
-                <span class="field-value">${clientDate || new Date().toLocaleDateString("fr-FR")}</span>
+                <span class="field-value">${clientDate || new Date().toLocaleDateString('fr-FR')}</span>
             </div>
         </div>
     </div>
@@ -281,7 +284,7 @@ class VATAttestationService {
         <p>En cas de contrôle fiscal, cette attestation devra être présentée aux services des impôts.</p>
     </div>
 </body>
-</html>`;
+</html>`
   }
 
   /**
@@ -293,11 +296,11 @@ class VATAttestationService {
    */
   getDefaultJustification(vatRate, propertyType, workType) {
     if (vatRate === 10) {
-      return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 10% s'applique aux travaux de rénovation dans des locaux à usage d'habitation achevés depuis plus de deux ans. Les travaux concernent des locaux ${propertyType === "residential" ? "à usage d'habitation" : "à usage mixte"} et portent sur des travaux de ${workType === "renovation" ? "rénovation" : "maintenance"}.`;
+      return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 10% s'applique aux travaux de rénovation dans des locaux à usage d'habitation achevés depuis plus de deux ans. Les travaux concernent des locaux ${propertyType === 'residential' ? "à usage d'habitation" : 'à usage mixte'} et portent sur des travaux de ${workType === 'renovation' ? 'rénovation' : 'maintenance'}.`
     } else if (vatRate === 5.5) {
-      return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 5,5% s'applique aux travaux d'amélioration de la qualité énergétique des locaux à usage d'habitation. Les travaux concernent des locaux ${propertyType === "residential" ? "à usage d'habitation" : "à usage mixte"} et portent sur des travaux d'${workType === "energy_improvement" ? "amélioration de la qualité énergétique" : "efficacité énergétique"}.`;
+      return `Conformément à l'article 279-0 bis du Code général des impôts, le taux de TVA de 5,5% s'applique aux travaux d'amélioration de la qualité énergétique des locaux à usage d'habitation. Les travaux concernent des locaux ${propertyType === 'residential' ? "à usage d'habitation" : 'à usage mixte'} et portent sur des travaux d'${workType === 'energy_improvement' ? 'amélioration de la qualité énergétique' : 'efficacité énergétique'}.`
     }
-    return "Taux de TVA réduit applicable conformément à la réglementation en vigueur.";
+    return 'Taux de TVA réduit applicable conformément à la réglementation en vigueur.'
   }
 
   /**
@@ -308,12 +311,12 @@ class VATAttestationService {
    */
   async getAttestations(userId, invoiceId = null) {
     try {
-      let whereClause = "WHERE va.user_id = $1";
-      let params = [userId];
+      let whereClause = 'WHERE va.user_id = $1'
+      let params = [userId]
 
       if (invoiceId) {
-        whereClause += " AND va.invoice_id = $2";
-        params.push(invoiceId);
+        whereClause += ' AND va.invoice_id = $2'
+        params.push(invoiceId)
       }
 
       const result = await query(
@@ -328,13 +331,13 @@ class VATAttestationService {
                  LEFT JOIN clients c ON va.client_id = c.id
                  ${whereClause}
                  ORDER BY va.created_at DESC`,
-        params,
-      );
+        params
+      )
 
-      return result.rows;
+      return result.rows
     } catch (error) {
-      console.error("Erreur lors de la récupération des attestations:", error);
-      throw new Error("Échec de la récupération des attestations");
+      console.error('Erreur lors de la récupération des attestations:', error)
+      throw new Error('Échec de la récupération des attestations')
     }
   }
 
@@ -357,19 +360,19 @@ class VATAttestationService {
                  LEFT JOIN invoices i ON va.invoice_id = i.id
                  LEFT JOIN clients c ON va.client_id = c.id
                  WHERE va.id = $1 AND va.user_id = $2`,
-        [attestationId, userId],
-      );
+        [attestationId, userId]
+      )
 
       if (result.rows.length === 0) {
-        throw new Error("Attestation non trouvée");
+        throw new Error('Attestation non trouvée')
       }
 
-      return result.rows[0];
+      return result.rows[0]
     } catch (error) {
-      console.error("Erreur lors de la récupération de l'attestation:", error);
-      throw error;
+      console.error("Erreur lors de la récupération de l'attestation:", error)
+      throw error
     }
   }
 }
 
-module.exports = new VATAttestationService();
+module.exports = new VATAttestationService()

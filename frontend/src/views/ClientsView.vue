@@ -210,11 +210,36 @@
                 />
               </div>
             </div>
-            <div class="flex items-center space-x-4">
+            <div
+              class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mt-6"
+            >
+              <!-- Filtre par type -->
+              <select
+                v-model="clientTypeFilter"
+                @change="handleFilterChange"
+                class="block w-full sm:w-48 pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white ml-2"
+              >
+                <option value="">Tous les types</option>
+                <option value="company">Entreprises</option>
+                <option value="individual">Particuliers</option>
+              </select>
+
+              <!-- Filtre par statut -->
+              <select
+                v-model="statusFilter"
+                @change="handleFilterChange"
+                class="block w-full sm:w-48 pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="with_documents">Avec documents</option>
+                <option value="without_documents">Sans documents</option>
+              </select>
+
+              <!-- Tri -->
               <select
                 v-model="sortBy"
                 @change="handleSortChange"
-                class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white"
+                class="block w-full sm:w-48 pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white"
               >
                 <option value="created_at">Date de création</option>
                 <option value="first_name">Prénom</option>
@@ -228,7 +253,7 @@
               >
                 <svg
                   v-if="sortOrder === 'asc'"
-                  class="h-4 w-4"
+                  class="h-5 w-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -242,7 +267,7 @@
                 </svg>
                 <svg
                   v-else
-                  class="h-4 w-4"
+                  class="h-5 w-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -532,8 +557,20 @@
                   </button>
                   <button
                     @click="deleteClient(client)"
-                    class="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    title="Supprimer"
+                    :disabled="
+                      client.quotes_count > 0 || client.invoices_count > 0
+                    "
+                    :class="[
+                      'p-2 rounded-lg transition-colors',
+                      client.quotes_count > 0 || client.invoices_count > 0
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20',
+                    ]"
+                    :title="
+                      client.quotes_count > 0 || client.invoices_count > 0
+                        ? 'Impossible de supprimer (lié à des devis/factures)'
+                        : 'Supprimer'
+                    "
                   >
                     <svg
                       class="h-5 w-5"
@@ -788,13 +825,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useClientsStore } from "@/stores/clients";
 import { useToast } from "vue-toastification";
 import Layout from "@/components/Layout.vue";
 import ClientModal from "@/components/ClientModal.vue";
 
 const router = useRouter();
+const route = useRoute();
 const clientsStore = useClientsStore();
 const toast = useToast();
 
@@ -802,6 +840,8 @@ const toast = useToast();
 const searchTerm = ref("");
 const sortBy = ref("created_at");
 const sortOrder = ref("desc");
+const clientTypeFilter = ref("");
+const statusFilter = ref("");
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const editingClient = ref(null);
@@ -810,9 +850,35 @@ const selectedFile = ref(null);
 const importResults = ref(null);
 
 // Getters du store
-const clients = computed(() => clientsStore.clients);
 const loading = computed(() => clientsStore.loading);
 const pagination = computed(() => clientsStore.pagination);
+
+// Filtrage côté client
+const clients = computed(() => {
+  let filteredClients = clientsStore.clients;
+
+  // Filtre par type
+  if (clientTypeFilter.value === "company") {
+    filteredClients = filteredClients.filter((client) => client.isCompany);
+  } else if (clientTypeFilter.value === "individual") {
+    filteredClients = filteredClients.filter((client) => !client.isCompany);
+  }
+
+  // Filtre par statut
+  if (statusFilter.value === "with_documents") {
+    filteredClients = filteredClients.filter(
+      (client) =>
+        (client.quotes_count || 0) > 0 || (client.invoices_count || 0) > 0,
+    );
+  } else if (statusFilter.value === "without_documents") {
+    filteredClients = filteredClients.filter(
+      (client) =>
+        (client.quotes_count || 0) === 0 && (client.invoices_count || 0) === 0,
+    );
+  }
+
+  return filteredClients;
+});
 
 const companyClientsCount = computed(() => {
   return clientsStore.clients.filter((client) => client.isCompany).length;
@@ -865,6 +931,12 @@ const toggleSortOrder = () => {
   clientsStore.sortClients(sortBy.value, sortOrder.value);
 };
 
+// Gestion des filtres
+const handleFilterChange = () => {
+  // Les filtres sont appliqués côté client, pas besoin de recharger
+  // On peut juste déclencher un re-render
+};
+
 // Gestion de la pagination
 const changePage = (page) => {
   if (page >= 1 && page <= pagination.value.pages) {
@@ -883,6 +955,14 @@ const editClient = (client) => {
 };
 
 const deleteClient = async (client) => {
+  // Vérifier s'il y a des devis ou factures liés
+  if (client.quotes_count > 0 || client.invoices_count > 0) {
+    toast.error(
+      `Impossible de supprimer ce client. Il est lié à ${client.quotes_count} devis et ${client.invoices_count} factures. Pour des raisons de traçabilité, vous devez d'abord supprimer ou anonymiser ces documents.`,
+    );
+    return;
+  }
+
   if (
     confirm(
       `Êtes-vous sûr de vouloir supprimer le client ${client.firstName} ${client.lastName} ?`,
@@ -1008,10 +1088,35 @@ const formatCurrency = (amount) => {
   }).format(amount || 0);
 };
 
+// Fonction pour nettoyer le paramètre action
+const clearActionQuery = () => {
+  if (!route.query?.action) return;
+
+  const { action, ...rest } = route.query;
+  router.replace({ query: rest });
+};
+
 // Initialisation
 onMounted(() => {
   clientsStore.fetchClients();
+
+  // Vérifier si on doit ouvrir le modal de création
+  if (route.query.action === "create") {
+    showCreateModal.value = true;
+    clearActionQuery();
+  }
 });
+
+// Surveillance du paramètre action pour les clics répétés
+watch(
+  () => route.query.action,
+  (action) => {
+    if (action === "create") {
+      showCreateModal.value = true;
+      clearActionQuery();
+    }
+  },
+);
 
 // Watchers
 watch(

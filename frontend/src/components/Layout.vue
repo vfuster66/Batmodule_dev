@@ -43,7 +43,7 @@ import Navbar from "./Navbar.vue";
 defineProps({
   pageTitle: {
     type: String,
-    default: "BatModule",
+    default: "",
   },
   notificationCount: {
     type: Number,
@@ -68,7 +68,7 @@ const pageTitle = computed(() => {
     "/company": "Entreprise",
     "/analytics": "Statistiques",
   };
-  return titles[route.path] || "BatModule";
+  return titles[route.path] || "";
 });
 
 const toggleSidebar = () => {

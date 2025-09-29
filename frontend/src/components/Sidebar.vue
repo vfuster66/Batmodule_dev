@@ -482,21 +482,8 @@ onMounted(async () => {
 
   // Charger les paramètres d'entreprise pour le logo
   try {
-    console.log("🔍 Chargement forcé des paramètres d'entreprise...");
-
     // Toujours charger les paramètres pour s'assurer qu'ils sont à jour
     await companyStore.fetchSettings();
-    console.log(
-      "✅ Paramètres chargés, displayLogo:",
-      companyStore.displayLogo ? "Présent" : "Absent",
-    );
-
-    if (companyStore.displayLogo) {
-      console.log(
-        "🖼️ Logo disponible:",
-        companyStore.displayLogo.substring(0, 50) + "...",
-      );
-    }
   } catch (error) {
     console.error(
       "❌ Erreur lors du chargement des paramètres d'entreprise:",
@@ -508,12 +495,7 @@ onMounted(async () => {
 // Watcher pour surveiller les changements du logo
 watch(
   () => companyStore.displayLogo,
-  (newLogo) => {
-    console.log(
-      "🖼️ Logo mis à jour dans la sidebar:",
-      newLogo ? "Présent" : "Absent",
-    );
-  },
+  (newLogo) => {},
   { immediate: true },
 );
 
@@ -532,6 +514,11 @@ const companyNavigation = [
     name: "Configuration entreprise",
     href: "/settings",
     icon: BuildingOfficeIcon,
+  },
+  {
+    name: "Conformité RGPD",
+    href: "/rgpd",
+    icon: ShieldCheckIcon,
   },
   // Onglets doublons retirés: Paramètres, Mentions légales, Entreprise et Statistiques
   { name: "Déconnexion", href: "/logout", icon: LogoutIcon, action: "logout" },

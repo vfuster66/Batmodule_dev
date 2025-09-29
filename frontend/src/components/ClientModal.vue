@@ -95,13 +95,13 @@
                     for="first_name"
                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   >
-                    Prénom *
+                    Prénom {{ !formData.is_company ? "*" : "" }}
                   </label>
                   <input
                     type="text"
                     id="first_name"
                     v-model="formData.first_name"
-                    required
+                    :required="!formData.is_company"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:text-white transition-colors"
                   />
                 </div>
@@ -110,13 +110,13 @@
                     for="last_name"
                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   >
-                    Nom *
+                    Nom {{ !formData.is_company ? "*" : "" }}
                   </label>
                   <input
                     type="text"
                     id="last_name"
                     v-model="formData.last_name"
-                    required
+                    :required="!formData.is_company"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:text-white transition-colors"
                   />
                 </div>
@@ -125,13 +125,12 @@
                     for="email"
                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   >
-                    Email *
+                    Email
                   </label>
                   <input
                     type="email"
                     id="email"
                     v-model="formData.email"
-                    required
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:text-white transition-colors"
                   />
                 </div>
